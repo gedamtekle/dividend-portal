@@ -254,9 +254,7 @@
       <label class="small mut" style="font-weight:600">Email</label>
       <input id="suEmail" class="field" style="margin:6px 0 12px" placeholder="you@email.com" type="email">
       <label class="small mut" style="font-weight:600">Create a password</label>
-      <input id="suPass" class="field" type="password" style="margin:6px 0 12px" placeholder="At least 8 characters">
-      <label class="small mut" style="font-weight:600">Password hint <span style="color:var(--mut2)">(optional)</span></label>
-      <input id="suHint" class="field" style="margin:6px 0 14px" placeholder="A reminder only you'd understand">
+      <input id="suPass" class="field" type="password" style="margin:6px 0 16px" placeholder="At least 8 characters">
       <button class="btn primary" id="suBtn" style="width:100%;justify-content:center" onclick="doSignUp()">Create account</button>
       <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back to sign in</a></div>
     </div>
@@ -1126,11 +1124,11 @@ async function doMfaVerify(){
 }
 async function doSignUp(){
   if(!sb)return authMsg('Auth is still loading.');
-  const email=val('suEmail'),pass=val('suPass'),first=val('suFirst'),last=val('suLast'),hint=val('suHint');
+  const email=val('suEmail'),pass=val('suPass'),first=val('suFirst'),last=val('suLast');
   if(!first||!last)return authMsg('Enter your first and last name.');
   if(!email||pass.length<8)return authMsg('Enter an email and a password of at least 8 characters.');
   busy('suBtn',true);
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin,data:{first_name:first,last_name:last,full_name:(first+' '+last).trim(),avatar_url:window._avatarData||null,password_hint:hint||null}}});
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin,data:{first_name:first,last_name:last,full_name:(first+' '+last).trim(),avatar_url:window._avatarData||null}}});
   busy('suBtn',false);
   if(error)return authMsg(error.message);
   if(data.session){await routeAfterLogin();}
