@@ -227,23 +227,58 @@
     <div style="text-align:center;margin-bottom:22px">
       <div class="logo" style="width:54px;height:54px;border-radius:16px;margin:0 auto 12px"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" style="width:30px;height:30px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
       <b style="font-family:'Poppins';font-size:19px">Dividend Shift</b>
-      <div class="small mut" style="letter-spacing:1.5px;text-transform:uppercase">Operator Portal</div>
+      <div class="small mut" style="letter-spacing:1.5px;text-transform:uppercase">Client Portal</div>
     </div>
-    <div id="authStep1">
+    <div id="authMsg" class="small" style="display:none;margin-bottom:14px;padding:10px 12px;border-radius:10px;line-height:1.4"></div>
+
+    <div class="authpanel" id="apSignin">
       <label class="small mut" style="font-weight:600">Email</label>
-      <input class="field" style="margin:6px 0 14px" placeholder="you@email.com">
+      <input id="liEmail" class="field" style="margin:6px 0 14px" placeholder="you@email.com" type="email" autocomplete="email">
       <label class="small mut" style="font-weight:600">Password</label>
-      <input class="field" type="password" style="margin:6px 0 6px" placeholder="••••••••">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 18px"><label class="small mut" style="display:flex;align-items:center;gap:7px;cursor:pointer"><span class="toggle on" onclick="this.classList.toggle('on')" style="transform:scale(.78)"><i></i></span> Remember me</label><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer">Forgot password?</a></div>
-      <button class="btn primary" style="width:100%;justify-content:center" onclick="authNext()">Sign in</button>
-      <div class="small mut" style="text-align:center;margin-top:14px">🔒 Prototype — any email &amp; password works</div>
+      <input id="liPass" class="field" type="password" style="margin:6px 0 6px" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 18px"><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apMagic')">Email me a link</a><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apReset')">Forgot password?</a></div>
+      <button class="btn primary" id="liBtn" style="width:100%;justify-content:center" onclick="doSignIn()">Sign in</button>
+      <div class="small mut" style="text-align:center;margin-top:14px">New here? <a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignup')">Create an account</a></div>
     </div>
-    <div id="authStep2" style="display:none">
-      <h2 style="font-size:18px;margin-bottom:4px">Check your email</h2>
-      <p class="small mut" style="margin-bottom:16px">Enter the 6-digit code we sent via Resend.</p>
-      <input class="authcode" maxlength="6" placeholder="••••••">
-      <button class="btn primary" style="width:100%;justify-content:center;margin-top:16px" onclick="authDone()">Verify &amp; sign in</button>
-      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="authBack()">← Back</a></div>
+
+    <div class="authpanel" id="apSignup" style="display:none">
+      <label class="small mut" style="font-weight:600">Email</label>
+      <input id="suEmail" class="field" style="margin:6px 0 14px" placeholder="you@email.com" type="email">
+      <label class="small mut" style="font-weight:600">Create a password</label>
+      <input id="suPass" class="field" type="password" style="margin:6px 0 14px" placeholder="At least 8 characters">
+      <button class="btn primary" id="suBtn" style="width:100%;justify-content:center" onclick="doSignUp()">Create account</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back to sign in</a></div>
+    </div>
+
+    <div class="authpanel" id="apMagic" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Email me a login link</h2>
+      <p class="small mut" style="margin-bottom:14px">We'll send a one-tap sign-in link to your inbox.</p>
+      <input id="mlEmail" class="field" type="email" placeholder="you@email.com" style="margin-bottom:14px">
+      <button class="btn primary" id="mlBtn" style="width:100%;justify-content:center" onclick="doMagic()">Send link</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back</a></div>
+    </div>
+
+    <div class="authpanel" id="apReset" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Reset your password</h2>
+      <p class="small mut" style="margin-bottom:14px">We'll email you a secure reset link.</p>
+      <input id="rsEmail" class="field" type="email" placeholder="you@email.com" style="margin-bottom:14px">
+      <button class="btn primary" id="rsBtn" style="width:100%;justify-content:center" onclick="doReset()">Send reset link</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back</a></div>
+    </div>
+
+    <div class="authpanel" id="apNewpw" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Set a new password</h2>
+      <p class="small mut" style="margin-bottom:14px">Enter a new password for your account.</p>
+      <input id="npPass" class="field" type="password" placeholder="New password (8+ chars)" style="margin-bottom:14px">
+      <button class="btn primary" id="npBtn" style="width:100%;justify-content:center" onclick="doNewPw()">Update password</button>
+    </div>
+
+    <div class="authpanel" id="ap2fa" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Two-factor verification</h2>
+      <p class="small mut" style="margin-bottom:16px">Enter the 6-digit code from your authenticator app.</p>
+      <input id="mfaCode" class="authcode" maxlength="6" placeholder="••••••" inputmode="numeric" onkeydown="if(event.key==='Enter')doMfaVerify()">
+      <button class="btn primary" id="mfaBtn" style="width:100%;justify-content:center;margin-top:16px" onclick="doMfaVerify()">Verify</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="signOut()">← Cancel</a></div>
     </div>
   </div>
 </div>
@@ -253,7 +288,7 @@
   <aside class="side">
     <div class="brand">
       <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
-      <div><b>Dividend<br>Shift</b><div class="tag">Operator Portal</div></div>
+      <div><b>Dividend<br>Shift</b><div class="tag">Client Portal</div></div>
     </div>
     <div class="navlbl">Learn</div>
     <div class="nav active" data-screen="dashboard" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</div>
@@ -558,7 +593,7 @@
             <div class="card pad">
               <h2 style="font-size:16px;margin-bottom:4px">Login &amp; security</h2>
               <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Magic-link sign-in</b><div class="small mut">Skip passwords — we email a one-tap login link (via Resend).</div></div><div class="toggle on" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
-              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Two-factor authentication</b><div class="small mut">Email a 6-digit code on new-device login.</div></div><div class="toggle" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Two-factor authentication</b><div class="small mut">Use an authenticator app (TOTP) for a code on login.</div></div><div class="toggle" id="twofaToggle" onclick="twofaClick(this)"><i></i></div></div>
               <hr class="div" style="margin:14px 0">
               <button class="btn" style="width:100%;justify-content:center" onclick="signOut()">Sign out</button>
             </div>
@@ -618,6 +653,7 @@
   <div class="modal" id="askModal"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ---------- JOURNEY DATA ---------- */
 const stages=[
@@ -959,11 +995,118 @@ function renderScouter(){
 }
 renderScouter();
 
-/* ---------- AUTH (prototype) ---------- */
-function authNext(){document.getElementById('authStep1').style.display='none';document.getElementById('authStep2').style.display='block';}
-function authBack(){document.getElementById('authStep2').style.display='none';document.getElementById('authStep1').style.display='block';}
-function authDone(){document.getElementById('authScreen').classList.add('hide');}
-function signOut(){authBack();document.getElementById('authScreen').classList.remove('hide');goScreen('dashboard');window.scrollTo(0,0);}
+/* ---------- AUTH (real · Supabase) ---------- */
+const SUPA_URL='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+const SUPA_KEY='sb_publishable_SCVc6CWLgTYrOYOI6sQpcQ_Zb9jE6ER';
+let sb=null; try{ sb=window.supabase.createClient(SUPA_URL,SUPA_KEY); }catch(e){ console.error('supabase init',e); }
+let mfaFactorId=null,mfaChallengeId=null,enrollFactorId=null;
+function val(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function showPanel(id){document.querySelectorAll('.authpanel').forEach(p=>p.style.display='none');const el=document.getElementById(id);if(el)el.style.display='block';hideAuthMsg();}
+function authMsg(t,ok){const m=document.getElementById('authMsg');m.style.display='block';m.textContent=t;m.style.background=ok?'var(--green-soft)':'#FDECEC';m.style.color=ok?'#137a47':'#b4232a';m.style.border='1px solid '+(ok?'#C5EAD6':'#FAD9D9');}
+function hideAuthMsg(){const m=document.getElementById('authMsg');if(m)m.style.display='none';}
+function busy(id,on){const b=document.getElementById(id);if(!b)return;b.disabled=on;b.style.opacity=on?'.6':'';if(on){if(!b.dataset.lbl)b.dataset.lbl=b.textContent;b.textContent='Please wait…';}else if(b.dataset.lbl){b.textContent=b.dataset.lbl;}}
+function enterApp(){document.getElementById('authScreen').classList.add('hide');}
+function showAuth(){document.getElementById('authScreen').classList.remove('hide');showPanel('apSignin');}
+
+async function routeAfterLogin(){
+  try{
+    const {data:aal}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(aal&&aal.nextLevel==='aal2'&&aal.currentLevel==='aal1'){
+      const {data:fl}=await sb.auth.mfa.listFactors();
+      const totp=fl&&fl.totp&&fl.totp[0];
+      if(totp){mfaFactorId=totp.id;const {data:ch,error}=await sb.auth.mfa.challenge({factorId:totp.id});if(!error){mfaChallengeId=ch.id;showPanel('ap2fa');setTimeout(()=>{const c=document.getElementById('mfaCode');if(c)c.focus();},60);return;}}
+    }
+  }catch(e){console.warn('mfa check',e);}
+  enterApp();
+}
+async function doSignIn(){
+  if(!sb)return authMsg('Auth is still loading — give it a second and retry.');
+  const email=val('liEmail'),pass=val('liPass');
+  if(!email||!pass)return authMsg('Enter your email and password.');
+  busy('liBtn',true);
+  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  busy('liBtn',false);
+  if(error)return authMsg(error.message);
+  await routeAfterLogin();
+}
+async function doMfaVerify(){
+  const code=val('mfaCode');if(!code)return authMsg('Enter the 6-digit code.');
+  busy('mfaBtn',true);
+  const {error}=await sb.auth.mfa.verify({factorId:mfaFactorId,challengeId:mfaChallengeId,code});
+  busy('mfaBtn',false);
+  if(error)return authMsg(error.message);
+  enterApp();
+}
+async function doSignUp(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const email=val('suEmail'),pass=val('suPass');
+  if(!email||pass.length<8)return authMsg('Enter an email and a password of at least 8 characters.');
+  busy('suBtn',true);
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin}});
+  busy('suBtn',false);
+  if(error)return authMsg(error.message);
+  if(data.session){await routeAfterLogin();}
+  else authMsg('Account created — check your email to confirm, then sign in.',true);
+}
+async function doMagic(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const email=val('mlEmail');if(!email)return authMsg('Enter your email.');
+  busy('mlBtn',true);
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});
+  busy('mlBtn',false);
+  if(error)return authMsg(error.message);
+  authMsg('Login link sent — check your email.',true);
+}
+async function doReset(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const email=val('rsEmail');if(!email)return authMsg('Enter your email.');
+  busy('rsBtn',true);
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
+  busy('rsBtn',false);
+  if(error)return authMsg(error.message);
+  authMsg('Reset link sent — check your email.',true);
+}
+async function doNewPw(){
+  const p=val('npPass');if(p.length<8)return authMsg('Password must be at least 8 characters.');
+  busy('npBtn',true);
+  const {error}=await sb.auth.updateUser({password:p});
+  busy('npBtn',false);
+  if(error)return authMsg(error.message);
+  authMsg('Password updated — signing you in…',true);setTimeout(enterApp,800);
+}
+async function signOut(){try{if(sb)await sb.auth.signOut();}catch(e){}showAuth();goScreen('dashboard');window.scrollTo(0,0);}
+
+/* 2FA enrollment (from Settings) */
+async function twofaClick(el){
+  if(!sb){toast('Auth not ready');return;}
+  if(el.classList.contains('on')){
+    try{const {data}=await sb.auth.mfa.listFactors();for(const f of ((data&&data.totp)||[]))await sb.auth.mfa.unenroll({factorId:f.id});}catch(e){}
+    el.classList.remove('on');toast('Two-factor disabled');
+  }else{ enroll2FA(el); }
+}
+async function enroll2FA(el){
+  const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'app-'+Date.now()});
+  if(error){toast(error.message);return;}
+  enrollFactorId=data.id;
+  document.getElementById('askModal').innerHTML=`<div class="mhead"><b style="font-family:'Poppins';font-size:16px;flex:1">Set up two-factor auth</b><div class="iconbtn" style="width:30px;height:30px;border:0;background:none" onclick="cancelEnroll()">✕</div></div><div class="pad"><p class="note" style="margin-bottom:12px">Scan with Google Authenticator, Authy or 1Password, then enter the 6-digit code.</p><div style="text-align:center;margin-bottom:10px">${data.totp.qr_code}</div><div class="small mut" style="text-align:center;margin-bottom:12px;word-break:break-all">Manual key: <b>${data.totp.secret}</b></div><input id="enrollCode" class="authcode" maxlength="6" placeholder="••••••" inputmode="numeric"><button class="btn primary" style="width:100%;justify-content:center;margin-top:14px" onclick="verifyEnroll('${el.id||''}')">Verify &amp; enable</button></div>`;
+  document.getElementById('askOverlay').classList.add('show');
+}
+async function verifyEnroll(togId){
+  const code=val('enrollCode');if(!code)return toast('Enter the 6-digit code');
+  const {data:ch,error:e1}=await sb.auth.mfa.challenge({factorId:enrollFactorId});
+  if(e1)return toast(e1.message);
+  const {error:e2}=await sb.auth.mfa.verify({factorId:enrollFactorId,challengeId:ch.id,code});
+  if(e2)return toast(e2.message);
+  closeAsk();const t=togId&&document.getElementById(togId);if(t)t.classList.add('on');toast('Two-factor enabled ✓');
+}
+function cancelEnroll(){try{if(sb&&enrollFactorId)sb.auth.mfa.unenroll({factorId:enrollFactorId});}catch(e){}closeAsk();}
+
+/* session bootstrap */
+(async function(){
+  if(!sb){showPanel('apSignin');return;}
+  sb.auth.onAuthStateChange((event)=>{ if(event==='PASSWORD_RECOVERY'){document.getElementById('authScreen').classList.remove('hide');showPanel('apNewpw');} });
+  try{const {data:{session}}=await sb.auth.getSession();if(session){await routeAfterLogin();}else{showPanel('apSignin');}}catch(e){showPanel('apSignin');}
+})();
 </script>
 </body>
 </html>
