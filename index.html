@@ -860,7 +860,7 @@ function openClient(i){
       <div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h1 style="font-size:22px">${c.n}</h1>${suspended?'<span class="pill" style="background:#FDECEC;color:#b4232a;border-color:#FAD9D9">Suspended</span>':'<span class="pill green">Active</span>'}</div><div class="small mut">${c.email} · ${c.plan} · joined ${c.joined}</div></div>
       <button class="btn" onclick="toast('Password reset email sent to ${c.email}')">Send password reset</button>
       <button class="btn" style="${suspended?'background:var(--blue);color:#fff;border:0':'background:#FDECEC;color:#b4232a;border-color:#FAD9D9'}" onclick="toggleSuspend(${i})">${suspended?'Reactivate access':'Suspend access'}</button>
-      <button class="btn" style="background:#14161D;color:#fff;border:0" onclick="generateLegalExport(${i})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Legal export</button>
+      ${canExport()?`<button class="btn" style="background:#14161D;color:#fff;border:0" onclick="generateLegalExport(${i})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Legal export</button>`:''}
     </div>
     <div class="row" style="align-items:flex-start">
       <div style="flex:1;min-width:280px" class="grid">
@@ -876,12 +876,12 @@ function openClient(i){
           <div class="small mut" style="margin-bottom:6px">Check off delivery milestones — the client sees these update live.</div>
           ${stepsHtml}
         </div>
-        <div class="card pad">
+        ${canExport()?`<div class="card pad">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div class="h-eyebrow" style="margin:0;color:#14161D">Chargeback evidence</div><span class="pill green">🛡️ Auto-collected</span></div>
           <div class="small mut" style="margin-bottom:8px">The portal automatically captures the evidence that wins disputes:</div>
           ${evidenceChecklist}
           <button class="btn" style="width:100%;justify-content:center;margin-top:12px;background:#14161D;color:#fff;border:0" onclick="generateLegalExport(${i})">⚖ Generate full legal export</button>
-        </div>
+        </div>`:`<div class="card pad"><div class="h-eyebrow" style="color:#14161D">Chargeback evidence</div><div class="small mut" style="margin-top:6px">🔒 Legal export is restricted to <b>Admin</b> and above. Your role (${currentRole}) can manage access, plans and modules — but not export legal evidence.</div></div>`}
       </div>
       <div style="flex:1.5;min-width:300px">
         <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
@@ -966,13 +966,16 @@ const perms=[
   ['Manage team & roles',[1,0,0,0]],
   ['Billing & account settings',[1,1,0,0]],
   ['Legal / chargeback export',[1,1,0,0]],
-  ['Assign / change client plans',[1,1,1,0]],
-  ['Suspend / reactivate access',[1,1,1,0]],
-  ['Unlock client tools',[1,1,1,0]],
+  ['Permanently delete data',[1,0,0,0]],
+  ['Give program access / assign plan',[1,1,1,1]],
+  ['Assign modules & unlock tools',[1,1,1,1]],
   ['Update delivery milestones',[1,1,1,1]],
-  ['View clients & respond',[1,1,1,1]],
-  ['Permanently delete data',[1,0,0,0]]
+  ['Suspend / reactivate access',[1,1,1,0]],
+  ['View clients & respond',[1,1,1,1]]
 ];
+let currentRole='Owner';
+function canExport(){return currentRole==='Owner'||currentRole==='Admin';}
+function setCurrentRole(r){currentRole=r;renderTeam();if(document.getElementById('client').classList.contains('show')){const idx=clients.findIndex(x=>x.n===document.querySelector('#clientInner h1')?.textContent);if(idx>=0)openClient(idx);}toast('Previewing portal as '+r);}
 const roleColors={Owner:'background:#14161D;color:#fff;border:0',Admin:'background:var(--blue-soft);color:var(--blue-dim);border-color:#DCE6FF',Manager:'background:#FFF3D9;color:#9A6B0E;border-color:#F4E2B6',CES:'background:var(--green-soft);color:#137a47;border-color:#C5EAD6'};
 function changeRole(i,r){teamMembers[i].role=r;toast(teamMembers[i].n+' is now '+r);renderTeam();}
 function inviteMember(){const e=document.getElementById('inviteEmail');const r=document.getElementById('inviteRole').value;if(!e.value.trim())return toast('Enter an email');toast('Invitation sent to '+e.value.trim()+' as '+r);e.value='';}
@@ -983,7 +986,8 @@ function renderTeam(){
   document.getElementById('teamInner').innerHTML=`
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span class="badge-admin">Admin only</span></div>
     <h1 style="font-size:25px;margin-bottom:6px">Team & Access Levels</h1>
-    <p class="mut" style="margin-bottom:22px">Four access tiers, highest to lowest. Each member is assigned one role that controls exactly what they can do.</p>
+    <p class="mut" style="margin-bottom:18px">Four access tiers, highest to lowest. Each member is assigned one role that controls exactly what they can do.</p>
+    <div class="card pad" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px"><span class="small mut" style="font-weight:600">Preview portal as:</span><div class="seg">${ROLES.map(r=>`<button class="${r===currentRole?'on':''}" onclick="setCurrentRole('${r}')">${r}</button>`).join('')}</div><span class="small mut" style="margin-left:auto">Legal export shows only for Admin &amp; Owner</span></div>
     <div class="row" style="align-items:flex-start">
       <div style="flex:1;min-width:280px" class="grid">
         <div class="card pad"><div class="h-eyebrow">Access ladder</div>${ladder}</div>
