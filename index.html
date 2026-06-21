@@ -324,6 +324,8 @@
     <div class="nav" data-screen="coach" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg>AI Coach</div>
     <div class="navlbl">Tools</div>
     <div class="nav" data-screen="scouter" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Location Scouter <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2" style="margin-left:auto"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+    <div class="nav" data-screen="builder" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></svg>Website Builder <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2" style="margin-left:auto"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+    <div class="nav" data-screen="intake" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Location Intake <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2" style="margin-left:auto"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
     <div class="navlbl">Operate</div>
     <div class="nav" data-screen="admin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Analytics <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="navlbl">Account</div>
@@ -351,7 +353,13 @@
       <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Search lessons, transcripts, resources…"></div>
       <div style="display:flex;align-items:center;gap:12px">
         <div class="switch"><button class="on" id="vClient" onclick="setView('client')">Client View</button><button id="vAdmin" onclick="setView('admin')">Admin View</button></div>
-        <div class="iconbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+        <div style="position:relative">
+          <div class="iconbtn" onclick="toggleNotif(event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span id="notifBadge" style="position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px"></span></div>
+          <div id="notifPanel" style="display:none;position:absolute;right:0;top:46px;width:340px;max-width:90vw;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);z-index:50;overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)"><b style="font-family:'Poppins';font-size:14px">Notifications</b><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer" onclick="clearAllNotif()">Clear all</a></div>
+            <div id="notifList" style="max-height:380px;overflow:auto"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -590,6 +598,12 @@
 
       <!-- ============ LOCATION SCOUTER ============ -->
       <section class="screen" id="scouter"><div id="scouterInner"></div></section>
+
+      <!-- ============ WEBSITE BUILDER (locked tool) ============ -->
+      <section class="screen" id="builder"><div id="builderInner"></div></section>
+
+      <!-- ============ LOCATION INTAKE (locked tool) ============ -->
+      <section class="screen" id="intake"><div id="intakeInner"></div></section>
 
       <!-- ============ SETTINGS ============ -->
       <section class="screen" id="settings">
@@ -1096,6 +1110,52 @@ function renderScouter(){
   }
 }
 renderScouter();
+
+/* ---------- NOTIFICATIONS ---------- */
+let notifs=[
+  {icon:'🔓',title:'Website Builder unlocked',body:'You can now build your site — it replaces the old intake form.',time:'2m ago'},
+  {icon:'💬',title:'The team replied to your question',body:'Re: 14-Day Sprint — Merchant Targeting',time:'1h ago'},
+  {icon:'▶️',title:'New module available',body:'Autonomy · Fiat Settlement Explained',time:'3h ago'},
+  {icon:'✅',title:'Milestone completed',body:'EIN Obtained — your setup is 50% done',time:'1d ago'}
+];
+function renderNotif(){
+  const list=document.getElementById('notifList');const badge=document.getElementById('notifBadge');
+  if(!list)return;
+  badge.style.display=notifs.length?'grid':'none';badge.textContent=notifs.length;
+  if(!notifs.length){list.innerHTML='<div class="small mut" style="padding:28px;text-align:center">All caught up — no new notifications 🎉</div>';return;}
+  list.innerHTML=notifs.map((n,i)=>`<div style="display:flex;gap:11px;padding:13px 16px;border-bottom:1px solid var(--line)"><div style="font-size:18px">${n.icon}</div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${n.title}</div><div class="small mut">${n.body}</div><div class="small" style="color:var(--mut2);margin-top:3px">${n.time}</div></div><div style="cursor:pointer;color:var(--mut2);font-size:14px;padding:2px 4px" onclick="clearNotif(${i})">✕</div></div>`).join('');
+}
+function toggleNotif(e){if(e)e.stopPropagation();const p=document.getElementById('notifPanel');p.style.display=p.style.display==='none'?'block':'none';}
+function clearNotif(i){notifs.splice(i,1);renderNotif();}
+function clearAllNotif(){notifs=[];renderNotif();}
+document.addEventListener('click',function(e){const p=document.getElementById('notifPanel');if(p&&p.style.display==='block'&&!p.contains(e.target)&&!(e.target.closest&&e.target.closest('.iconbtn')))p.style.display='none';});
+renderNotif();
+
+/* ---------- WEBSITE BUILDER (locked tool) ---------- */
+let builderUnlocked=false;
+function toggleBuilder(){builderUnlocked=!builderUnlocked;renderBuilder();}
+function renderBuilder(){
+  const teaser=`<div style="border:1px solid var(--line);border-radius:14px;overflow:hidden"><div style="height:120px;background:linear-gradient(135deg,#2F6BFF,#5B9DFF);display:grid;place-items:center;color:#fff;font-family:'Poppins';font-weight:700;font-size:20px">Your Business</div><div style="padding:16px;display:flex;flex-direction:column;gap:10px"><div style="height:12px;background:var(--card2);border-radius:6px;width:70%"></div><div style="height:12px;background:var(--card2);border-radius:6px"></div><div style="display:flex;gap:10px;margin-top:6px"><div style="height:64px;flex:1;background:var(--card2);border-radius:10px"></div><div style="height:64px;flex:1;background:var(--card2);border-radius:10px"></div><div style="height:64px;flex:1;background:var(--card2);border-radius:10px"></div></div></div></div>`;
+  if(!builderUnlocked){
+    document.getElementById('builderInner').innerHTML=`<div class="h-eyebrow">Tools</div><h1 style="font-size:25px;margin-bottom:6px">Website Builder</h1><p class="mut" style="margin-bottom:22px">Build your operator website right here — no separate form. Add your business name, branding and details, then publish.</p><div class="lockwrap"><div class="lockblur">${teaser}</div><div class="lockover"><div class="card pad" style="max-width:430px;text-align:center"><div style="width:56px;height:56px;border-radius:15px;background:var(--card2);display:grid;place-items:center;margin:0 auto 14px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--mut)" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div><h2 style="font-size:19px;margin-bottom:8px">Unlocks when your site phase begins</h2><p class="note" style="margin-bottom:16px">Your team opens this when you're ready to build — and you'll get a notification here the moment it does. It replaces the intake form we used to send you.</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn slack" onclick="openAsk('Unlock Website Builder')">Request early access</button><button class="btn" onclick="toggleBuilder()">Preview unlocked view</button></div><div class="small mut" style="margin-top:14px">Admin: unlock per client from their profile.</div></div></div></div>`;
+  } else {
+    document.getElementById('builderInner').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px"><div><div class="h-eyebrow">Tools · Unlocked</div><h1 style="font-size:25px">Website Builder</h1></div><button class="btn" onclick="toggleBuilder()">Show locked view</button></div><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:280px" class="card pad"><div class="h-eyebrow">Your site details</div><label class="small mut" style="font-weight:600">Business name</label><input class="field" style="margin:6px 0 12px" placeholder="e.g. Bay Area Crypto Pay"><label class="small mut" style="font-weight:600">Tagline</label><input class="field" style="margin:6px 0 12px" placeholder="Accept crypto. Settle in cash."><label class="small mut" style="font-weight:600">Brand color</label><input type="color" value="#2F6BFF" style="width:100%;height:42px;border:1px solid var(--line2);border-radius:11px;margin:6px 0 12px;background:none"><label class="small mut" style="font-weight:600">Logo</label><div style="margin:6px 0 12px"><label class="btn" style="cursor:pointer">Upload logo<input type="file" accept="image/*" style="display:none"></label></div><div class="setrow" style="padding:10px 0"><div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div><div style="flex:1"><b style="font-size:13px">Show client testimonials</b></div></div><div class="setrow" style="padding:10px 0"><div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div><div style="flex:1"><b style="font-size:13px">Contact / booking section</b></div></div><button class="btn primary" style="width:100%;justify-content:center;margin-top:14px" onclick="toast('Site published 🎉')">Publish my site</button></div><div style="flex:1.2;min-width:280px"><div class="sec-title" style="margin:0 0 12px"><h2 style="font-size:15px">Live preview</h2></div>${teaser}</div></div>`;
+  }
+}
+renderBuilder();
+
+/* ---------- LOCATION INTAKE (locked tool) ---------- */
+let intakeUnlocked=false;
+function toggleIntake(){intakeUnlocked=!intakeUnlocked;renderIntake();}
+function renderIntake(){
+  const teaser=`<div class="card pad"><div style="display:flex;flex-direction:column;gap:10px;opacity:.85"><div style="height:12px;background:var(--card2);border-radius:6px;width:40%"></div><div style="height:38px;background:var(--card2);border-radius:9px"></div><div style="height:12px;background:var(--card2);border-radius:6px;width:50%"></div><div style="height:38px;background:var(--card2);border-radius:9px"></div><div style="display:flex;gap:10px"><div style="height:38px;flex:1;background:var(--card2);border-radius:9px"></div><div style="height:38px;flex:1;background:var(--card2);border-radius:9px"></div></div></div></div>`;
+  if(!intakeUnlocked){
+    document.getElementById('intakeInner').innerHTML=`<div class="h-eyebrow">Tools</div><h1 style="font-size:25px;margin-bottom:6px">Location Intake</h1><p class="mut" style="margin-bottom:22px">Submit a merchant location for onboarding — right here in your portal. Replaces the Jotform we used to send.</p><div class="lockwrap"><div class="lockblur">${teaser}</div><div class="lockover"><div class="card pad" style="max-width:430px;text-align:center"><div style="width:56px;height:56px;border-radius:15px;background:var(--card2);display:grid;place-items:center;margin:0 auto 14px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--mut)" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div><h2 style="font-size:19px;margin-bottom:8px">Unlocks when you're ready to submit</h2><p class="note" style="margin-bottom:16px">Your team opens this when it's time to onboard your first location — you'll be notified here. It replaces the Jotform.</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn slack" onclick="openAsk('Unlock Location Intake')">Request early access</button><button class="btn" onclick="toggleIntake()">Preview unlocked view</button></div><div class="small mut" style="margin-top:14px">Admin: unlock per client from their profile.</div></div></div></div>`;
+  } else {
+    document.getElementById('intakeInner').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px"><div><div class="h-eyebrow">Tools · Unlocked</div><h1 style="font-size:25px">Location Intake</h1></div><button class="btn" onclick="toggleIntake()">Show locked view</button></div><div class="card pad" style="max-width:680px"><div class="h-eyebrow">Merchant location details</div><label class="small mut" style="font-weight:600">Business / location name</label><input class="field" style="margin:6px 0 12px" placeholder="Riverside Car Wash"><label class="small mut" style="font-weight:600">Address</label><input class="field" style="margin:6px 0 12px" placeholder="Street, City, State, ZIP"><div style="display:flex;gap:10px"><div style="flex:1"><label class="small mut" style="font-weight:600">Location type</label><input class="field" style="margin:6px 0 12px" placeholder="Car wash / restaurant…"></div><div style="flex:1"><label class="small mut" style="font-weight:600">Avg daily transactions</label><input class="field" style="margin:6px 0 12px" placeholder="e.g. 420"></div></div><div style="display:flex;gap:10px"><div style="flex:1"><label class="small mut" style="font-weight:600">Owner name</label><input class="field" style="margin:6px 0 12px" placeholder="Full name"></div><div style="flex:1"><label class="small mut" style="font-weight:600">Owner phone</label><input class="field" style="margin:6px 0 12px" placeholder="(555) 555-5555"></div></div><label class="small mut" style="font-weight:600">Photos of the location</label><div style="margin:6px 0 12px"><label class="btn" style="cursor:pointer">Add photos<input type="file" accept="image/*" multiple style="display:none"></label></div><label class="small mut" style="font-weight:600">Notes</label><textarea class="field" style="margin:6px 0 14px;min-height:80px;resize:vertical" placeholder="Anything our team should know…"></textarea><button class="btn primary" style="width:100%;justify-content:center" onclick="toast('Location submitted to the team ✅')">Submit location</button></div>`;
+  }
+}
+renderIntake();
 
 /* ---------- AUTH (real · Supabase) ---------- */
 const SUPA_URL='https://dehttbxrkeqhsfkfpfwt.supabase.co';
