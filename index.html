@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dividend Shift — Client Portal (Mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFFFFF; --bg2:#F7F8FB; --card:#FFFFFF; --card2:#F4F6FB;
+    --line:#E7EAF1; --line2:#D8DEEA;
+    --txt:#14161D; --mut:#5C6577; --mut2:#9AA3B4;
+    --blue:#2F6BFF; --blue-dim:#2257E6; --blue-soft:#EAF0FF;
+    --gold:#F2B33D; --gold-soft:#FDF3DC; --green:#1FA463; --green-soft:#E6F6EE; --red:#E5484D;
+    --grad:linear-gradient(135deg,#2F6BFF,#5B9DFF);
+    --shadow:0 14px 40px rgba(20,40,90,.10);
+    --shadow-sm:0 4px 16px rgba(20,40,90,.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;min-height:100vh}
+  h1,h2,h3,.brandfont{font-family:'Poppins',sans-serif;letter-spacing:-.01em}
+  a{color:inherit;text-decoration:none}
+  .mut{color:var(--mut)} .small{font-size:12px}
+  .app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+  .side{background:var(--bg);border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 20px}
+  .logo{width:40px;height:40px;border-radius:12px;background:radial-gradient(circle at 35% 30%,#F8C861,#EBA32C);display:grid;place-items:center;box-shadow:0 6px 16px rgba(235,163,44,.35)}
+  .logo svg{width:24px;height:24px}
+  .brand b{font-family:'Poppins';font-size:16px;font-weight:700;line-height:1.05}
+  .brand .tag{font-size:10px;color:var(--mut2);letter-spacing:1.6px;text-transform:uppercase;margin-top:2px}
+  .navlbl{font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut2);padding:14px 10px 6px;font-weight:600}
+  .nav{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;color:var(--mut);font-weight:500;font-size:14px;cursor:pointer;border:1px solid transparent;transition:.15s}
+  .nav:hover{background:var(--card2);color:var(--txt)}
+  .nav.active{background:var(--blue-soft);color:var(--blue-dim);border-color:#DCE6FF;font-weight:600}
+  .ic{width:18px;height:18px;flex:0 0 18px;color:var(--mut2)}
+  .nav.active .ic,.nav:hover .ic{color:var(--blue)}
+  .side .spacer{flex:1}
+  .userchip{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff}
+  .main{display:flex;flex-direction:column;min-width:0;background:var(--bg2)}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 30px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);z-index:30}
+  .search{flex:1;max-width:420px;display:flex;align-items:center;gap:9px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:9px 13px;color:var(--mut)}
+  .search input{background:none;border:0;outline:0;color:var(--txt);width:100%;font-size:13.5px}
+  .switch{display:flex;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:4px;gap:3px}
+  .switch button{background:none;border:0;color:var(--mut);font-weight:600;font-size:13px;padding:7px 15px;border-radius:8px;cursor:pointer;font-family:inherit;transition:.15s}
+  .switch button.on{background:var(--blue);color:#fff;box-shadow:0 3px 10px rgba(47,107,255,.3)}
+  .iconbtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;color:var(--mut);cursor:pointer}
+  .content{padding:30px;max-width:1280px;width:100%}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm)}
+  .pad{padding:22px}
+  .row{display:flex;gap:20px}
+  .grid{display:grid;gap:20px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:30px;background:var(--blue-soft);color:var(--blue-dim);border:1px solid #DCE6FF}
+  .pill.gold{background:var(--gold-soft);color:#B57E12;border-color:#F4E2B6}
+  .pill.green{background:var(--green-soft);color:#137a47;border-color:#C5EAD6}
+  .pill.mut{background:var(--card2);color:var(--mut);border-color:var(--line)}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-family:inherit;font-weight:600;font-size:13.5px;padding:11px 18px;border-radius:11px;border:1px solid var(--line2);background:var(--card);color:var(--txt);cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--blue);color:var(--blue-dim)}
+  .btn.primary{background:var(--blue);color:#fff;border:0;box-shadow:0 6px 16px rgba(47,107,255,.28)}
+  .btn.primary:hover{background:var(--blue-dim);color:#fff}
+  .btn.slack{background:#4A154B;color:#fff;border:0}
+  .btn.slack:hover{background:#5b1a5c;color:#fff}
+  .h-eyebrow{font-size:11.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:8px}
+  .sec-title{display:flex;align-items:center;justify-content:space-between;margin:6px 0 16px}
+  .sec-title h2{font-size:19px}
+  .screen{display:none;animation:fade .35s ease}
+  .screen.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .badge-admin{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#B57E12;border:1px solid #F4E2B6;padding:2px 8px;border-radius:20px;background:var(--gold-soft);font-weight:600}
+  .ring{transform:rotate(-90deg)}
+  .ring circle{fill:none;stroke-width:7}
+  .ring .bg{stroke:var(--line)}
+  .ring .fg{stroke:var(--blue);stroke-linecap:round;transition:stroke-dashoffset 1s}
+  .bar{height:7px;border-radius:6px;background:#EAEDF4;overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:6px;background:var(--grad)}
+  .vcard{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;transition:.18s;box-shadow:var(--shadow-sm)}
+  .vcard:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+  .thumb{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#1b2a4d,#0f1830);display:grid;place-items:center}
+  .thumb .play{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);display:grid;place-items:center;border:1px solid rgba(255,255,255,.4)}
+  .thumb .dur{position:absolute;right:8px;bottom:8px;font-size:11px;font-weight:600;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:6px}
+  .thumb .prog{position:absolute;left:0;bottom:0;height:4px;background:var(--blue)}
+  .thumb .badge{position:absolute;left:8px;top:8px}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--mut2);font-weight:600;padding:0 14px 12px}
+  td{padding:13px 14px;border-top:1px solid var(--line);font-size:13.5px}
+  tr:hover td{background:var(--card2)}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px}
+  .frame{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#F0F3F9}
+  .clickpt{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(47,107,255,.7),rgba(47,107,255,0) 70%);transform:translate(-50%,-50%);pointer-events:none}
+  .chatwin{display:flex;flex-direction:column;height:560px}
+  .msgs{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+  .msg{max-width:80%;padding:12px 15px;border-radius:14px;font-size:13.5px;line-height:1.5}
+  .msg.ai{background:var(--card2);border:1px solid var(--line);border-top-left-radius:4px}
+  .msg.me{background:var(--blue);color:#fff;align-self:flex-end;border-top-right-radius:4px;font-weight:500}
+  .msg .srcs{margin-top:10px;display:flex;flex-wrap:wrap;gap:7px}
+  .srcchip{font-size:11px;font-weight:600;background:var(--gold-soft);border:1px solid #F4E2B6;color:#9A6B0E;padding:4px 9px;border-radius:8px;display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+  .chatbar{display:flex;gap:10px;padding:14px;border-top:1px solid var(--line)}
+  .chatbar input{flex:1;background:var(--card2);border:1px solid var(--line2);border-radius:11px;padding:12px 15px;color:var(--txt);outline:0;font-family:inherit;font-size:13.5px}
+  .typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--mut2);margin:0 1px;animation:bob 1s infinite}
+  .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+  @keyframes bob{0%,60%,100%{opacity:.3}30%{opacity:1}}
+  .fab{position:fixed;right:26px;bottom:26px;width:60px;height:60px;border-radius:50%;background:var(--blue);display:grid;place-items:center;cursor:pointer;box-shadow:0 14px 32px rgba(47,107,255,.45);z-index:60;border:0}
+  .fabwin{position:fixed;right:26px;bottom:100px;width:380px;max-width:calc(100vw - 40px);height:520px;background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);z-index:60;display:none;flex-direction:column;overflow:hidden}
+  .fabwin.show{display:flex}
+  .fabhead{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:11px;background:var(--card2)}
+  .stat{font-size:30px;font-family:'Poppins';font-weight:700}
+  .kpi-up{color:var(--green);font-size:12px;font-weight:600}
+  .kpi-down{color:var(--red);font-size:12px;font-weight:600}
+  .seg{display:flex;gap:7px;flex-wrap:wrap}
+  .seg button{background:var(--card);border:1px solid var(--line);color:var(--mut);font-family:inherit;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:9px;cursor:pointer}
+  .seg button.on{border-color:var(--blue);color:var(--blue-dim);background:var(--blue-soft)}
+  .note{font-size:12.5px;color:var(--mut);line-height:1.55}
+  .tabbar{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:4px;width:fit-content}
+  .tabbar button{background:none;border:0;color:var(--mut);font-family:inherit;font-weight:600;font-size:13px;padding:8px 14px;border-radius:8px;cursor:pointer}
+  .tabbar button.on{background:var(--blue-soft);color:var(--blue-dim)}
+  .transcript{font-size:13.5px;line-height:1.75;color:var(--mut)}
+  .transcript .t{display:flex;gap:14px;padding:7px 0}
+  .transcript .ts{color:var(--blue);font-variant-numeric:tabular-nums;font-weight:600;flex:0 0 46px;font-size:12.5px}
+  .transcript .t.active{color:var(--txt)}
+  hr.div{border:0;border-top:1px solid var(--line);margin:0}
+  /* journey timeline */
+  .jstage{display:flex;gap:18px;position:relative}
+  .jline{position:absolute;left:23px;top:48px;bottom:-22px;width:2px;background:var(--line)}
+  .jstage:last-child .jline{display:none}
+  .jnode{width:48px;height:48px;border-radius:50%;flex:0 0 48px;display:grid;place-items:center;font-family:'Poppins';font-weight:700;font-size:17px;z-index:1;border:2px solid var(--line);background:var(--card);color:var(--mut2)}
+  .jnode.completed{background:var(--green);border-color:var(--green);color:#fff}
+  .jnode.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 5px var(--blue-soft)}
+  .jnode.upnext{background:var(--gold-soft);border-color:var(--gold);color:#B57E12}
+  .jcard{flex:1;cursor:pointer;transition:.16s;margin-bottom:22px}
+  .jcard:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--line2)}
+  /* resource/faq */
+  .res{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;transition:.15s}
+  .res:hover{border-color:var(--blue);background:var(--blue-soft)}
+  .res .ricon{width:34px;height:34px;border-radius:9px;background:var(--card2);display:grid;place-items:center;font-size:16px}
+  .faq{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);margin-bottom:10px}
+  .faq .q{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 17px;cursor:pointer;font-weight:600;font-size:14px}
+  .faq .a{max-height:0;overflow:hidden;transition:max-height .3s ease;color:var(--mut);font-size:13.5px;line-height:1.6}
+  .faq.open .a{max-height:260px}
+  .faq .a .inner{padding:0 17px 16px}
+  .faq .chev{transition:.25s;color:var(--mut2)}
+  .faq.open .chev{transform:rotate(180deg)}
+  .lessrow{display:flex;align-items:center;gap:14px;padding:12px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+  .lessrow:hover{background:var(--card2);border-color:var(--line)}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(15,22,40,.45);backdrop-filter:blur(3px);z-index:80;display:none;align-items:center;justify-content:center;padding:20px}
+  .overlay.show{display:flex}
+  .modal{width:480px;max-width:100%;background:var(--card);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;animation:pop .25s ease}
+  @keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal .mhead{display:flex;align-items:center;gap:12px;padding:20px 22px;border-bottom:1px solid var(--line)}
+  .modal textarea{width:100%;min-height:110px;border:1px solid var(--line2);border-radius:12px;padding:13px;font-family:inherit;font-size:13.5px;resize:vertical;outline:0;color:var(--txt)}
+  .modal textarea:focus{border-color:var(--blue)}
+  .modal select{width:100%;border:1px solid var(--line2);border-radius:11px;padding:11px 13px;font-family:inherit;font-size:13.5px;color:var(--txt);background:var(--card);outline:0}
+  .slackchip{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#4A154B;background:#F3E8F3;border:1px solid #E3CFE3;padding:5px 10px;border-radius:8px}
+  /* settings toggles + toast */
+  .toggle{position:relative;width:42px;height:24px;border-radius:20px;background:#D7DCE6;cursor:pointer;transition:.2s;flex:0 0 42px}
+  .toggle.on{background:var(--blue)}
+  .toggle i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+  .toggle.on i{left:21px}
+  .setrow{display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid var(--line)}
+  .setrow:first-child{border-top:0}
+  .field{width:100%;border:1px solid var(--line2);border-radius:11px;padding:11px 13px;font-family:inherit;font-size:13.5px;color:var(--txt);background:var(--card2);outline:0}
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:#14161D;color:#fff;padding:12px 18px;border-radius:12px;font-size:13.5px;font-weight:500;box-shadow:var(--shadow);z-index:90;opacity:0;pointer-events:none;transition:.3s;display:flex;align-items:center;gap:10px}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* live training */
+  .cd{display:flex;gap:10px}
+  .cd>div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 0;text-align:center;min-width:64px}
+  .cd b{font-family:'Poppins';font-size:24px;display:block;line-height:1;color:var(--txt)}
+  .cd span{font-size:10px;color:var(--mut2);text-transform:uppercase;letter-spacing:1px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;box-shadow:0 0 0 0 rgba(229,72,77,.6);animation:pulse 1.7s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(229,72,77,.5)}70%{box-shadow:0 0 0 8px rgba(229,72,77,0)}100%{box-shadow:0 0 0 0 rgba(229,72,77,0)}}
+  .dateblock{width:60px;height:60px;border-radius:12px;background:var(--blue-soft);border:1px solid #DCE6FF;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:0 0 60px}
+  .dateblock .mo{font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--blue-dim);text-transform:uppercase}
+  .dateblock .dy{font-family:'Poppins';font-weight:700;font-size:20px;line-height:1;color:var(--txt)}
+  /* delivery milestones */
+  .mile{display:flex;align-items:center;gap:11px;padding:13px;border:1px solid var(--line);border-radius:13px;background:var(--card)}
+  .mile .mi{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:0 0 30px;font-size:14px;font-weight:700}
+  .mile.done .mi{background:var(--green-soft);color:var(--green)}
+  .mile.active{border-color:#DCE6FF;background:var(--blue-soft)}
+  .mile.active .mi{background:var(--blue);color:#fff}
+  .mile.up .mi{background:var(--card2);color:var(--mut2)}
+  .mile .mt{font-weight:600;font-size:13px;line-height:1.2}
+  .mile .ms{font-size:11px;color:var(--mut2)}
+  /* lock / scouter */
+  .lockwrap{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line)}
+  .lockblur{filter:blur(5px);pointer-events:none;opacity:.55}
+  .lockover{position:absolute;inset:0;display:grid;place-items:center;padding:20px;background:rgba(247,248,251,.55);backdrop-filter:blur(2px)}
+  .mapmock{aspect-ratio:16/9;background:
+    linear-gradient(rgba(47,107,255,.06),rgba(47,107,255,.06)),
+    repeating-linear-gradient(0deg,#E7ECF5 0 1px,transparent 1px 34px),
+    repeating-linear-gradient(90deg,#E7ECF5 0 1px,transparent 1px 34px),#F0F4FB;position:relative}
+  .pin{position:absolute;transform:translate(-50%,-100%);color:var(--blue);filter:drop-shadow(0 3px 3px rgba(0,0,0,.2))}
+  .pin.gold{color:var(--gold)}
+  /* mobile chrome */
+  .mtop{display:none;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);z-index:40}
+  .botnav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:60;justify-content:space-around;padding:8px 4px}
+  .botnav button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--mut2);font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;padding:4px 8px}
+  .botnav button.on{color:var(--blue)}
+  .scrim{display:none;position:fixed;inset:0;background:rgba(15,22,40,.4);z-index:65}
+  .scrim.show{display:block}
+  /* auth */
+  .auth{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#EAF0FF,#FFFFFF);display:flex;align-items:center;justify-content:center;padding:20px}
+  .auth.hide{display:none}
+  .authcard{width:404px;max-width:100%;background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:34px 30px}
+  .authcode{width:100%;text-align:center;font-family:'Poppins';font-size:26px;letter-spacing:10px;font-weight:700;border:1px solid var(--line2);border-radius:12px;padding:14px;outline:0;color:var(--txt)}
+  .authcode:focus{border-color:var(--blue)}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#D2D8E4;border-radius:8px;border:3px solid var(--bg2)}
+  @media(max-width:880px){
+    .app{grid-template-columns:1fr}
+    .side{position:fixed;left:0;top:0;width:248px;height:100vh;z-index:70;transform:translateX(-100%);transition:transform .25s ease;box-shadow:var(--shadow)}
+    .side.open{transform:none}
+    .mtop{display:flex}
+    .top{display:none}
+    .content{padding:18px 16px 88px}
+    .botnav{display:flex}
+    .content .grid{grid-template-columns:1fr !important}
+    .row{flex-direction:column}
+    .fab{bottom:86px;right:18px}
+    .fabwin{bottom:158px;right:14px;height:60vh}
+  }
+</style>
+</head>
+<body>
+<!-- ===== LOGIN ===== -->
+<div class="auth" id="authScreen">
+  <div class="authcard">
+    <div style="text-align:center;margin-bottom:22px">
+      <div class="logo" style="width:54px;height:54px;border-radius:16px;margin:0 auto 12px"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" style="width:30px;height:30px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
+      <b style="font-family:'Poppins';font-size:19px">Dividend Shift</b>
+      <div class="small mut" style="letter-spacing:1.5px;text-transform:uppercase">Operator Portal</div>
+    </div>
+    <div id="authStep1">
+      <label class="small mut" style="font-weight:600">Email</label>
+      <input class="field" style="margin:6px 0 14px" placeholder="you@email.com">
+      <label class="small mut" style="font-weight:600">Password</label>
+      <input class="field" type="password" style="margin:6px 0 6px" placeholder="••••••••">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 18px"><label class="small mut" style="display:flex;align-items:center;gap:7px;cursor:pointer"><span class="toggle on" onclick="this.classList.toggle('on')" style="transform:scale(.78)"><i></i></span> Remember me</label><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer">Forgot password?</a></div>
+      <button class="btn primary" style="width:100%;justify-content:center" onclick="authNext()">Sign in</button>
+      <div class="small mut" style="text-align:center;margin-top:14px">🔒 Prototype — any email &amp; password works</div>
+    </div>
+    <div id="authStep2" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Check your email</h2>
+      <p class="small mut" style="margin-bottom:16px">Enter the 6-digit code we sent via Resend.</p>
+      <input class="authcode" maxlength="6" placeholder="••••••">
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:16px" onclick="authDone()">Verify &amp; sign in</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="authBack()">← Back</a></div>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
+      <div><b>Dividend<br>Shift</b><div class="tag">Operator Portal</div></div>
+    </div>
+    <div class="navlbl">Learn</div>
+    <div class="nav active" data-screen="dashboard" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</div>
+    <div class="nav" data-screen="journey" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 7h11l-2 3 2 3H4"/></svg>My Journey</div>
+    <div class="nav" data-screen="player" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z" fill="currentColor" stroke="none"/></svg>Now Playing</div>
+    <div class="nav" data-screen="live" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M6.3 6.3a8 8 0 0 0 0 11.3M17.7 6.3a8 8 0 0 1 0 11.3M3.5 3.5a12 12 0 0 0 0 17M20.5 3.5a12 12 0 0 1 0 17"/></svg>Live Training <span class="pill" style="margin-left:auto;padding:1px 7px;font-size:10px">1</span></div>
+    <div class="nav" data-screen="coach" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg>AI Coach</div>
+    <div class="navlbl">Tools</div>
+    <div class="nav" data-screen="scouter" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Location Scouter <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2" style="margin-left:auto"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+    <div class="navlbl">Operate</div>
+    <div class="nav" data-screen="admin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Analytics <span class="badge-admin" style="margin-left:auto">Admin</span></div>
+    <div class="navlbl">Account</div>
+    <div class="nav" data-screen="settings" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 3.6h.09A1.65 1.65 0 0 0 9 2.09V2a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 16 3.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.4 8v.09A1.65 1.65 0 0 0 21.91 9H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
+    <div class="spacer"></div>
+    <button class="btn slack" style="justify-content:center;width:100%;margin-bottom:10px" onclick="openAsk('General question')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M6 14a2 2 0 1 1-2-2h2zm1 0a2 2 0 0 1 4 0v5a2 2 0 1 1-4 0zm3-8a2 2 0 1 1 2 2h-2zm0-1a2 2 0 0 1 0-4h5a2 2 0 1 1 0 4zm8 3a2 2 0 1 1 2 2h-2zm-1 0a2 2 0 0 1-4 0V3a2 2 0 1 1 4 0zm-3 8a2 2 0 1 1-2-2h2zm0 1a2 2 0 0 1 0 4h-5a2 2 0 1 1 0-4z"/></svg>
+      Ask the team
+    </button>
+    <div class="userchip">
+      <div class="avatar">G</div>
+      <div style="line-height:1.2"><div style="font-weight:600;font-size:13px">Gedam T.</div><div class="small mut">Founder · Admin</div></div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <div class="main">
+    <div class="mtop">
+      <button class="iconbtn" style="border:0;background:none;width:34px;height:34px" onclick="toggleSide()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--txt)" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <div class="logo" style="width:30px;height:30px;border-radius:9px"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" style="width:18px;height:18px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
+      <b style="font-family:'Poppins';font-size:15px;flex:1">Dividend Shift</b>
+      <button class="iconbtn" onclick="openFab()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg></button>
+    </div>
+    <div class="top">
+      <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Search lessons, transcripts, resources…"></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="switch"><button class="on" id="vClient" onclick="setView('client')">Client View</button><button id="vAdmin" onclick="setView('admin')">Admin View</button></div>
+        <div class="iconbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ DASHBOARD ============ -->
+      <section class="screen show" id="dashboard">
+        <div class="h-eyebrow">Welcome back</div>
+        <h1 style="font-size:27px;margin-bottom:4px">Let's keep building residual income, Marcus.</h1>
+        <p class="mut" style="margin-bottom:24px">You're in the <b style="color:var(--blue-dim)">14-Day Sprint</b> — Day 6. Land your first merchant this week.</p>
+
+        <div class="grid" style="grid-template-columns:1.4fr 1fr 1fr;margin-bottom:22px">
+          <div class="card pad" style="display:flex;gap:20px;align-items:center">
+            <svg width="96" height="96" class="ring" viewBox="0 0 96 96"><circle class="bg" cx="48" cy="48" r="42"/><circle class="fg" cx="48" cy="48" r="42" stroke-dasharray="264" stroke-dashoffset="100"/></svg>
+            <div><div class="small mut">Journey progress</div><div class="stat">62%</div><div class="kpi-up">▲ 14% this week</div></div>
+          </div>
+          <div class="card pad"><div class="small mut">Watch time</div><div class="stat">8.4<span style="font-size:15px;color:var(--mut)"> hrs</span></div><div class="bar" style="margin-top:14px"><i style="width:68%"></i></div><div class="small mut" style="margin-top:8px">68% of stage runtime</div></div>
+          <div class="card pad"><div class="small mut">Current streak</div><div class="stat">9<span style="font-size:15px;color:var(--mut)"> days</span></div>
+            <div style="display:flex;gap:5px;margin-top:14px"><span style="background:var(--blue);width:14px;height:14px;border-radius:4px"></span><span style="background:var(--blue);width:14px;height:14px;border-radius:4px"></span><span style="background:var(--blue);width:14px;height:14px;border-radius:4px"></span><span style="background:var(--blue);width:14px;height:14px;border-radius:4px"></span><span style="background:var(--blue);width:14px;height:14px;border-radius:4px"></span><span style="background:#E2E7F1;width:14px;height:14px;border-radius:4px"></span><span style="background:#E2E7F1;width:14px;height:14px;border-radius:4px"></span></div>
+          </div>
+        </div>
+
+        <div id="deliveryTracker" style="margin-bottom:22px"></div>
+
+        <div id="liveBanner" style="margin-bottom:24px"></div>
+
+        <div class="sec-title"><h2>Continue watching</h2><span class="pill mut" onclick="goScreen('journey')" style="cursor:pointer">View my journey →</span></div>
+        <div class="grid" style="grid-template-columns:repeat(3,1fr)" id="continueGrid"></div>
+
+        <div class="row" style="margin-top:24px">
+          <div class="card pad" style="flex:1;display:flex;gap:16px;align-items:center;background:linear-gradient(135deg,#F3F7FF,#FFFFFF)">
+            <div style="width:46px;height:46px;border-radius:13px;background:var(--blue);display:grid;place-items:center;flex:0 0 46px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg></div>
+            <div style="flex:1"><b>Quick question?</b><div class="small mut">The AI Coach knows every lesson transcript.</div></div>
+            <button class="btn primary" onclick="openFab()">Ask AI</button>
+          </div>
+          <div class="card pad" style="flex:1;display:flex;gap:16px;align-items:center;background:linear-gradient(135deg,#FBF4FB,#FFFFFF)">
+            <div style="width:46px;height:46px;border-radius:13px;background:#4A154B;display:grid;place-items:center;flex:0 0 46px"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M6 14a2 2 0 1 1-2-2h2zm1 0a2 2 0 0 1 4 0v5a2 2 0 1 1-4 0zm3-8a2 2 0 1 1 2 2h-2zm0-1a2 2 0 0 1 0-4h5a2 2 0 1 1 0 4zm8 3a2 2 0 1 1 2 2h-2zm-1 0a2 2 0 0 1-4 0V3a2 2 0 1 1 4 0zm-3 8a2 2 0 1 1-2-2h2zm0 1a2 2 0 0 1 0 4h-5a2 2 0 1 1 0-4z"/></svg></div>
+            <div style="flex:1"><b>Need a human?</b><div class="small mut">Send a question straight to the team.</div></div>
+            <button class="btn slack" onclick="openAsk('General question')">Ask the team</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ JOURNEY OVERVIEW ============ -->
+      <section class="screen" id="journey">
+        <div class="h-eyebrow">The RRS System</div>
+        <h1 style="font-size:25px;margin-bottom:6px">My Journey</h1>
+        <p class="mut" style="margin-bottom:26px">Four stages take you from setup to a scaled, hands-off income stream. Open any stage for its modules, resources, and common questions.</p>
+        <div id="journeyList"></div>
+      </section>
+
+      <!-- ============ STAGE DETAIL ============ -->
+      <section class="screen" id="stage">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <button class="btn" style="padding:8px 13px" onclick="goScreen('journey')">← My Journey</button>
+        </div>
+        <div class="card pad" style="margin-bottom:20px;background:linear-gradient(135deg,#F3F7FF,#FFFFFF)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+            <div style="min-width:240px">
+              <div id="stTag" class="h-eyebrow" style="margin-bottom:6px">Stage 2</div>
+              <h1 id="stName" style="font-size:23px">14-Day Sprint</h1>
+              <p id="stSub" class="mut" style="margin-top:4px">Land your first merchant in two weeks.</p>
+            </div>
+            <div style="min-width:200px;flex:1;max-width:300px">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;margin-bottom:7px"><span class="mut">Stage progress</span><span id="stProgTxt">45%</span></div>
+              <div class="bar"><i id="stProgBar" style="width:45%"></i></div>
+              <div style="display:flex;gap:9px;margin-top:14px">
+                <button class="btn primary" style="flex:1;justify-content:center" onclick="openFab()">Ask AI about this stage</button>
+                <button class="btn slack" style="flex:1;justify-content:center" id="stAskTeam">Ask the team</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabbar" style="margin-bottom:18px">
+          <button class="on" onclick="stab(this,'sModules')">Modules</button>
+          <button onclick="stab(this,'sRes')">Resources</button>
+          <button onclick="stab(this,'sFaq')">Common Questions</button>
+        </div>
+        <div id="sModules"></div>
+        <div id="sRes" style="display:none"></div>
+        <div id="sFaq" style="display:none"></div>
+      </section>
+
+      <!-- ============ PLAYER ============ -->
+      <section class="screen" id="player">
+        <div class="row" style="align-items:flex-start">
+          <div style="flex:1.7;min-width:0">
+            <div class="frame" style="aspect-ratio:16/9;cursor:pointer;background:linear-gradient(135deg,#1b2a4d,#0f1830)" onclick="togglePlay()">
+              <div style="position:absolute;inset:0;display:grid;place-items:center"><div><div class="play" style="width:74px;height:74px;background:var(--blue)"><svg id="ppIcon" width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div></div>
+              <span class="pill" style="position:absolute;left:14px;top:14px;background:rgba(255,255,255,.92)">● Bunny Stream · 1080p</span>
+              <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)">
+                <div class="bar" style="height:6px;background:rgba(255,255,255,.3)"><i id="vbar" style="width:0%"></i></div>
+                <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:#dfe5f2"><span><span id="vtime">0:00</span> / 14:20</span><span id="vpct">0% watched</span></div>
+              </div>
+            </div>
+
+            <div style="margin:18px 0 6px"><span class="pill gold">14-Day Sprint · Day 1–3</span><h1 style="font-size:21px;margin-top:10px">Merchant Targeting Framework: Securing Your First 3 Merchants</h1></div>
+            <div style="display:flex;gap:10px;margin:14px 0 20px;flex-wrap:wrap">
+              <button class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Save</button>
+              <button class="btn primary" onclick="openFab()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg>Ask AI about this video</button>
+              <button class="btn slack" onclick="openAsk('14-Day Sprint · Merchant Targeting (Day 1–3)')">Ask the team</button>
+              <button class="btn">Mark complete</button>
+            </div>
+
+            <div class="tabbar" style="margin-bottom:16px">
+              <button class="on" onclick="ptab(this,'tTrans')">Transcript</button>
+              <button onclick="ptab(this,'tNotes')">Resources</button>
+            </div>
+            <div class="card pad" id="tTrans">
+              <div class="small mut" style="margin-bottom:12px;display:flex;justify-content:space-between"><span>Auto-extracted transcript · searchable by the AI Coach</span><span class="pill">Linked to AI</span></div>
+              <div class="transcript">
+                <div class="t"><span class="ts">0:42</span><span>The number-one mistake new operators make is going after the wrong merchants. You want high-ticket, high-frequency cash businesses.</span></div>
+                <div class="t active"><span class="ts">1:15</span><span>The targeting framework has three filters: average transaction over $40, more than 30 transactions a day, and an owner who makes the decision on site.</span></div>
+                <div class="t"><span class="ts">2:03</span><span>I'll show you the exact script we use to open that first conversation — it's in the Resources tab.</span></div>
+                <div class="t"><span class="ts">3:28</span><span>Once they say yes, you route them straight to the onboarding link. Don't overcomplicate the settlement explanation.</span></div>
+              </div>
+            </div>
+            <div class="card pad" id="tNotes" style="display:none">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="res"><div class="ricon">📄</div><div style="flex:1"><b style="font-size:13.5px">Merchant Targeting Worksheet</b><div class="small mut">PDF · 2 pages</div></div></div>
+                <div class="res"><div class="ricon">🔗</div><div style="flex:1"><b style="font-size:13.5px">Done-For-You Onboarding Link</b><div class="small mut">Send to a merchant who said yes</div></div></div>
+                <div class="res"><div class="ricon">📑</div><div style="flex:1"><b style="font-size:13.5px">First-Call Script Template</b><div class="small mut">Doc</div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:1;min-width:260px">
+            <div class="card pad">
+              <div class="small mut" style="margin-bottom:4px">14-Day Sprint</div>
+              <div style="font-weight:700;margin-bottom:6px">1 of 4 modules · 71% watched</div>
+              <div class="bar"><i style="width:71%"></i></div>
+              <hr class="div" style="margin:16px 0">
+              <div id="upnext"></div>
+              <hr class="div" style="margin:6px 0 16px">
+              <button class="btn slack" style="width:100%;justify-content:center" onclick="openAsk('14-Day Sprint · Merchant Targeting (Day 1–3)')">Stuck? Ask the team</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ AI COACH ============ -->
+      <section class="screen" id="coach">
+        <div class="h-eyebrow">Trained on your content</div>
+        <h1 style="font-size:25px;margin-bottom:6px">AI Coach</h1>
+        <p class="mut" style="margin-bottom:20px">Answers general questions, then searches every lesson transcript to point clients to the exact module. Can't answer it? One click sends it to your team.</p>
+        <div class="row">
+          <div class="card" style="flex:1.6;min-width:0">
+            <div class="chatwin">
+              <div class="msgs" id="coachMsgs">
+                <div class="msg ai">👋 I'm your Dividend Shift coach. Ask me anything about the RRS System, settlement, or merchant acquisition.</div>
+                <div class="msg me">How do I find my first merchant?</div>
+                <div class="msg ai">Focus on <b>high-ticket, high-frequency cash businesses</b>: avg transaction over $40, 30+ transactions/day, on-site decision-maker.<br><br>Covered in your curriculum:
+                  <div class="srcs"><a class="srcchip" onclick="goScreen('player')">▶ 14-Day Sprint · Day 1–3 @1:15</a><a class="srcchip" onclick="openStage('sprint')">📄 Merchant Targeting Worksheet</a></div>
+                </div>
+              </div>
+              <div class="chatbar"><input id="coachInput" placeholder="Ask about lessons, settlement, scripts…" onkeydown="if(event.key==='Enter')sendCoach()"><button class="btn primary" onclick="sendCoach()">Send</button></div>
+            </div>
+          </div>
+          <div style="flex:1;min-width:240px" class="grid">
+            <div class="card pad">
+              <div class="h-eyebrow">Knowledge base</div>
+              <div style="display:flex;flex-direction:column;gap:11px;margin-top:6px">
+                <div style="display:flex;justify-content:space-between"><span class="note">Lesson transcripts</span><span class="pill">42 linked</span></div>
+                <div style="display:flex;justify-content:space-between"><span class="note">Meeting recordings</span><span class="pill">18 indexed</span></div>
+                <div style="display:flex;justify-content:space-between"><span class="note">Worksheets & scripts</span><span class="pill">11 docs</span></div>
+                <div style="display:flex;justify-content:space-between"><span class="note">FAQ / general answers</span><span class="pill gold">Trained</span></div>
+              </div>
+              <button class="btn" style="width:100%;margin-top:16px;justify-content:center">＋ Add training source</button>
+            </div>
+            <div class="card pad" style="background:linear-gradient(135deg,#FBF4FB,#FFFFFF)">
+              <div class="h-eyebrow" style="color:#4A154B">Escalation</div>
+              <p class="note">When the AI isn't confident, it offers to <b>send the question to your team's Slack</b> — with the client's name and current module attached.</p>
+              <button class="btn slack" style="width:100%;margin-top:12px;justify-content:center" onclick="openAsk('From AI Coach')">Ask the team instead</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ADMIN ANALYTICS ============ -->
+      <section class="screen" id="admin">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span class="badge-admin">Admin only</span></div>
+        <h1 style="font-size:25px;margin-bottom:6px">Engagement Analytics</h1>
+        <p class="mut" style="margin-bottom:22px">See exactly how much of each video your clients watched, and where they clicked.</p>
+        <div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:22px">
+          <div class="card pad"><div class="small mut">Active clients</div><div class="stat">128</div><div class="kpi-up">▲ 9 this week</div></div>
+          <div class="card pad"><div class="small mut">Avg. completion</div><div class="stat">64%</div><div class="kpi-up">▲ 5%</div></div>
+          <div class="card pad"><div class="small mut">Avg. watch time</div><div class="stat">7.1<span style="font-size:14px;color:var(--mut)">h</span></div><div class="kpi-up">▲ 0.6h</div></div>
+          <div class="card pad"><div class="small mut">Open team questions</div><div class="stat" style="color:#4A154B">6</div><div class="small mut">via Slack</div></div>
+        </div>
+        <div class="row" style="margin-bottom:22px;align-items:stretch">
+          <div class="card pad" style="flex:1.4">
+            <div class="sec-title" style="margin:0 0 4px"><h2 style="font-size:16px">Audience retention</h2><span class="pill gold">Sprint · Day 1–3</span></div>
+            <p class="small mut" style="margin-bottom:14px">% of viewers still watching at each point. The dip at 6:10 = where people drop off.</p>
+            <svg viewBox="0 0 600 200" width="100%" height="190"><defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(47,107,255,.30)"/><stop offset="1" stop-color="rgba(47,107,255,0)"/></linearGradient></defs>
+              <line x1="0" y1="50" x2="600" y2="50" stroke="#EAEDF4"/><line x1="0" y1="100" x2="600" y2="100" stroke="#EAEDF4"/><line x1="0" y1="150" x2="600" y2="150" stroke="#EAEDF4"/>
+              <path d="M0,20 C80,24 120,30 180,40 C240,50 250,120 300,118 C360,116 380,70 440,78 C500,86 540,120 600,140 L600,200 L0,200 Z" fill="url(#ag)"/>
+              <path d="M0,20 C80,24 120,30 180,40 C240,50 250,120 300,118 C360,116 380,70 440,78 C500,86 540,120 600,140" fill="none" stroke="var(--blue)" stroke-width="2.5"/>
+              <line x1="300" y1="0" x2="300" y2="200" stroke="var(--gold)" stroke-dasharray="4 4"/><circle cx="300" cy="118" r="4" fill="var(--gold)"/></svg>
+            <div style="display:flex;justify-content:space-between" class="small mut"><span>0:00</span><span style="color:#B57E12">6:10 — drop-off</span><span>14:20</span></div>
+          </div>
+          <div class="card pad" style="flex:1">
+            <div class="sec-title" style="margin:0 0 4px"><h2 style="font-size:16px">Click & session map</h2><span class="pill">Module page</span></div>
+            <p class="small mut" style="margin-bottom:14px">Where clients clicked on this lesson page (aggregated session replay).</p>
+            <div class="frame" style="aspect-ratio:16/10" id="heatFrame"><div style="position:absolute;inset:14px;display:flex;flex-direction:column;gap:9px;opacity:.7"><div style="height:30px;background:#E2E7F1;border-radius:6px;width:55%"></div><div style="flex:1;background:#E2E7F1;border-radius:8px"></div><div style="display:flex;gap:9px"><div style="height:34px;flex:1;background:#E2E7F1;border-radius:7px"></div><div style="height:34px;flex:1;background:#E2E7F1;border-radius:7px"></div></div></div></div>
+            <div style="display:flex;gap:16px;margin-top:12px" class="small mut"><span><span class="dot" style="background:var(--blue)"></span>Most clicked: “Ask AI” (312)</span><span><span class="dot" style="background:var(--gold)"></span>Onboarding link (188)</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="pad" style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px"><h2 style="font-size:16px">Per-client watch tracking</h2><div class="seg"><button class="on">All clients</button><button>At-risk</button><button>Top watchers</button></div></div>
+          <div style="overflow:auto"><table><thead><tr><th>Client</th><th>Current module</th><th style="width:230px">Watched</th><th>Completion</th><th>Last active</th><th>Status</th></tr></thead><tbody id="clientRows"></tbody></table></div>
+        </div>
+        <div class="card pad" style="margin-top:22px;background:linear-gradient(135deg,#FFF9EC,#FFFFFF)">
+          <div class="h-eyebrow" style="color:#B57E12">Recommendation</div>
+          <h2 style="font-size:17px;margin-bottom:8px">Use Bunny Stream for video hosting — not YouTube</h2>
+          <p class="note" style="max-width:760px">The per-second retention curve and watch-% tracking above are <b>only reliably possible with a player you control</b>. Bunny Stream gives you exactly this (per-viewer engagement, retention heatmaps, branded player, no “YouTube” logo or suggested videos) for roughly <b>$1/mo + ~1¢ per GB streamed</b>. YouTube unlisted is free but the player carries its branding and only exposes coarse, channel-level analytics — you can't see how much <i>an individual client</i> watched.</p>
+        </div>
+      </section>
+
+      <!-- ============ LIVE TRAINING ============ -->
+      <section class="screen" id="live"><div id="liveInner"></div></section>
+
+      <!-- ============ LOCATION SCOUTER ============ -->
+      <section class="screen" id="scouter"><div id="scouterInner"></div></section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section class="screen" id="settings">
+        <div class="h-eyebrow">Account</div>
+        <h1 style="font-size:25px;margin-bottom:6px">Settings &amp; Notifications</h1>
+        <p class="mut" style="margin-bottom:24px">Manage your login, and choose what we email you. Login and notification emails are delivered by <b>Resend</b>.</p>
+
+        <div class="row" style="align-items:flex-start">
+          <!-- left column -->
+          <div style="flex:1.2;min-width:0" class="grid">
+            <!-- account -->
+            <div class="card pad">
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+                <div class="avatar" style="width:48px;height:48px;font-size:17px">MB</div>
+                <div><div style="font-weight:700;font-size:15px">Marcus Bell</div><div class="small mut">Operator · joined Mar 2026</div></div>
+              </div>
+              <label class="small mut" style="font-weight:600">Full name</label>
+              <input class="field" style="margin:6px 0 14px" value="Marcus Bell">
+              <label class="small mut" style="font-weight:600">Email address</label>
+              <input class="field" style="margin:6px 0 4px" value="marcus.bell@gmail.com">
+              <div class="small mut" style="margin-bottom:8px">Used for login and all notifications.</div>
+              <button class="btn primary" style="justify-content:center;width:100%" onclick="toast('Password reset link sent to marcus.bell@gmail.com via Resend')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Send password reset email
+              </button>
+              <div class="small mut" style="text-align:center;margin-top:10px">A secure reset link is emailed instantly. Links expire in 30 minutes.</div>
+            </div>
+
+            <!-- security -->
+            <div class="card pad">
+              <h2 style="font-size:16px;margin-bottom:4px">Login &amp; security</h2>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Magic-link sign-in</b><div class="small mut">Skip passwords — we email a one-tap login link (via Resend).</div></div><div class="toggle on" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Two-factor authentication</b><div class="small mut">Email a 6-digit code on new-device login.</div></div><div class="toggle" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+              <hr class="div" style="margin:14px 0">
+              <button class="btn" style="width:100%;justify-content:center" onclick="signOut()">Sign out</button>
+            </div>
+          </div>
+
+          <!-- right column: notifications -->
+          <div style="flex:1.4;min-width:280px" class="grid">
+            <div class="card pad">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <h2 style="font-size:16px">Email notifications</h2>
+                <span class="pill">Resend</span>
+              </div>
+              <p class="small mut" style="margin-bottom:6px">Choose what hits your inbox. Everything also appears in the portal bell.</p>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Team replied to my question</b><div class="small mut">When the team answers your Slack question.</div></div><div class="toggle on" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">New module / stage unlocked</b><div class="small mut">Get notified the moment new content drops.</div></div><div class="toggle on" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Weekly progress recap</b><div class="small mut">Your watch time and what's next, every Monday.</div></div><div class="toggle on" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Live training reminders</b><div class="small mut">A heads-up before each live session.</div></div><div class="toggle on" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Inactivity nudges</b><div class="small mut">A friendly poke if you've been away 14+ days.</div></div><div class="toggle" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Product announcements</b><div class="small mut">Occasional updates about the portal.</div></div><div class="toggle" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+            </div>
+
+            <div class="card pad" style="background:linear-gradient(135deg,#F3F7FF,#FFFFFF)">
+              <div class="h-eyebrow">How email is set up</div>
+              <p class="note"><b>Resend</b> powers every system email — password resets, magic-links, 2FA codes, "team replied," new-module alerts and weekly recaps — all sent from <b>support@dividendshift.com</b> with your branding. <span style="color:var(--mut2)">(Admin: connect domain &amp; sender once; ~free up to 3k emails/mo, then ~$20/mo for 50k.)</span></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== MOBILE BOTTOM NAV ===== -->
+<div class="botnav">
+  <button class="on" data-screen="dashboard" onclick="botGo(this)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</button>
+  <button data-screen="journey" onclick="botGo(this)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 7h11l-2 3 2 3H4"/></svg>Journey</button>
+  <button data-screen="live" onclick="botGo(this)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="11" r="2"/><path d="M6.3 5.3a8 8 0 0 0 0 11.3M17.7 5.3a8 8 0 0 1 0 11.3"/></svg>Live</button>
+  <button data-screen="coach" onclick="botGo(this)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg>Coach</button>
+  <button onclick="toggleSide()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</button>
+</div>
+<div class="scrim" id="scrim" onclick="toggleSide()"></div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5BE3A8" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg><span id="toastMsg"></span></div>
+
+<!-- ===== FLOATING AI WIDGET ===== -->
+<button class="fab" onclick="toggleFab()" id="fab"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg></button>
+<div class="fabwin" id="fabwin">
+  <div class="fabhead"><div class="logo" style="width:32px;height:32px;border-radius:9px"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" style="width:18px;height:18px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div><div style="flex:1"><b style="font-size:14px;font-family:'Poppins'">AI Coach</b><div class="small" style="color:var(--green)">● Trained on your lessons</div></div><div class="iconbtn" style="width:30px;height:30px;border:0;background:none" onclick="toggleFab()">✕</div></div>
+  <div class="msgs" id="fabMsgs" style="flex:1"><div class="msg ai">Hey! Try “where do I learn about fiat settlement?” — or I can send your question to the team.</div></div>
+  <div class="chatbar"><input id="fabInput" placeholder="Ask anything…" onkeydown="if(event.key==='Enter')sendFab()"><button class="btn primary" onclick="sendFab()">↑</button></div>
+</div>
+
+<!-- ===== ASK-THE-TEAM MODAL ===== -->
+<div class="overlay" id="askOverlay" onclick="if(event.target===this)closeAsk()">
+  <div class="modal" id="askModal"></div>
+</div>
+
+<script>
+/* ---------- JOURNEY DATA ---------- */
+const stages=[
+  {key:'foundations',tag:'Stage 1',name:'Foundations',sub:'Set your business engine up the right way.',status:'completed',prog:100,
+    modules:[{t:'The RRS Mindset',dur:'11:42',pct:100},{t:'Remote Operator: Getting Discovered Online',dur:'18:05',pct:100},{t:'Local Auto-Pilot: 24/7 Acquisition',dur:'15:30',pct:100}],
+    res:[{i:'📄',t:'Business Setup Checklist',m:'PDF · 1 page'},{i:'🔗',t:'Operator Dashboard Login',m:'Link'},{i:'📑',t:'Brand Build-Out Template',m:'Doc'}],
+    faq:[{q:'Do I need to understand crypto to start?',a:'No. This is a business about being in the middle, not crypto itself. Merchants love that you keep it simple.'},{q:'How much time does setup take?',a:'Most operators finish Foundations in 3–5 hours over the first week.'}]},
+  {key:'sprint',tag:'Stage 2',name:'14-Day Sprint',sub:'Land your first merchant in two weeks.',status:'active',prog:45,
+    modules:[{t:'Day 1–3: Merchant Targeting Framework',dur:'14:20',pct:71},{t:'Day 4–7: The First-Call Script',dur:'9:18',pct:20},{t:'Day 8–11: Handling Objections',dur:'12:03',pct:0},{t:'Day 12–14: Onboarding & Settlement',dur:'10:47',pct:0}],
+    res:[{i:'📄',t:'14-Day Sprint Tracker',m:'PDF'},{i:'📑',t:'First-Call Script Template',m:'Doc'},{i:'🔗',t:'Done-For-You Onboarding Link',m:'Link'}],
+    faq:[{q:"What if I can't find a merchant in 14 days?",a:'You keep the momentum — our done-for-you program secures your first locations while you learn. The sprint sets the pace, it isn’t a hard deadline.'},{q:'Do merchants need to own crypto?',a:'Never. Funds convert to USD instantly and settle to their bank like a card sale.'},{q:'How do I handle a “no”?',a:'Module Day 8–11 covers the three most common objections and the exact response for each.'}]},
+  {key:'autonomy',tag:'Stage 3',name:'Autonomy',sub:'Run your income stream without relying on us.',status:'upnext',prog:0,
+    modules:[{t:'Done-For-You Acquisition at Scale',dur:'16:10',pct:0},{t:'Standby Growth Advisor & Concierge',dur:'9:18',pct:0},{t:'Fiat Settlement Explained Simply',dur:'12:47',pct:0}],
+    res:[{i:'📄',t:'Acquisition Playbook',m:'PDF'},{i:'🔗',t:'Concierge Request Form',m:'Link'}],
+    faq:[{q:'How much can a single location earn?',a:'Operators average $200–300/mo per location, with high-volume merchants exceeding $1,200/mo.'}]},
+  {key:'scaling',tag:'Stage 4',name:'Scaling',sub:'Multiply locations and go borderless.',status:'locked',prog:0,
+    modules:[{t:'Location Multiplier Protocol',dur:'13:30',pct:0},{t:'Borderless Growth & Regional Teams',dur:'15:55',pct:0}],
+    res:[{i:'📄',t:'Scaling Operations Manual',m:'PDF'}],
+    faq:[{q:'Can I expand internationally?',a:'Yes — you get access to our regional growth teams across the US, Canada and internationally.'}]},
+];
+const statusMeta={completed:{lbl:'Completed',cls:'green'},active:{lbl:'In progress',cls:'blue'},upnext:{lbl:'Up next',cls:'gold'},locked:{lbl:'Locked',cls:'mut'}};
+let currentStageKey='sprint';
+
+const continueVids=[{t:'Day 1–3: Merchant Targeting Framework',ph:'14-Day Sprint',dur:'14:20',pct:71,c:'#203058'},{t:'Day 4–7: The First-Call Script',ph:'14-Day Sprint',dur:'9:18',pct:20,c:'#192848'},{t:'The RRS Mindset',ph:'Foundations',dur:'11:42',pct:100,c:'#1b2a4d'}];
+const upnext=[{t:'Day 1–3: Merchant Targeting',dur:'14:20',pct:71,c:'#203058'},{t:'Day 4–7: First-Call Script',dur:'9:18',pct:20,c:'#192848'},{t:'Day 8–11: Handling Objections',dur:'12:03',pct:0,c:'#1d2e54'},{t:'Day 12–14: Onboarding',dur:'10:47',pct:0,c:'#22335c'}];
+const clients=[{n:'Marcus Bell',i:'MB',lesson:'Sprint · Day 1–3',w:71,comp:62,last:'2h ago',st:'On track',col:'blue'},{n:'Priya Shah',i:'PS',lesson:'Scaling · M2',w:94,comp:88,last:'1d ago',st:'Top watcher',col:'green'},{n:'Carlos Diaz',i:'CD',lesson:'Foundations · M3',w:38,comp:24,last:'15d ago',st:'At-risk',col:'gold'},{n:'Nadia Cole',i:'NC',lesson:'Autonomy · M1',w:66,comp:58,last:'4h ago',st:'On track',col:'blue'},{n:'Ryan Brooks',i:'RB',lesson:'Foundations · M1',w:12,comp:8,last:'21d ago',st:'At-risk',col:'gold'},{n:'Aaron Cho',i:'AC',lesson:'Scaling · M1',w:81,comp:79,last:'6h ago',st:'On track',col:'blue'}];
+const colMap={blue:'var(--blue)',green:'var(--green)',gold:'var(--gold)'};
+
+/* ---------- RENDER: dashboard cards ---------- */
+const playSvg='<div class="play"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>';
+function vcard(v){const badge=v.pct===100?'<span class="pill green">✓ Complete</span>':(v.pct>0?'<span class="pill gold">'+v.pct+'%</span>':'<span class="pill mut">New</span>');
+  return `<div class="vcard" onclick="goScreen('player')"><div class="thumb" style="background:linear-gradient(135deg,${v.c},#0f1830)">${playSvg}<span class="dur">${v.dur}</span><span class="badge">${badge}</span><div class="prog" style="width:${v.pct}%"></div></div><div style="padding:13px 15px"><div class="small" style="color:var(--mut2);margin-bottom:5px">${v.ph}</div><div style="font-weight:600;font-size:13.5px;line-height:1.35">${v.t}</div></div></div>`;}
+document.getElementById('continueGrid').innerHTML=continueVids.map(vcard).join('');
+
+/* ---------- RENDER: journey timeline ---------- */
+document.getElementById('journeyList').innerHTML=stages.map((s,idx)=>{
+  const m=statusMeta[s.status];
+  const node=s.status==='completed'?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg>':(s.status==='locked'?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':(idx+1));
+  return `<div class="jstage"><div class="jline"></div>
+    <div class="jnode ${s.status}">${node}</div>
+    <div class="card pad jcard" onclick="openStage('${s.key}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
+        <div style="min-width:200px"><div class="small" style="color:var(--mut2);font-weight:600;letter-spacing:1px;text-transform:uppercase">${s.tag}</div>
+          <h2 style="font-size:18px;margin:3px 0 3px">${s.name}</h2><p class="mut small" style="font-size:13px">${s.sub}</p></div>
+        <span class="pill ${m.cls}">${m.lbl}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:18px;margin-top:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px"><div class="bar"><i style="width:${s.prog}%"></i></div></div>
+        <div class="small mut" style="display:flex;gap:16px"><span>▶ ${s.modules.length} modules</span><span>📄 ${s.res.length} resources</span><span>💬 ${s.faq.length} common Qs</span></div>
+        <span class="btn" style="padding:8px 14px">Open →</span>
+      </div>
+    </div></div>`;
+}).join('');
+
+/* ---------- RENDER: stage detail ---------- */
+function lessrow(v,i){const badge=v.pct===100?'<span class="pill green">✓</span>':(v.pct>0?'<span class="pill gold">'+v.pct+'%</span>':'<span class="pill mut">New</span>');
+  return `<div class="lessrow" onclick="goScreen('player')">
+    <div style="position:relative;width:96px;height:58px;border-radius:9px;flex:0 0 96px;background:linear-gradient(135deg,#1b2a4d,#0f1830);display:grid;place-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" opacity=".9"><path d="M8 5v14l11-7z"/></svg><div style="position:absolute;left:0;bottom:0;height:3px;background:var(--blue);width:${v.pct}%"></div><span style="position:absolute;right:5px;bottom:5px;font-size:10px;color:#fff;background:rgba(0,0,0,.55);padding:1px 5px;border-radius:5px">${v.dur}</span></div>
+    <div style="flex:1;min-width:0"><div class="small mut">Module ${i+1}</div><div style="font-weight:600;font-size:14px">${v.t}</div></div>${badge}</div>`;}
+function openStage(key){
+  currentStageKey=key;const s=stages.find(x=>x.key===key);const m=statusMeta[s.status];
+  document.getElementById('stTag').textContent=s.tag;
+  document.getElementById('stName').textContent=s.name;
+  document.getElementById('stSub').textContent=s.sub;
+  document.getElementById('stProgTxt').textContent=s.prog+'%';
+  document.getElementById('stProgBar').style.width=s.prog+'%';
+  document.getElementById('stAskTeam').setAttribute('onclick',`openAsk('${s.name}')`);
+  document.getElementById('sModules').innerHTML='<div class="card pad">'+s.modules.map(lessrow).join('')+'</div>';
+  document.getElementById('sRes').innerHTML='<div class="grid" style="grid-template-columns:repeat(2,1fr)">'+s.res.map(r=>`<div class="res"><div class="ricon">${r.i}</div><div style="flex:1"><b style="font-size:13.5px">${r.t}</b><div class="small mut">${r.m}</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>`).join('')+'</div>';
+  document.getElementById('sFaq').innerHTML=s.faq.map(f=>`<div class="faq"><div class="q" onclick="this.parentElement.classList.toggle('open')"><span>${f.q}</span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="a"><div class="inner">${f.a}<div style="margin-top:12px;display:flex;gap:8px"><a class="srcchip" onclick="event.stopPropagation();openFab()">✨ Ask AI for more detail</a></div></div></div></div>`).join('')
+    +`<div class="card pad" style="margin-top:14px;display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#FBF4FB,#FFFFFF)"><div style="flex:1"><b>Can't find your answer?</b><div class="small mut">Send it straight to the Dividend Shift team — we'll reply in the portal and by email.</div></div><button class="btn slack" onclick="openAsk('${s.name}')">Submit a question to the team</button></div>`;
+  // reset tabs to Modules
+  document.querySelectorAll('#stage .tabbar button').forEach((b,i)=>b.classList.toggle('on',i===0));
+  document.getElementById('sModules').style.display='block';document.getElementById('sRes').style.display='none';document.getElementById('sFaq').style.display='none';
+  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.screen==='journey'));
+  show('stage');
+}
+function stab(b,id){['sModules','sRes','sFaq'].forEach(t=>document.getElementById(t).style.display='none');document.getElementById(id).style.display='block';b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+
+/* up next + client rows */
+document.getElementById('upnext').innerHTML=upnext.map((v,idx)=>{const active=idx===0;return `<div onclick="goScreen('player')" style="display:flex;gap:11px;padding:10px;border-radius:11px;cursor:pointer;${active?'background:var(--blue-soft);border:1px solid #DCE6FF':''};margin-bottom:6px"><div style="position:relative;width:74px;height:46px;border-radius:8px;flex:0 0 74px;background:linear-gradient(135deg,${v.c},#0f1830);display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" opacity=".9"><path d="M8 5v14l11-7z"/></svg><div style="position:absolute;left:0;bottom:0;height:3px;background:var(--blue);width:${v.pct}%"></div></div><div style="min-width:0"><div style="font-size:12.5px;font-weight:600;line-height:1.3">${v.t}</div><div class="small mut">${v.dur}${active?' · ▶ now':''}</div></div></div>`;}).join('');
+document.getElementById('clientRows').innerHTML=clients.map(c=>`<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:30px;height:30px;font-size:11px">${c.i}</div><b>${c.n}</b></div></td><td class="mut">${c.lesson}</td><td><div style="display:flex;align-items:center;gap:10px"><div class="bar" style="flex:1"><i style="width:${c.w}%;background:${colMap[c.col]}"></i></div><span style="font-variant-numeric:tabular-nums;font-size:12.5px">${c.w}%</span></div></td><td style="font-weight:600">${c.comp}%</td><td class="mut">${c.last}</td><td><span style="color:${colMap[c.col]};font-weight:600"><span class="dot" style="background:${colMap[c.col]}"></span>${c.st}</span></td></tr>`).join('');
+
+/* heatmap */
+const hf=document.getElementById('heatFrame');[[55,18,70],[60,20,46],[30,55,90],[72,82,40],[28,82,40],[80,30,30]].forEach(([x,y,s])=>{const d=document.createElement('div');d.className='clickpt';d.style.left=x+'%';d.style.top=y+'%';d.style.width=s+'px';d.style.height=s+'px';if(s<45)d.style.background='radial-gradient(circle,rgba(242,179,61,.8),rgba(242,179,61,0) 70%)';hf.appendChild(d);});
+
+/* ---------- NAV ---------- */
+function go(el){document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));el.classList.add('active');show(el.dataset.screen);}
+function goScreen(id){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));show(id);}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');window.scrollTo({top:0,behavior:'smooth'});
+  document.querySelectorAll('.botnav button').forEach(b=>b.classList.toggle('on',b.dataset.screen===id));
+  const sd=document.querySelector('.side');if(sd)sd.classList.remove('open');const sc=document.getElementById('scrim');if(sc)sc.classList.remove('show');}
+function toggleSide(){document.querySelector('.side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
+function botGo(b){goScreen(b.dataset.screen);}
+function setView(v){document.getElementById('vClient').classList.toggle('on',v==='client');document.getElementById('vAdmin').classList.toggle('on',v==='admin');if(v==='admin')goScreen('admin');else goScreen('dashboard');}
+
+/* ---------- PLAYER ---------- */
+let playing=false,vt=0,timer=null;const TOTAL=860;
+function togglePlay(){playing=!playing;document.getElementById('ppIcon').innerHTML=playing?'<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>':'<path d="M8 5v14l11-7z"/>';if(playing){timer=setInterval(()=>{vt=Math.min(vt+3,TOTAL);const p=Math.round(vt/TOTAL*100);document.getElementById('vbar').style.width=p+'%';document.getElementById('vpct').textContent=p+'% watched';const mi=Math.floor(vt/60),se=String(vt%60).padStart(2,'0');document.getElementById('vtime').textContent=mi+':'+se;if(vt>=TOTAL)togglePlay();},120);}else clearInterval(timer);}
+function ptab(b,id){['tTrans','tNotes'].forEach(t=>document.getElementById(t).style.display='none');document.getElementById(id).style.display='block';b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+
+/* ---------- CHAT ---------- */
+function aiReply(text){const low=text.toLowerCase();
+  if(low.includes('settle')||low.includes('fiat'))return{b:`Neither you nor the merchant ever holds crypto — the system instantly converts to USD and settles to their bank, just like a card sale. Step-by-step here:`,s:[['▶ Autonomy · Fiat Settlement Explained','autonomy']]};
+  if(low.includes('merchant')||low.includes('first')||low.includes('find'))return{b:`Target high-ticket, high-frequency cash businesses: avg transaction > $40, 30+ transactions/day, on-site decision-maker. Full framework:`,s:[['▶ 14-Day Sprint · Day 1–3','sprint'],['📄 Merchant Targeting Worksheet','sprint']]};
+  if(low.includes('start')||low.includes('begin')||low.includes('mindset'))return{b:`Start with the RRS mindset and the two income streams. Here's your kickoff module:`,s:[['▶ Foundations · The RRS Mindset','foundations']]};
+  return{b:`I searched your transcripts and meetings but I'm not fully confident on this one. Want me to send it to the team?`,s:[],team:true};}
+function srcHtml(r){let h='';if(r.s&&r.s.length)h+='<div class="srcs">'+r.s.map(x=>`<a class="srcchip" onclick="openStage('${x[1]}')">${x[0]}</a>`).join('')+'</div>';if(r.team)h+='<div class="srcs"><a class="srcchip" style="background:#F3E8F3;border-color:#E3CFE3;color:#4A154B" onclick="openAsk(\'From AI Coach\')">💬 Send to the team</a></div>';return h;}
+function pushMsg(box,cls,html){const d=document.createElement('div');d.className='msg '+cls;d.innerHTML=html;box.appendChild(d);box.scrollTop=box.scrollHeight;return d;}
+function typing(box){const d=document.createElement('div');d.className='msg ai typing';d.innerHTML='<span></span><span></span><span></span>';box.appendChild(d);box.scrollTop=box.scrollHeight;return d;}
+function converse(box,inp){const v=inp.value.trim();if(!v)return;inp.value='';pushMsg(box,'me',v);const t=typing(box);setTimeout(()=>{t.remove();const r=aiReply(v);pushMsg(box,'ai',r.b+srcHtml(r));},900);}
+function sendCoach(){converse(document.getElementById('coachMsgs'),document.getElementById('coachInput'));}
+function sendFab(){converse(document.getElementById('fabMsgs'),document.getElementById('fabInput'));}
+function toggleFab(){document.getElementById('fabwin').classList.toggle('show');}
+function openFab(){document.getElementById('fabwin').classList.add('show');document.getElementById('fabInput').focus();}
+
+/* ---------- ASK THE TEAM (Slack) MODAL ---------- */
+function askForm(ctx){return `
+  <div class="mhead"><div style="width:38px;height:38px;border-radius:10px;background:#4A154B;display:grid;place-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M6 14a2 2 0 1 1-2-2h2zm1 0a2 2 0 0 1 4 0v5a2 2 0 1 1-4 0zm3-8a2 2 0 1 1 2 2h-2zm0-1a2 2 0 0 1 0-4h5a2 2 0 1 1 0 4zm8 3a2 2 0 1 1 2 2h-2zm-1 0a2 2 0 0 1-4 0V3a2 2 0 1 1 4 0zm-3 8a2 2 0 1 1-2-2h2zm0 1a2 2 0 0 1 0 4h-5a2 2 0 1 1 0-4z"/></svg></div>
+    <div style="flex:1"><b style="font-family:'Poppins';font-size:16px">Ask the Dividend Shift team</b><div class="small mut">Posts to your team in Slack · reply lands in the portal + email</div></div>
+    <div class="iconbtn" style="width:30px;height:30px;border:0;background:none" onclick="closeAsk()">✕</div></div>
+  <div class="pad">
+    <label class="small mut" style="font-weight:600">Related to</label>
+    <select id="askCtx" style="margin:6px 0 14px"><option>${ctx}</option><option>Foundations</option><option>14-Day Sprint</option><option>Autonomy</option><option>Scaling</option><option>Billing / account</option><option>General question</option></select>
+    <label class="small mut" style="font-weight:600">Your question</label>
+    <textarea id="askText" style="margin-top:6px" placeholder="e.g. A merchant asked if they can settle in EUR instead of USD — what do I tell them?"></textarea>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px"><span class="slackchip">#client-questions</span><span class="small mut">Auto-attached: your name, current module, watch progress</span></div>
+    <div style="display:flex;gap:10px;margin-top:18px"><button class="btn" style="flex:1;justify-content:center" onclick="closeAsk()">Cancel</button><button class="btn slack" style="flex:1.4;justify-content:center" onclick="sendAsk()">Send to team</button></div>
+  </div>`;}
+function askSent(ctx){return `
+  <div class="pad" style="text-align:center;padding:34px 26px">
+    <div style="width:62px;height:62px;border-radius:50%;background:var(--green-soft);display:grid;place-items:center;margin:0 auto 16px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></div>
+    <h2 style="font-size:19px;margin-bottom:8px">Sent to the team 🎉</h2>
+    <p class="note" style="max-width:340px;margin:0 auto 14px">Your question was posted to <b style="color:#4A154B">#client-questions</b> in Slack with your context attached. The team typically replies within a few hours — you'll get a portal notification and an email.</p>
+    <span class="slackchip">Re: ${ctx}</span>
+    <div style="margin-top:22px"><button class="btn primary" style="justify-content:center;width:100%" onclick="closeAsk()">Done</button></div>
+  </div>`;}
+function openAsk(ctx){document.getElementById('askModal').innerHTML=askForm(ctx||'General question');document.getElementById('askOverlay').classList.add('show');setTimeout(()=>{const t=document.getElementById('askText');if(t)t.focus();},60);}
+function sendAsk(){const ctx=document.getElementById('askCtx').value;const m=document.getElementById('askModal');m.innerHTML='<div class="pad" style="text-align:center;padding:46px"><div class="typing" style="font-size:0"><span></span><span></span><span></span></div><p class="note" style="margin-top:14px">Posting to Slack…</p></div>';setTimeout(()=>{m.innerHTML=askSent(ctx);},850);}
+function closeAsk(){document.getElementById('askOverlay').classList.remove('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAsk();});
+
+/* ---------- TOAST ---------- */
+let toastT=null;
+function toast(msg){const el=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2800);}
+
+/* ---------- LIVE TRAINING ---------- */
+const liveEvents=[
+  {id:'operator-qa',title:'Weekly Operator Q&A',host:'Gedam Tekle',start:'2026-06-24T18:00:00',durMin:60,link:'https://streamyard.com/watch/dividendshift-qa',desc:'Live Q&A with Gedam — bring your merchant questions, deal blockers, and wins.'},
+  {id:'merchant-workshop',title:'Merchant Acquisition Workshop',host:'Gedam Tekle',start:'2026-07-01T18:00:00',durMin:90,link:'https://streamyard.com/watch/dividendshift-acquisition',desc:'Hands-on workshop: build your target list and run the first-call script live.'},
+  {id:'settlement-deepdive',title:'Fiat Settlement Deep-Dive',host:'Gedam Tekle',start:'2026-07-08T18:00:00',durMin:60,link:'https://streamyard.com/watch/dividendshift-settlement',desc:'Exactly how settlement works and how to explain it to merchants in 30 seconds.'},
+];
+function icsStamp(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'T'+p(d.getHours())+p(d.getMinutes())+'00';}
+function fmtDate(iso){const d=new Date(iso);return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});}
+function joinLive(link){window.open(link,'_blank','noopener');}
+function addICS(id){const ev=liveEvents.find(e=>e.id===id);const s=new Date(ev.start),e=new Date(new Date(ev.start).getTime()+ev.durMin*6e4);
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Dividend Shift//Live Training//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT','UID:'+ev.id+'@dividendshift.com','DTSTAMP:'+icsStamp(new Date()),'DTSTART:'+icsStamp(s),'DTEND:'+icsStamp(e),'SUMMARY:'+ev.title+' — Dividend Shift','DESCRIPTION:'+ev.desc+'\\nJoin: '+ev.link,'LOCATION:'+ev.link,'BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:Live training starts in 30 minutes','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dividend-shift-'+ev.id+'.ics';document.body.appendChild(a);a.click();a.remove();
+  toast('Calendar file downloaded — open it to add the reminder');}
+function gcal(id){const ev=liveEvents.find(e=>e.id===id);const s=new Date(ev.start),e=new Date(new Date(ev.start).getTime()+ev.durMin*6e4);
+  const url='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(ev.title+' — Dividend Shift')+'&dates='+icsStamp(s)+'/'+icsStamp(e)+'&details='+encodeURIComponent(ev.desc+'\nJoin: '+ev.link)+'&location='+encodeURIComponent(ev.link);
+  window.open(url,'_blank','noopener');}
+function dateBlock(iso){const d=new Date(iso);return `<div class="dateblock"><span class="mo">${d.toLocaleDateString('en-US',{month:'short'})}</span><span class="dy">${d.getDate()}</span></div>`;}
+function calBtns(id){return `<button class="btn" style="padding:8px 12px" onclick="addICS('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>.ics</button><button class="btn" style="padding:8px 12px" onclick="gcal('${id}')">Google</button>`;}
+function renderLive(){
+  const ev=liveEvents[0];
+  const lb=document.getElementById('liveBanner');
+  if(lb)lb.innerHTML=`<div class="card pad" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(135deg,#FFF1F1,#FFFFFF);border-color:#FAD9D9">
+    <div style="width:46px;height:46px;border-radius:13px;background:var(--red);display:grid;place-items:center;flex:0 0 46px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+    <div style="flex:1;min-width:180px"><div style="display:flex;align-items:center;gap:8px"><span class="live-dot"></span><b>Next live: ${ev.title}</b></div><div class="small mut">${fmtDate(ev.start)} · with ${ev.host} · starts in <b id="dashCd" style="color:var(--txt)">—</b></div></div>
+    <button class="btn" onclick="addICS('${ev.id}')">＋ Add to calendar</button>
+    <button class="btn primary" onclick="joinLive('${ev.link}')">Join on StreamYard</button>
+  </div>`;
+  const others=liveEvents.slice(1);
+  document.getElementById('liveInner').innerHTML=`
+    <div class="h-eyebrow">Live Training</div>
+    <h1 style="font-size:25px;margin-bottom:6px">Live Training</h1>
+    <p class="mut" style="margin-bottom:22px">Join live with ${ev.host} and add sessions to your calendar so you never miss one. You'll also get an email reminder 30 minutes before (via Resend).</p>
+    <div class="card pad" style="background:linear-gradient(135deg,#F3F7FF,#FFFFFF);margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+        <div style="min-width:240px">
+          <span class="pill" style="background:#FDECEC;color:var(--red);border-color:#FAD9D9"><span class="live-dot"></span> Next live session</span>
+          <h2 style="font-size:22px;margin:12px 0 4px">${ev.title}</h2>
+          <p class="mut small">${fmtDate(ev.start)} · with ${ev.host}</p>
+          <p class="note" style="margin-top:10px;max-width:420px">${ev.desc}</p>
+          <div class="small mut" style="margin-top:14px">Stream link: <a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="joinLive('${ev.link}')">${ev.link}</a></div>
+        </div>
+        <div style="min-width:230px">
+          <div class="small mut" style="font-weight:600;margin-bottom:8px">Starts in</div>
+          <div class="cd"><div><b id="cdD">—</b><span>days</span></div><div><b id="cdH">—</b><span>hrs</span></div><div><b id="cdM">—</b><span>min</span></div><div><b id="cdS">—</b><span>sec</span></div></div>
+          <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:18px">
+            <button class="btn primary" onclick="joinLive('${ev.link}')">▶ Join on StreamYard</button>
+            ${calBtns(ev.id)}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sec-title"><h2 style="font-size:17px">Upcoming sessions</h2></div>
+    <div class="card pad" style="margin-bottom:24px">
+      ${others.map((o,i)=>`<div style="display:flex;align-items:center;gap:14px;padding:14px 0;${i?'border-top:1px solid var(--line)':''}">
+        ${dateBlock(o.start)}
+        <div style="flex:1;min-width:0"><b style="font-size:14px">${o.title}</b><div class="small mut">${fmtDate(o.start)} · ${o.durMin} min · ${o.host}</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${calBtns(o.id)}<button class="btn" style="padding:8px 12px" onclick="joinLive('${o.link}')">Link</button></div>
+      </div>`).join('')}
+    </div>
+    <div class="sec-title"><h2 style="font-size:17px">Replays</h2><span class="pill mut">Recorded to Bunny Stream</span></div>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+      ${['Operator Q&A — Jun 17','Objection-Handling Clinic','Settlement AMA — Jun 10'].map((t,i)=>`<div class="vcard" onclick="goScreen('player')"><div class="thumb" style="background:linear-gradient(135deg,#1b2a4d,#0f1830)"><div class="play"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div><span class="dur">${['58:12','1:04:30','47:55'][i]}</span><span class="badge"><span class="pill green">Replay</span></span></div><div style="padding:13px 15px"><div class="small" style="color:var(--mut2);margin-bottom:5px">Live replay</div><div style="font-weight:600;font-size:13.5px">${t}</div></div></div>`).join('')}
+    </div>`;
+}
+function tickCountdown(){const target=new Date(liveEvents[0].start).getTime();let d=Math.max(0,target-Date.now());
+  const days=Math.floor(d/864e5);d-=days*864e5;const hrs=Math.floor(d/36e5);d-=hrs*36e5;const min=Math.floor(d/6e4);d-=min*6e4;const sec=Math.floor(d/1e3);
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v).padStart(2,'0');};
+  set('cdD',days);set('cdH',hrs);set('cdM',min);set('cdS',sec);
+  const dc=document.getElementById('dashCd');if(dc)dc.textContent=days+'d '+String(hrs).padStart(2,'0')+'h '+String(min).padStart(2,'0')+'m';}
+renderLive();tickCountdown();setInterval(tickCountdown,1000);
+
+/* ---------- DELIVERY PROGRESS (synced from Monday) ---------- */
+const delivery=[
+  {t:'Application Approved',done:true,date:'Mar 12'},
+  {t:'LLC Formed',done:true,date:'Mar 20'},
+  {t:'EIN Obtained',done:true,date:'Mar 26'},
+  {t:'Business Bank Opened',active:true},
+  {t:'Payment Processor Approved'},
+  {t:'First Terminal Placed'},
+];
+function renderDelivery(){
+  const done=delivery.filter(d=>d.done).length;const pct=Math.round(done/delivery.length*100);
+  document.getElementById('deliveryTracker').innerHTML=`<div class="card pad">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+      <div><h2 style="font-size:17px">Your Business Setup</h2><div class="small mut">Checked off by your delivery team — updates in real time</div></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill green">${done} of ${delivery.length} complete</span><span class="pill" style="background:#FFF3D9;color:#9A6B0E;border-color:#F4E2B6">⚡ Synced from Monday</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin:14px 0 18px"><div class="bar" style="flex:1;height:9px"><i style="width:${pct}%"></i></div><b style="font-family:'Poppins';font-size:15px">${pct}%</b></div>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr)">${delivery.map(d=>{
+      const cls=d.done?'done':(d.active?'active':'up');
+      const icon=d.done?'✓':(d.active?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>':'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>');
+      const sub=d.done?('Done · '+d.date):(d.active?'In progress now':'Upcoming');
+      return `<div class="mile ${cls}"><div class="mi">${icon}</div><div style="min-width:0"><div class="mt">${d.t}</div><div class="ms">${sub}</div></div></div>`;}).join('')}</div>
+  </div>`;
+}
+renderDelivery();
+
+/* ---------- LOCATION SCOUTER (locked tool) ---------- */
+let scouterUnlocked=false;
+function toggleScouter(){scouterUnlocked=!scouterUnlocked;renderScouter();}
+function renderScouter(){
+  const teaser=`<div class="mapmock">
+    <div class="pin" style="left:28%;top:40%"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg></div>
+    <div class="pin gold" style="left:54%;top:30%"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg></div>
+    <div class="pin" style="left:70%;top:58%"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg></div>
+    <div class="pin" style="left:42%;top:68%"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg></div>
+  </div>`;
+  const targets=[
+    {n:'Riverside Car Wash',ty:'Auto services · high cash volume',tx:'~420 txns/day · avg ticket $38',m:'94'},
+    {n:'El Patron Taqueria',ty:'Restaurant · cash-heavy',tx:'~310 txns/day · avg ticket $24',m:'89'},
+    {n:'Gold Coast Smoke Shop',ty:'Convenience · high frequency',tx:'~560 txns/day · avg ticket $19',m:'87'},
+    {n:'Westside Barber Co.',ty:'Personal care · on-site owner',tx:'~140 txns/day · avg ticket $32',m:'81'},
+  ];
+  if(!scouterUnlocked){
+    document.getElementById('scouterInner').innerHTML=`
+      <div class="h-eyebrow">Tools</div>
+      <h1 style="font-size:25px;margin-bottom:6px">Location Scouter</h1>
+      <p class="mut" style="margin-bottom:22px">Pulls live Google Maps data to surface high-value merchant targets near you — ranked by foot traffic, transaction volume, and fit.</p>
+      <div class="lockwrap">
+        <div class="lockblur">${teaser}</div>
+        <div class="lockover">
+          <div class="card pad" style="max-width:420px;text-align:center">
+            <div style="width:58px;height:58px;border-radius:16px;background:var(--card2);display:grid;place-items:center;margin:0 auto 14px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--mut)" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+            <h2 style="font-size:19px;margin-bottom:8px">Locked for now</h2>
+            <p class="note" style="margin-bottom:16px">The Location Scouter unlocks when you reach the <b>Autonomy</b> stage. Already landing merchants and want it early? Ask the team to flip it on for your account.</p>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+              <button class="btn slack" onclick="openAsk('Unlock Location Scouter')">Request early access</button>
+              <button class="btn" onclick="toggleScouter()">Preview unlocked view</button>
+            </div>
+            <div class="small mut" style="margin-top:14px">Admin: unlock per-client from their profile in the dashboard.</div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    document.getElementById('scouterInner').innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div><div class="h-eyebrow">Tools · Unlocked</div><h1 style="font-size:25px">Location Scouter</h1></div>
+        <div style="display:flex;gap:10px;align-items:center"><span class="pill green">● Live Google Maps data</span><button class="btn" onclick="toggleScouter()">Show locked view</button></div>
+      </div>
+      <div class="row" style="align-items:flex-start">
+        <div style="flex:1.3;min-width:0"><div class="lockwrap">${teaser}</div><div class="small mut" style="margin-top:8px">Search radius: 10 mi around Oakland, CA · 27 targets found</div></div>
+        <div style="flex:1;min-width:260px" class="grid">
+          ${targets.map(t=>`<div class="card pad" style="display:flex;gap:13px;align-items:flex-start"><div style="width:40px;height:40px;border-radius:11px;background:var(--blue-soft);display:grid;place-items:center;flex:0 0 40px;font-family:'Poppins';font-weight:700;color:var(--blue-dim)">${t.m}</div><div style="flex:1;min-width:0"><b style="font-size:14px">${t.n}</b><div class="small mut">${t.ty}</div><div class="small" style="color:var(--blue-dim);margin-top:4px">${t.tx}</div></div></div>`).join('')}
+          <div class="small mut" style="text-align:center">Match score = fit for a crypto terminal (volume × ticket × cash-reliance).</div>
+        </div>
+      </div>`;
+  }
+}
+renderScouter();
+
+/* ---------- AUTH (prototype) ---------- */
+function authNext(){document.getElementById('authStep1').style.display='none';document.getElementById('authStep2').style.display='block';}
+function authBack(){document.getElementById('authStep2').style.display='none';document.getElementById('authStep1').style.display='block';}
+function authDone(){document.getElementById('authScreen').classList.add('hide');}
+function signOut(){authBack();document.getElementById('authScreen').classList.remove('hide');goScreen('dashboard');window.scrollTo(0,0);}
+</script>
+</body>
+</html>
