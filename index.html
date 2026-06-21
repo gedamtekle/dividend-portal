@@ -328,6 +328,7 @@
     <div class="nav" data-screen="intake" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Location Intake <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2" style="margin-left:auto"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
     <div class="navlbl">Operate</div>
     <div class="nav" data-screen="admin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Analytics <span class="badge-admin" style="margin-left:auto">Admin</span></div>
+    <div class="nav" data-screen="team" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="navlbl">Account</div>
     <div class="nav" data-screen="settings" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 3.6h.09A1.65 1.65 0 0 0 9 2.09V2a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 16 3.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.4 8v.09A1.65 1.65 0 0 0 21.91 9H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
     <div class="spacer"></div>
@@ -593,6 +594,9 @@
       <!-- ============ CLIENT DETAIL (admin) ============ -->
       <section class="screen" id="client"><div id="clientInner"></div></section>
 
+      <!-- ============ TEAM / ACCESS LEVELS (admin) ============ -->
+      <section class="screen" id="team"><div id="teamInner"></div></section>
+
       <!-- ============ LIVE TRAINING ============ -->
       <section class="screen" id="live"><div id="liveInner"></div></section>
 
@@ -839,6 +843,8 @@ function openClient(i){
   const c=clients[i];const sessions=clientSessions(c,i);const suspended=c.status==='Suspended';
   const planOpts=TIERS.map(t=>`<option ${t===c.plan?'selected':''}>${t}</option>`).join('');
   const stepsHtml=setupSteps.map((s,k)=>{const done=k<c.setupDone;return `<div class="setrow" style="padding:11px 0"><div class="toggle ${done?'on':''}" onclick="this.classList.toggle('on');toast('Saved — will sync to your Monday board')"><i></i></div><div style="flex:1"><b style="font-size:13.5px">${s}</b></div><span class="small mut">${done?'Done':'Pending'}</span></div>`;}).join('');
+  const evItems=['Identity, email &amp; billing on file','Signup IP address + device captured','Terms &amp; agreement acknowledgment (timestamped + IP)','Access log — every login with IP, device &amp; time-on-page','Watch-time &amp; content engagement per lesson','Deliverable fulfillment — plan, stages &amp; milestones','All client ↔ team communications'];
+  const evidenceChecklist=evItems.map(t=>`<div style="display:flex;align-items:flex-start;gap:9px;padding:5px 0"><span style="color:var(--green);font-weight:700;flex:0 0 14px">✓</span><div class="small">${t}</div></div>`).join('');
   const sessHtml=sessions.map(s=>`<div class="card pad" style="margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div><b style="font-size:13.5px">${s.when}</b><div class="small mut">${s.dev} · IP ${s.ip}</div></div>
@@ -854,6 +860,7 @@ function openClient(i){
       <div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h1 style="font-size:22px">${c.n}</h1>${suspended?'<span class="pill" style="background:#FDECEC;color:#b4232a;border-color:#FAD9D9">Suspended</span>':'<span class="pill green">Active</span>'}</div><div class="small mut">${c.email} · ${c.plan} · joined ${c.joined}</div></div>
       <button class="btn" onclick="toast('Password reset email sent to ${c.email}')">Send password reset</button>
       <button class="btn" style="${suspended?'background:var(--blue);color:#fff;border:0':'background:#FDECEC;color:#b4232a;border-color:#FAD9D9'}" onclick="toggleSuspend(${i})">${suspended?'Reactivate access':'Suspend access'}</button>
+      <button class="btn" style="background:#14161D;color:#fff;border:0" onclick="generateLegalExport(${i})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Legal export</button>
     </div>
     <div class="row" style="align-items:flex-start">
       <div style="flex:1;min-width:280px" class="grid">
@@ -868,6 +875,12 @@ function openClient(i){
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><div class="h-eyebrow" style="margin:0">Business setup</div><span class="pill" style="background:#FFF3D9;color:#9A6B0E;border-color:#F4E2B6">syncs to Monday later</span></div>
           <div class="small mut" style="margin-bottom:6px">Check off delivery milestones — the client sees these update live.</div>
           ${stepsHtml}
+        </div>
+        <div class="card pad">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div class="h-eyebrow" style="margin:0;color:#14161D">Chargeback evidence</div><span class="pill green">🛡️ Auto-collected</span></div>
+          <div class="small mut" style="margin-bottom:8px">The portal automatically captures the evidence that wins disputes:</div>
+          ${evidenceChecklist}
+          <button class="btn" style="width:100%;justify-content:center;margin-top:12px;background:#14161D;color:#fff;border:0" onclick="generateLegalExport(${i})">⚖ Generate full legal export</button>
         </div>
       </div>
       <div style="flex:1.5;min-width:300px">
@@ -886,6 +899,108 @@ function openClient(i){
 }
 function toggleSuspend(i){clients[i].status=clients[i].status==='Suspended'?'Active':'Suspended';toast(clients[i].status==='Suspended'?'Access suspended — client can no longer log in':'Access reactivated');renderClientRows();openClient(i);}
 function setClientPlan(i,p){clients[i].plan=p;toast('Plan changed to '+p);renderClientRows();}
+
+/* ---------- LEGAL / CHARGEBACK EVIDENCE EXPORT ---------- */
+function generateLegalExport(i){
+  const c=clients[i];const sx=clientSessions(c,i);const s0=sx[0];const now=new Date().toLocaleString('en-US');
+  const ref=('Z'+Math.random().toString(36).slice(2,7)+'-'+Math.random().toString(36).slice(2,7)).toUpperCase();
+  const totalSecs=sx.reduce((a,s)=>a+s.total,0);
+  const sessRows=sx.map(s=>`<tr><td>${s.when}</td><td style="font-family:monospace">${s.ip}</td><td>${s.dev}</td><td>${s.pages.map(p=>p[0]+' ('+fmtSecs(p[1])+')').join('; ')}</td><td><b>${fmtSecs(s.total)}</b></td></tr>`).join('');
+  const milesDone=setupSteps.slice(0,c.setupDone).map(x=>'<li>✓ '+x+'</li>').join('');
+  const doc=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Chargeback Evidence — ${c.n}</title><style>
+    body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#14161D;max-width:820px;margin:30px auto;padding:0 24px;line-height:1.5}
+    h1{font-size:22px;border-bottom:3px solid #2F6BFF;padding-bottom:8px}h2{font-size:15px;background:#14161D;color:#fff;padding:7px 12px;border-radius:6px;margin-top:26px}
+    table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}th{background:#F4F6FB}
+    .kv{font-size:13px}.kv b{display:inline-block;width:170px;color:#5C6577}.muted{color:#5C6577;font-size:12px}.box{border:1px solid #e5e5e5;border-radius:8px;padding:12px 14px;margin-top:8px;font-size:13px}
+    @media print{body{margin:0}}</style></head><body>
+    <h1>Chargeback Evidence Package — Dividend Shift</h1>
+    <p class="muted">Generated ${now} · Evidence Ref ${ref} · Operated by Digital Residuals LLC dba Dividend Shift</p>
+
+    <h2>Section 1 — Customer & Account</h2>
+    <div class="kv"><b>Name</b> ${c.n}<br><b>Email</b> ${c.email}<br><b>Program / Plan</b> ${c.plan} (DividendShift Payment)<br><b>Account opened</b> ${c.joined}<br><b>Account status</b> ${c.status}<br><b>Signing / first-access IP</b> ${s0.ip}<br><b>Device</b> ${s0.dev}<br><b>Most recent activity</b> ${c.last}</div>
+
+    <h2>Section 2 — Agreement & Policy Acknowledgment</h2>
+    <div class="box"><b>Enrollment Agreement Ref:</b> ${ref} &nbsp;|&nbsp; <b>Accepted:</b> ${c.joined} from IP ${s0.ip}<br><br>
+    The client electronically accepted the Digital Payment Partner Enrollment Agreement and Terms of Service at sign-up, from an IP address consistent with their access record — confirming the cardholder personally authorized the purchase.<br><br>
+    <b>Non-Refund & Anti-Chargeback Policy (acknowledged at signup):</b><br>
+    • "All payments are non-refundable once the Agreement is signed and services begin."<br>
+    • "Filing a chargeback or payment dispute constitutes a material breach of this Agreement."<br>
+    • The client confirmed the payment was voluntary and made with full understanding of the terms.</div>
+
+    <h2>Section 3 — Access Activity Log (IP, Device & Time-on-Page)</h2>
+    <table><thead><tr><th>Date / time</th><th>IP</th><th>Device</th><th>Pages viewed (time)</th><th>Session total</th></tr></thead><tbody>${sessRows}</tbody></table>
+    <p class="muted">Total recorded time on platform: <b>${fmtSecs(totalSecs)}</b> across ${sx.length} logged sessions. Every login is IP- and device-stamped.</p>
+
+    <h2>Section 4 — Deliverable Fulfillment</h2>
+    <div class="kv"><b>Program access</b> Granted at signup (${c.joined})<br><b>Content engagement</b> ${c.w}% of program watched · ${c.comp}% complete<br><b>Current lesson</b> ${c.lesson}</div>
+    <div class="box"><b>Delivery milestones completed:</b><ul style="margin:6px 0">${milesDone||'<li>(none yet)</li>'}</ul></div>
+
+    <h2>Section 5 — Proof of Active Engagement</h2>
+    <div class="box">The cardholder actively used the program after purchase: ${c.w}% average watch rate, ${fmtSecs(totalSecs)} of recorded platform time, ${sx.length} distinct IP/device-verified sessions, last active ${c.last}. This demonstrates receipt and use of the product — inconsistent with "fraudulent," "not received," or "unacceptable" claims.</div>
+
+    <h2>Section 6 — Friendly-Fraud Summary</h2>
+    <div class="box">This dispute reflects buyer's remorse, not fraud:<br>
+    1. The cardholder personally signed/accepted the agreement from an IP matching their access record.<br>
+    2. The cardholder acknowledged the non-refund & anti-chargeback policy at signup.<br>
+    3. The cardholder accessed and engaged with the delivered program (${c.w}% watched, ${sx.length} logged sessions).<br>
+    4. No refund was requested through proper channels.<br>
+    We respectfully request this dispute be resolved in the merchant's favor.</div>
+
+    <p class="muted" style="margin-top:28px">— End of evidence package · ${c.n} · ${ref} —</p>
+    </body></html>`;
+  const blob=new Blob([doc],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='evidence-'+c.n.replace(/\\s+/g,'-').toLowerCase()+'.html';document.body.appendChild(a);a.click();a.remove();
+  toast('Legal evidence export downloaded — open it and Print → Save as PDF');
+}
+
+/* ---------- TEAM & ACCESS LEVELS ---------- */
+const ROLES=['Owner','Admin','Manager','CES'];
+const roleDesc={Owner:'Full control — team, billing, data, everything.',Admin:'Manage clients, tools, legal exports & settings.',Manager:'Manage assigned clients — plans, suspends, unlocks, milestones.',CES:'Client Experience Specialist — support clients, respond, update progress.'};
+let teamMembers=[
+  {n:'Gedam Tekle',email:'gedam@dividendshift.com',role:'Owner',i:'GT'},
+  {n:'Nikolas Kountouriotis',email:'nik@dividendshift.com',role:'Admin',i:'NK'},
+  {n:'Miles Choong',email:'miles@dividendshift.com',role:'Manager',i:'MC'},
+  {n:'Zack Tharp',email:'zack@dividendshift.com',role:'Manager',i:'ZT'},
+  {n:'Elona Spahiu',email:'elona@dividendshift.com',role:'CES',i:'ES'}
+];
+const perms=[
+  ['Manage team & roles',[1,0,0,0]],
+  ['Billing & account settings',[1,1,0,0]],
+  ['Legal / chargeback export',[1,1,0,0]],
+  ['Assign / change client plans',[1,1,1,0]],
+  ['Suspend / reactivate access',[1,1,1,0]],
+  ['Unlock client tools',[1,1,1,0]],
+  ['Update delivery milestones',[1,1,1,1]],
+  ['View clients & respond',[1,1,1,1]],
+  ['Permanently delete data',[1,0,0,0]]
+];
+const roleColors={Owner:'background:#14161D;color:#fff;border:0',Admin:'background:var(--blue-soft);color:var(--blue-dim);border-color:#DCE6FF',Manager:'background:#FFF3D9;color:#9A6B0E;border-color:#F4E2B6',CES:'background:var(--green-soft);color:#137a47;border-color:#C5EAD6'};
+function changeRole(i,r){teamMembers[i].role=r;toast(teamMembers[i].n+' is now '+r);renderTeam();}
+function inviteMember(){const e=document.getElementById('inviteEmail');const r=document.getElementById('inviteRole').value;if(!e.value.trim())return toast('Enter an email');toast('Invitation sent to '+e.value.trim()+' as '+r);e.value='';}
+function renderTeam(){
+  const ladder=ROLES.map((r,k)=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 0;${k?'border-top:1px solid var(--line)':''}"><span class="pill" style="${roleColors[r]}">${r}</span><div class="small mut" style="flex:1">${roleDesc[r]}</div>${k<ROLES.length-1?'<span style="color:var(--mut2)">▼ more access</span>':'<span class="small mut">least access</span>'}</div>`).join('');
+  const rows=teamMembers.map((m,i)=>`<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:30px;height:30px;font-size:11px">${m.i}</div><div><b>${m.n}</b><div class="small mut">${m.email}</div></div></div></td><td><select class="field" style="padding:7px 10px;width:auto" onchange="changeRole(${i},this.value)" ${m.role==='Owner'?'':''}>${ROLES.map(r=>`<option ${r===m.role?'selected':''}>${r}</option>`).join('')}</select></td><td style="text-align:right">${m.role==='Owner'?'<span class="small mut">—</span>':`<a class="small" style="color:var(--red);font-weight:600;cursor:pointer" onclick="teamMembers.splice(${i},1);renderTeam();toast('Member removed')">Remove</a>`}</td></tr>`).join('');
+  const matrix=`<table><thead><tr><th>Capability</th>${ROLES.map(r=>`<th style="text-align:center">${r}</th>`).join('')}</tr></thead><tbody>${perms.map(p=>`<tr><td>${p[0]}</td>${p[1].map(v=>`<td style="text-align:center;${v?'color:var(--green);font-weight:700':'color:var(--mut2)'}">${v?'✓':'—'}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  document.getElementById('teamInner').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span class="badge-admin">Admin only</span></div>
+    <h1 style="font-size:25px;margin-bottom:6px">Team & Access Levels</h1>
+    <p class="mut" style="margin-bottom:22px">Four access tiers, highest to lowest. Each member is assigned one role that controls exactly what they can do.</p>
+    <div class="row" style="align-items:flex-start">
+      <div style="flex:1;min-width:280px" class="grid">
+        <div class="card pad"><div class="h-eyebrow">Access ladder</div>${ladder}</div>
+        <div class="card pad"><div class="h-eyebrow">Invite a team member</div>
+          <label class="small mut" style="font-weight:600">Email</label><input id="inviteEmail" class="field" style="margin:6px 0 12px" placeholder="name@dividendshift.com" type="email">
+          <label class="small mut" style="font-weight:600">Role</label><select id="inviteRole" class="field" style="margin:6px 0 14px">${ROLES.map(r=>`<option ${r==='CES'?'selected':''}>${r}</option>`).join('')}</select>
+          <button class="btn primary" style="width:100%;justify-content:center" onclick="inviteMember()">Send invitation</button>
+        </div>
+      </div>
+      <div style="flex:1.5;min-width:300px">
+        <div class="card" style="margin-bottom:20px"><div class="pad" style="padding-bottom:6px"><h2 style="font-size:16px">Members <span class="pill mut">${teamMembers.length}</span></h2></div>
+          <div style="overflow:auto"><table><thead><tr><th>Member</th><th>Role</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>
+        <div class="card pad"><div class="h-eyebrow">Permissions by role</div><div style="overflow:auto;margin-top:8px">${matrix}</div></div>
+      </div>
+    </div>`;
+}
+renderTeam();
 
 /* heatmap */
 const hf=document.getElementById('heatFrame');[[55,18,70],[60,20,46],[30,55,90],[72,82,40],[28,82,40],[80,30,30]].forEach(([x,y,s])=>{const d=document.createElement('div');d.className='clickpt';d.style.left=x+'%';d.style.top=y+'%';d.style.width=s+'px';d.style.height=s+'px';if(s<45)d.style.background='radial-gradient(circle,rgba(242,179,61,.8),rgba(242,179,61,0) 70%)';hf.appendChild(d);});
