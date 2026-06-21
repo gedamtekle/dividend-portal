@@ -242,21 +242,38 @@
     </div>
 
     <div class="authpanel" id="apSignup" style="display:none">
+      <div class="small mut" style="text-align:center;margin-bottom:14px">Step 1 of 2 · Your details</div>
       <div style="display:flex;gap:10px">
         <div style="flex:1"><label class="small mut" style="font-weight:600">First name</label><input id="suFirst" class="field" style="margin:6px 0 12px" placeholder="First"></div>
         <div style="flex:1"><label class="small mut" style="font-weight:600">Last name</label><input id="suLast" class="field" style="margin:6px 0 12px" placeholder="Last"></div>
-      </div>
-      <label class="small mut" style="font-weight:600">Profile picture</label>
-      <div style="display:flex;align-items:center;gap:12px;margin:6px 0 12px">
-        <div id="suAvatarPrev" class="avatar" style="width:46px;height:46px;font-size:20px;background:var(--card2);color:var(--mut2);background-position:center">+</div>
-        <label class="btn" style="cursor:pointer;padding:9px 14px">Choose photo<input id="suAvatar" type="file" accept="image/*" style="display:none" onchange="previewAvatar(this)"></label>
       </div>
       <label class="small mut" style="font-weight:600">Email</label>
       <input id="suEmail" class="field" style="margin:6px 0 12px" placeholder="you@email.com" type="email">
       <label class="small mut" style="font-weight:600">Create a password</label>
       <input id="suPass" class="field" type="password" style="margin:6px 0 16px" placeholder="At least 8 characters">
-      <button class="btn primary" id="suBtn" style="width:100%;justify-content:center" onclick="doSignUp()">Create account</button>
+      <button class="btn primary" id="suBtn" style="width:100%;justify-content:center" onclick="signupContinue()">Continue →</button>
       <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back to sign in</a></div>
+    </div>
+
+    <div class="authpanel" id="apPhoto" style="display:none">
+      <div class="small mut" style="text-align:center;margin-bottom:8px">Step 2 of 2 · Profile photo</div>
+      <h2 style="font-size:18px;margin-bottom:4px;text-align:center">Add your photo to finish</h2>
+      <p class="small mut" id="camHint" style="margin-bottom:14px;text-align:center">Required — take a photo or upload one.</p>
+      <div style="display:flex;justify-content:center;margin-bottom:14px">
+        <div style="position:relative;width:172px;height:172px;border-radius:50%;overflow:hidden;background:var(--card2);border:1px solid var(--line)">
+          <video id="camVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:none"></video>
+          <img id="camCaptured" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+          <div id="camPlaceholder" style="position:absolute;inset:0;display:grid;place-items:center;color:var(--mut2);font-size:13px">No photo yet</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn" id="camStartBtn" onclick="startCamera()">📷 Use camera</button>
+        <button class="btn primary" id="camCaptureBtn" style="display:none" onclick="capturePhoto()">Capture</button>
+        <button class="btn" id="camRetake" style="display:none" onclick="retakePhoto()">Retake</button>
+        <label class="btn" style="cursor:pointer">Upload<input type="file" accept="image/*" style="display:none" onchange="setAvatarFromFile(this.files[0])"></label>
+      </div>
+      <button class="btn primary" id="finishBtn" style="width:100%;justify-content:center;opacity:.6" disabled onclick="finishSignup()">Create account</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="backToSignup()">← Back</a></div>
     </div>
 
     <div class="authpanel" id="apMagic" style="display:none">
@@ -1086,7 +1103,7 @@ const SUPA_KEY='sb_publishable_SCVc6CWLgTYrOYOI6sQpcQ_Zb9jE6ER';
 let sb=null; try{ sb=window.supabase.createClient(SUPA_URL,SUPA_KEY); }catch(e){ console.error('supabase init',e); }
 let mfaFactorId=null,mfaChallengeId=null,enrollFactorId=null;
 function val(id){const e=document.getElementById(id);return e?e.value.trim():'';}
-function showPanel(id){document.querySelectorAll('.authpanel').forEach(p=>p.style.display='none');const el=document.getElementById(id);if(el)el.style.display='block';hideAuthMsg();}
+function showPanel(id){try{if(id!=='apPhoto'&&typeof stopCamera==='function')stopCamera();}catch(e){}document.querySelectorAll('.authpanel').forEach(p=>p.style.display='none');const el=document.getElementById(id);if(el)el.style.display='block';hideAuthMsg();}
 function authMsg(t,ok){const m=document.getElementById('authMsg');m.style.display='block';m.textContent=t;m.style.background=ok?'var(--green-soft)':'#FDECEC';m.style.color=ok?'#137a47':'#b4232a';m.style.border='1px solid '+(ok?'#C5EAD6':'#FAD9D9');}
 function hideAuthMsg(){const m=document.getElementById('authMsg');if(m)m.style.display='none';}
 function busy(id,on){const b=document.getElementById(id);if(!b)return;b.disabled=on;b.style.opacity=on?'.6':'';if(on){if(!b.dataset.lbl)b.dataset.lbl=b.textContent;b.textContent='Please wait…';}else if(b.dataset.lbl){b.textContent=b.dataset.lbl;}}
@@ -1122,19 +1139,62 @@ async function doMfaVerify(){
   if(error)return authMsg(error.message);
   enterApp();
 }
-async function doSignUp(){
-  if(!sb)return authMsg('Auth is still loading.');
+/* signup step 1 -> photo gate (step 2, mandatory) */
+function signupContinue(){
   const email=val('suEmail'),pass=val('suPass'),first=val('suFirst'),last=val('suLast');
   if(!first||!last)return authMsg('Enter your first and last name.');
   if(!email||pass.length<8)return authMsg('Enter an email and a password of at least 8 characters.');
-  busy('suBtn',true);
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin,data:{first_name:first,last_name:last,full_name:(first+' '+last).trim(),avatar_url:window._avatarData||null}}});
-  busy('suBtn',false);
+  window._avatarData=null;
+  const fb=document.getElementById('finishBtn');fb.disabled=true;fb.style.opacity='.6';
+  document.getElementById('camCaptured').style.display='none';
+  document.getElementById('camVideo').style.display='none';
+  document.getElementById('camPlaceholder').style.display='grid';
+  document.getElementById('camStartBtn').style.display='inline-flex';
+  document.getElementById('camCaptureBtn').style.display='none';
+  document.getElementById('camRetake').style.display='none';
+  document.getElementById('camHint').textContent='Required — take a photo or upload one.';
+  showPanel('apPhoto');
+}
+function backToSignup(){stopCamera();showPanel('apSignup');}
+let camStream=null;
+async function startCamera(){
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+    const v=document.getElementById('camVideo');v.srcObject=camStream;v.style.display='block';
+    document.getElementById('camPlaceholder').style.display='none';
+    document.getElementById('camCaptured').style.display='none';
+    document.getElementById('camStartBtn').style.display='none';
+    document.getElementById('camCaptureBtn').style.display='inline-flex';
+  }catch(e){document.getElementById('camHint').textContent='Camera unavailable — please use Upload instead.';}
+}
+function capturePhoto(){
+  const v=document.getElementById('camVideo');const cv=document.createElement('canvas');cv.width=160;cv.height=160;const x=cv.getContext('2d');
+  const s=Math.min(v.videoWidth,v.videoHeight);x.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,160,160);
+  window._avatarData=cv.toDataURL('image/jpeg',0.7);stopCamera();showCaptured();
+}
+function setAvatarFromFile(f){if(!f)return;const r=new FileReader();r.onload=function(e){const img=new Image();img.onload=function(){const cv=document.createElement('canvas');cv.width=160;cv.height=160;const x=cv.getContext('2d');const s=Math.min(img.width,img.height);x.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,160,160);window._avatarData=cv.toDataURL('image/jpeg',0.7);stopCamera();showCaptured();};img.src=e.target.result;};r.readAsDataURL(f);}
+function showCaptured(){
+  const img=document.getElementById('camCaptured');img.src=window._avatarData;img.style.display='block';
+  document.getElementById('camVideo').style.display='none';
+  document.getElementById('camPlaceholder').style.display='none';
+  document.getElementById('camStartBtn').style.display='none';
+  document.getElementById('camCaptureBtn').style.display='none';
+  document.getElementById('camRetake').style.display='inline-flex';
+  const b=document.getElementById('finishBtn');b.disabled=false;b.style.opacity='';
+}
+function retakePhoto(){window._avatarData=null;const b=document.getElementById('finishBtn');b.disabled=true;b.style.opacity='.6';document.getElementById('camRetake').style.display='none';startCamera();}
+function stopCamera(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}}
+async function finishSignup(){
+  if(!sb)return authMsg('Auth is still loading.');
+  if(!window._avatarData)return authMsg('Please add a profile photo to continue.');
+  const email=val('suEmail'),pass=val('suPass'),first=val('suFirst'),last=val('suLast');
+  busy('finishBtn',true);
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin,data:{first_name:first,last_name:last,full_name:(first+' '+last).trim(),avatar_url:window._avatarData}}});
+  busy('finishBtn',false);
   if(error)return authMsg(error.message);
   if(data.session){await routeAfterLogin();}
   else authMsg('Account created — check your email to confirm, then sign in.',true);
 }
-function previewAvatar(input){const f=input.files&&input.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){const img=new Image();img.onload=function(){const cv=document.createElement('canvas');cv.width=128;cv.height=128;const x=cv.getContext('2d');const s=Math.min(img.width,img.height);x.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,128,128);window._avatarData=cv.toDataURL('image/jpeg',0.82);const p=document.getElementById('suAvatarPrev');p.textContent='';p.style.backgroundImage='url('+window._avatarData+')';p.style.backgroundSize='cover';};img.src=e.target.result;};r.readAsDataURL(f);}
 async function doMagic(){
   if(!sb)return authMsg('Auth is still loading.');
   const email=val('mlEmail');if(!email)return authMsg('Enter your email.');
