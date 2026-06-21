@@ -227,23 +227,58 @@
     <div style="text-align:center;margin-bottom:22px">
       <div class="logo" style="width:54px;height:54px;border-radius:16px;margin:0 auto 12px"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" style="width:30px;height:30px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
       <b style="font-family:'Poppins';font-size:19px">Dividend Shift</b>
-      <div class="small mut" style="letter-spacing:1.5px;text-transform:uppercase">Operator Portal</div>
+      <div class="small mut" style="letter-spacing:1.5px;text-transform:uppercase">Client Portal</div>
     </div>
-    <div id="authStep1">
+    <div id="authMsg" class="small" style="display:none;margin-bottom:14px;padding:10px 12px;border-radius:10px;line-height:1.4"></div>
+
+    <div class="authpanel" id="apSignin">
       <label class="small mut" style="font-weight:600">Email</label>
-      <input class="field" style="margin:6px 0 14px" placeholder="you@email.com">
+      <input id="liEmail" class="field" style="margin:6px 0 14px" placeholder="you@email.com" type="email" autocomplete="email">
       <label class="small mut" style="font-weight:600">Password</label>
-      <input class="field" type="password" style="margin:6px 0 6px" placeholder="••••••••">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 18px"><label class="small mut" style="display:flex;align-items:center;gap:7px;cursor:pointer"><span class="toggle on" onclick="this.classList.toggle('on')" style="transform:scale(.78)"><i></i></span> Remember me</label><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer">Forgot password?</a></div>
-      <button class="btn primary" style="width:100%;justify-content:center" onclick="authNext()">Sign in</button>
-      <div class="small mut" style="text-align:center;margin-top:14px">🔒 Prototype — any email &amp; password works</div>
+      <input id="liPass" class="field" type="password" style="margin:6px 0 6px" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 18px"><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apMagic')">Email me a link</a><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apReset')">Forgot password?</a></div>
+      <button class="btn primary" id="liBtn" style="width:100%;justify-content:center" onclick="doSignIn()">Sign in</button>
+      <div class="small mut" style="text-align:center;margin-top:14px">New here? <a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignup')">Create an account</a></div>
     </div>
-    <div id="authStep2" style="display:none">
-      <h2 style="font-size:18px;margin-bottom:4px">Check your email</h2>
-      <p class="small mut" style="margin-bottom:16px">Enter the 6-digit code we sent via Resend.</p>
-      <input class="authcode" maxlength="6" placeholder="••••••">
-      <button class="btn primary" style="width:100%;justify-content:center;margin-top:16px" onclick="authDone()">Verify &amp; sign in</button>
-      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="authBack()">← Back</a></div>
+
+    <div class="authpanel" id="apSignup" style="display:none">
+      <label class="small mut" style="font-weight:600">Email</label>
+      <input id="suEmail" class="field" style="margin:6px 0 14px" placeholder="you@email.com" type="email">
+      <label class="small mut" style="font-weight:600">Create a password</label>
+      <input id="suPass" class="field" type="password" style="margin:6px 0 14px" placeholder="At least 8 characters">
+      <button class="btn primary" id="suBtn" style="width:100%;justify-content:center" onclick="doSignUp()">Create account</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back to sign in</a></div>
+    </div>
+
+    <div class="authpanel" id="apMagic" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Email me a login link</h2>
+      <p class="small mut" style="margin-bottom:14px">We'll send a one-tap sign-in link to your inbox.</p>
+      <input id="mlEmail" class="field" type="email" placeholder="you@email.com" style="margin-bottom:14px">
+      <button class="btn primary" id="mlBtn" style="width:100%;justify-content:center" onclick="doMagic()">Send link</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back</a></div>
+    </div>
+
+    <div class="authpanel" id="apReset" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Reset your password</h2>
+      <p class="small mut" style="margin-bottom:14px">We'll email you a secure reset link.</p>
+      <input id="rsEmail" class="field" type="email" placeholder="you@email.com" style="margin-bottom:14px">
+      <button class="btn primary" id="rsBtn" style="width:100%;justify-content:center" onclick="doReset()">Send reset link</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back</a></div>
+    </div>
+
+    <div class="authpanel" id="apNewpw" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Set a new password</h2>
+      <p class="small mut" style="margin-bottom:14px">Enter a new password for your account.</p>
+      <input id="npPass" class="field" type="password" placeholder="New password (8+ chars)" style="margin-bottom:14px">
+      <button class="btn primary" id="npBtn" style="width:100%;justify-content:center" onclick="doNewPw()">Update password</button>
+    </div>
+
+    <div class="authpanel" id="ap2fa" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Two-factor verification</h2>
+      <p class="small mut" style="margin-bottom:16px">Enter the 6-digit code from your authenticator app.</p>
+      <input id="mfaCode" class="authcode" maxlength="6" placeholder="••••••" inputmode="numeric" onkeydown="if(event.key==='Enter')doMfaVerify()">
+      <button class="btn primary" id="mfaBtn" style="width:100%;justify-content:center;margin-top:16px" onclick="doMfaVerify()">Verify</button>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="signOut()">← Cancel</a></div>
     </div>
   </div>
 </div>
@@ -253,7 +288,7 @@
   <aside class="side">
     <div class="brand">
       <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
-      <div><b>Dividend<br>Shift</b><div class="tag">Operator Portal</div></div>
+      <div><b>Dividend<br>Shift</b><div class="tag">Client Portal</div></div>
     </div>
     <div class="navlbl">Learn</div>
     <div class="nav active" data-screen="dashboard" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</div>
@@ -521,6 +556,9 @@
         </div>
       </section>
 
+      <!-- ============ CLIENT DETAIL (admin) ============ -->
+      <section class="screen" id="client"><div id="clientInner"></div></section>
+
       <!-- ============ LIVE TRAINING ============ -->
       <section class="screen" id="live"><div id="liveInner"></div></section>
 
@@ -558,7 +596,7 @@
             <div class="card pad">
               <h2 style="font-size:16px;margin-bottom:4px">Login &amp; security</h2>
               <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Magic-link sign-in</b><div class="small mut">Skip passwords — we email a one-tap login link (via Resend).</div></div><div class="toggle on" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
-              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Two-factor authentication</b><div class="small mut">Email a 6-digit code on new-device login.</div></div><div class="toggle" onclick="this.classList.toggle('on');toast('Preference saved')"><i></i></div></div>
+              <div class="setrow"><div style="flex:1"><b style="font-size:13.5px">Two-factor authentication</b><div class="small mut">Use an authenticator app (TOTP) for a code on login.</div></div><div class="toggle" id="twofaToggle" onclick="twofaClick(this)"><i></i></div></div>
               <hr class="div" style="margin:14px 0">
               <button class="btn" style="width:100%;justify-content:center" onclick="signOut()">Sign out</button>
             </div>
@@ -618,6 +656,7 @@
   <div class="modal" id="askModal"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ---------- JOURNEY DATA ---------- */
 const stages=[
@@ -643,7 +682,15 @@ let currentStageKey='sprint';
 
 const continueVids=[{t:'Day 1–3: Merchant Targeting Framework',ph:'14-Day Sprint',dur:'14:20',pct:71,c:'#203058'},{t:'Day 4–7: The First-Call Script',ph:'14-Day Sprint',dur:'9:18',pct:20,c:'#192848'},{t:'The RRS Mindset',ph:'Foundations',dur:'11:42',pct:100,c:'#1b2a4d'}];
 const upnext=[{t:'Day 1–3: Merchant Targeting',dur:'14:20',pct:71,c:'#203058'},{t:'Day 4–7: First-Call Script',dur:'9:18',pct:20,c:'#192848'},{t:'Day 8–11: Handling Objections',dur:'12:03',pct:0,c:'#1d2e54'},{t:'Day 12–14: Onboarding',dur:'10:47',pct:0,c:'#22335c'}];
-const clients=[{n:'Marcus Bell',i:'MB',lesson:'Sprint · Day 1–3',w:71,comp:62,last:'2h ago',st:'On track',col:'blue'},{n:'Priya Shah',i:'PS',lesson:'Scaling · M2',w:94,comp:88,last:'1d ago',st:'Top watcher',col:'green'},{n:'Carlos Diaz',i:'CD',lesson:'Foundations · M3',w:38,comp:24,last:'15d ago',st:'At-risk',col:'gold'},{n:'Nadia Cole',i:'NC',lesson:'Autonomy · M1',w:66,comp:58,last:'4h ago',st:'On track',col:'blue'},{n:'Ryan Brooks',i:'RB',lesson:'Foundations · M1',w:12,comp:8,last:'21d ago',st:'At-risk',col:'gold'},{n:'Aaron Cho',i:'AC',lesson:'Scaling · M1',w:81,comp:79,last:'6h ago',st:'On track',col:'blue'}];
+const clients=[
+  {n:'Marcus Bell',i:'MB',email:'marcus.bell@gmail.com',plan:'Digital Partner',status:'Active',joined:'Mar 8, 2026',setupDone:3,lesson:'Sprint · Day 1–3',w:71,comp:62,last:'2h ago',st:'On track',col:'blue'},
+  {n:'Priya Shah',i:'PS',email:'priya@shahco.com',plan:'Digital Elite',status:'Active',joined:'Jan 22, 2026',setupDone:6,lesson:'Scaling · M2',w:94,comp:88,last:'1d ago',st:'Top watcher',col:'green'},
+  {n:'Carlos Diaz',i:'CD',email:'carlos.diaz@outlook.com',plan:'Digital Starter',status:'Active',joined:'Apr 30, 2026',setupDone:1,lesson:'Foundations · M3',w:38,comp:24,last:'15d ago',st:'At-risk',col:'gold'},
+  {n:'Nadia Cole',i:'NC',email:'nadia.cole@gmail.com',plan:'Digital Partner',status:'Active',joined:'Feb 14, 2026',setupDone:4,lesson:'Autonomy · M1',w:66,comp:58,last:'4h ago',st:'On track',col:'blue'},
+  {n:'Ryan Brooks',i:'RB',email:'ryan.b@gmail.com',plan:'Digital Starter',status:'Suspended',joined:'May 2, 2026',setupDone:1,lesson:'Foundations · M1',w:12,comp:8,last:'21d ago',st:'At-risk',col:'gold'},
+  {n:'Aaron Cho',i:'AC',email:'aaron.cho@gmail.com',plan:'Digital Limitless',status:'Active',joined:'Dec 11, 2025',setupDone:6,lesson:'Scaling · M1',w:81,comp:79,last:'6h ago',st:'On track',col:'blue'}
+];
+const setupSteps=['Application Approved','LLC Formed','EIN Obtained','Business Bank Opened','Payment Processor Approved','First Terminal Placed'];
 const colMap={blue:'var(--blue)',green:'var(--green)',gold:'var(--gold)'};
 
 /* ---------- RENDER: dashboard cards ---------- */
@@ -723,7 +770,8 @@ function stab(b,id){['sModules','sRes','sFaq'].forEach(t=>document.getElementByI
 
 /* up next + client rows */
 document.getElementById('upnext').innerHTML=upnext.map((v,idx)=>{const active=idx===0;return `<div onclick="goScreen('player')" style="display:flex;gap:11px;padding:10px;border-radius:11px;cursor:pointer;${active?'background:var(--blue-soft);border:1px solid #DCE6FF':''};margin-bottom:6px"><div style="position:relative;width:74px;height:46px;border-radius:8px;flex:0 0 74px;background:linear-gradient(135deg,${v.c},#0f1830);display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" opacity=".9"><path d="M8 5v14l11-7z"/></svg><div style="position:absolute;left:0;bottom:0;height:3px;background:var(--blue);width:${v.pct}%"></div></div><div style="min-width:0"><div style="font-size:12.5px;font-weight:600;line-height:1.3">${v.t}</div><div class="small mut">${v.dur}${active?' · ▶ now':''}</div></div></div>`;}).join('');
-document.getElementById('clientRows').innerHTML=clients.map(c=>`<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:30px;height:30px;font-size:11px">${c.i}</div><b>${c.n}</b></div></td><td class="mut">${c.lesson}</td><td><div style="display:flex;align-items:center;gap:10px"><div class="bar" style="flex:1"><i style="width:${c.w}%;background:${colMap[c.col]}"></i></div><span style="font-variant-numeric:tabular-nums;font-size:12.5px">${c.w}%</span></div></td><td style="font-weight:600">${c.comp}%</td><td class="mut">${c.last}</td><td><span style="color:${colMap[c.col]};font-weight:600"><span class="dot" style="background:${colMap[c.col]}"></span>${c.st}</span></td></tr>`).join('');
+function renderClientRows(){document.getElementById('clientRows').innerHTML=clients.map((c,i)=>`<tr style="cursor:pointer" onclick="openClient(${i})"><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:30px;height:30px;font-size:11px">${c.i}</div><div><b style="color:var(--blue-dim)">${c.n}</b>${c.status==='Suspended'?' <span class="pill" style="background:#FDECEC;color:#b4232a;border-color:#FAD9D9;padding:1px 7px">Suspended</span>':''}<div class="small mut">${c.plan}</div></div></div></td><td class="mut">${c.lesson}</td><td><div style="display:flex;align-items:center;gap:10px"><div class="bar" style="flex:1"><i style="width:${c.w}%;background:${colMap[c.col]}"></i></div><span style="font-variant-numeric:tabular-nums;font-size:12.5px">${c.w}%</span></div></td><td style="font-weight:600">${c.comp}%</td><td class="mut">${c.last}</td><td><span style="color:${colMap[c.col]};font-weight:600"><span class="dot" style="background:${colMap[c.col]}"></span>${c.st}</span> <span style="color:var(--mut2)">›</span></td></tr>`).join('');}
+renderClientRows();
 
 /* access & session log (chargeback proof) */
 const sessions=[
@@ -734,6 +782,70 @@ const sessions=[
   {n:'Nadia Cole',dt:'Jun 21, 11:20 AM',ip:'66.27.144.9',loc:'San Diego, CA · US',dev:'iPad · Safari',acc:'Autonomy · M1 (66%)'},
 ];
 document.getElementById('sessionRows').innerHTML=sessions.map(s=>`<tr><td><b>${s.n}</b></td><td class="mut">${s.dt}</td><td style="font-variant-numeric:tabular-nums">${s.ip}</td><td class="mut">${s.loc}</td><td class="mut">${s.dev}</td><td class="small">${s.acc}</td></tr>`).join('');
+
+/* ---------- CLIENT DETAIL (admin drilldown) ---------- */
+function fmtSecs(s){const m=Math.floor(s/60),r=s%60;return m>0?(m+'m '+String(r).padStart(2,'0')+'s'):(r+'s');}
+function clientSessions(c,idx){
+  const devices=['iPhone 15 · Safari','MacBook Pro · Chrome','Windows 11 · Edge','iPad · Safari','Android · Chrome'];
+  const ips=['73.118.42.19','24.55.10.204','98.207.88.3','47.149.22.87','66.27.144.9','12.88.214.7'];
+  const base=[
+    {when:'Today · 1:42 PM',pages:[['Dashboard',74],['14-Day Sprint',128],['Lesson: Merchant Targeting',612],['AI Coach',96]]},
+    {when:'Yesterday · 8:10 PM',pages:[['Dashboard',41],['My Journey',55],['Lesson: First-Call Script',338],['Resources',60]]},
+    {when:'Jun 18 · 7:22 AM',pages:[['Live Training',47],['Replay: Operator Q&A',915],['Dashboard',33]]}
+  ];
+  return base.map((s,k)=>({id:'ss_'+(idx+1)+(k+1)+Math.random().toString(36).slice(2,8),when:s.when,dev:devices[(idx+k)%devices.length],ip:ips[(idx+k)%ips.length],pages:s.pages,total:s.pages.reduce((a,p)=>a+p[1],0)}));
+}
+function openClient(i){
+  const c=clients[i];const sessions=clientSessions(c,i);const suspended=c.status==='Suspended';
+  const planOpts=TIERS.map(t=>`<option ${t===c.plan?'selected':''}>${t}</option>`).join('');
+  const stepsHtml=setupSteps.map((s,k)=>{const done=k<c.setupDone;return `<div class="setrow" style="padding:11px 0"><div class="toggle ${done?'on':''}" onclick="this.classList.toggle('on');toast('Saved — will sync to your Monday board')"><i></i></div><div style="flex:1"><b style="font-size:13.5px">${s}</b></div><span class="small mut">${done?'Done':'Pending'}</span></div>`;}).join('');
+  const sessHtml=sessions.map(s=>`<div class="card pad" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div><b style="font-size:13.5px">${s.when}</b><div class="small mut">${s.dev} · IP ${s.ip}</div></div>
+      <div style="text-align:right"><div class="small mut">Session ID</div><div class="small" style="font-family:monospace;color:var(--mut)">${s.id}</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">${s.pages.map(p=>`<div style="display:flex;align-items:center;gap:10px"><div style="flex:1;font-size:13px">${p[0]}</div><div class="bar" style="width:130px"><i style="width:${Math.min(100,Math.round(p[1]/9.2))}%"></i></div><div class="small mut" style="width:64px;text-align:right;font-variant-numeric:tabular-nums">${fmtSecs(p[1])}</div></div>`).join('')}</div>
+    <div class="small mut" style="margin-top:9px">Total time on site this session: <b style="color:var(--txt)">${fmtSecs(s.total)}</b></div>
+  </div>`).join('');
+  document.getElementById('clientInner').innerHTML=`
+    <button class="btn" style="padding:8px 13px;margin-bottom:14px" onclick="goScreen('admin')">← All clients</button>
+    <div class="card pad" style="margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div class="avatar" style="width:54px;height:54px;font-size:18px">${c.i}</div>
+      <div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h1 style="font-size:22px">${c.n}</h1>${suspended?'<span class="pill" style="background:#FDECEC;color:#b4232a;border-color:#FAD9D9">Suspended</span>':'<span class="pill green">Active</span>'}</div><div class="small mut">${c.email} · ${c.plan} · joined ${c.joined}</div></div>
+      <button class="btn" onclick="toast('Password reset email sent to ${c.email}')">Send password reset</button>
+      <button class="btn" style="${suspended?'background:var(--blue);color:#fff;border:0':'background:#FDECEC;color:#b4232a;border-color:#FAD9D9'}" onclick="toggleSuspend(${i})">${suspended?'Reactivate access':'Suspend access'}</button>
+    </div>
+    <div class="row" style="align-items:flex-start">
+      <div style="flex:1;min-width:280px" class="grid">
+        <div class="card pad">
+          <div class="h-eyebrow">Access &amp; plan</div>
+          <label class="small mut" style="font-weight:600">Plan tier</label>
+          <select class="field" style="margin:6px 0 14px" onchange="setClientPlan(${i},this.value)">${planOpts}</select>
+          <div class="setrow" style="padding:11px 0"><div class="toggle ${c.plan==='Digital Limitless'?'on':''}" onclick="this.classList.toggle('on');toast('Add-on updated')"><i></i></div><div style="flex:1"><b style="font-size:13.5px">Location Scouter add-on</b><div class="small mut">Google-Maps targeting tool</div></div></div>
+          <div class="setrow" style="padding:11px 0"><div class="toggle" onclick="this.classList.toggle('on');toast('Add-on updated')"><i></i></div><div style="flex:1"><b style="font-size:13.5px">Done-For-You acquisition</b><div class="small mut">Team places first merchants</div></div></div>
+        </div>
+        <div class="card pad">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><div class="h-eyebrow" style="margin:0">Business setup</div><span class="pill" style="background:#FFF3D9;color:#9A6B0E;border-color:#F4E2B6">syncs to Monday later</span></div>
+          <div class="small mut" style="margin-bottom:6px">Check off delivery milestones — the client sees these update live.</div>
+          ${stepsHtml}
+        </div>
+      </div>
+      <div style="flex:1.5;min-width:300px">
+        <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+          <div class="card pad"><div class="small mut">Completion</div><div class="stat">${c.comp}%</div></div>
+          <div class="card pad"><div class="small mut">Avg. watched</div><div class="stat">${c.w}%</div></div>
+          <div class="card pad"><div class="small mut">Last active</div><div class="stat" style="font-size:17px">${c.last}</div></div>
+        </div>
+        <div class="sec-title" style="margin:4px 0 12px"><h2 style="font-size:16px">Client journey &amp; sessions</h2><span class="pill">${sessions.length} recent sessions</span></div>
+        ${sessHtml}
+        <div class="small mut">Every session logs ID, IP, device and per-page elapsed time — the same record powers your chargeback proof.</div>
+      </div>
+    </div>`;
+  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.screen==='admin'));
+  show('client');
+}
+function toggleSuspend(i){clients[i].status=clients[i].status==='Suspended'?'Active':'Suspended';toast(clients[i].status==='Suspended'?'Access suspended — client can no longer log in':'Access reactivated');renderClientRows();openClient(i);}
+function setClientPlan(i,p){clients[i].plan=p;toast('Plan changed to '+p);renderClientRows();}
 
 /* heatmap */
 const hf=document.getElementById('heatFrame');[[55,18,70],[60,20,46],[30,55,90],[72,82,40],[28,82,40],[80,30,30]].forEach(([x,y,s])=>{const d=document.createElement('div');d.className='clickpt';d.style.left=x+'%';d.style.top=y+'%';d.style.width=s+'px';d.style.height=s+'px';if(s<45)d.style.background='radial-gradient(circle,rgba(242,179,61,.8),rgba(242,179,61,0) 70%)';hf.appendChild(d);});
@@ -959,11 +1071,118 @@ function renderScouter(){
 }
 renderScouter();
 
-/* ---------- AUTH (prototype) ---------- */
-function authNext(){document.getElementById('authStep1').style.display='none';document.getElementById('authStep2').style.display='block';}
-function authBack(){document.getElementById('authStep2').style.display='none';document.getElementById('authStep1').style.display='block';}
-function authDone(){document.getElementById('authScreen').classList.add('hide');}
-function signOut(){authBack();document.getElementById('authScreen').classList.remove('hide');goScreen('dashboard');window.scrollTo(0,0);}
+/* ---------- AUTH (real · Supabase) ---------- */
+const SUPA_URL='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+const SUPA_KEY='sb_publishable_SCVc6CWLgTYrOYOI6sQpcQ_Zb9jE6ER';
+let sb=null; try{ sb=window.supabase.createClient(SUPA_URL,SUPA_KEY); }catch(e){ console.error('supabase init',e); }
+let mfaFactorId=null,mfaChallengeId=null,enrollFactorId=null;
+function val(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function showPanel(id){document.querySelectorAll('.authpanel').forEach(p=>p.style.display='none');const el=document.getElementById(id);if(el)el.style.display='block';hideAuthMsg();}
+function authMsg(t,ok){const m=document.getElementById('authMsg');m.style.display='block';m.textContent=t;m.style.background=ok?'var(--green-soft)':'#FDECEC';m.style.color=ok?'#137a47':'#b4232a';m.style.border='1px solid '+(ok?'#C5EAD6':'#FAD9D9');}
+function hideAuthMsg(){const m=document.getElementById('authMsg');if(m)m.style.display='none';}
+function busy(id,on){const b=document.getElementById(id);if(!b)return;b.disabled=on;b.style.opacity=on?'.6':'';if(on){if(!b.dataset.lbl)b.dataset.lbl=b.textContent;b.textContent='Please wait…';}else if(b.dataset.lbl){b.textContent=b.dataset.lbl;}}
+function enterApp(){document.getElementById('authScreen').classList.add('hide');}
+function showAuth(){document.getElementById('authScreen').classList.remove('hide');showPanel('apSignin');}
+
+async function routeAfterLogin(){
+  try{
+    const {data:aal}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(aal&&aal.nextLevel==='aal2'&&aal.currentLevel==='aal1'){
+      const {data:fl}=await sb.auth.mfa.listFactors();
+      const totp=fl&&fl.totp&&fl.totp[0];
+      if(totp){mfaFactorId=totp.id;const {data:ch,error}=await sb.auth.mfa.challenge({factorId:totp.id});if(!error){mfaChallengeId=ch.id;showPanel('ap2fa');setTimeout(()=>{const c=document.getElementById('mfaCode');if(c)c.focus();},60);return;}}
+    }
+  }catch(e){console.warn('mfa check',e);}
+  enterApp();
+}
+async function doSignIn(){
+  if(!sb)return authMsg('Auth is still loading — give it a second and retry.');
+  const email=val('liEmail'),pass=val('liPass');
+  if(!email||!pass)return authMsg('Enter your email and password.');
+  busy('liBtn',true);
+  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  busy('liBtn',false);
+  if(error)return authMsg(error.message);
+  await routeAfterLogin();
+}
+async function doMfaVerify(){
+  const code=val('mfaCode');if(!code)return authMsg('Enter the 6-digit code.');
+  busy('mfaBtn',true);
+  const {error}=await sb.auth.mfa.verify({factorId:mfaFactorId,challengeId:mfaChallengeId,code});
+  busy('mfaBtn',false);
+  if(error)return authMsg(error.message);
+  enterApp();
+}
+async function doSignUp(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const email=val('suEmail'),pass=val('suPass');
+  if(!email||pass.length<8)return authMsg('Enter an email and a password of at least 8 characters.');
+  busy('suBtn',true);
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin}});
+  busy('suBtn',false);
+  if(error)return authMsg(error.message);
+  if(data.session){await routeAfterLogin();}
+  else authMsg('Account created — check your email to confirm, then sign in.',true);
+}
+async function doMagic(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const email=val('mlEmail');if(!email)return authMsg('Enter your email.');
+  busy('mlBtn',true);
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});
+  busy('mlBtn',false);
+  if(error)return authMsg(error.message);
+  authMsg('Login link sent — check your email.',true);
+}
+async function doReset(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const email=val('rsEmail');if(!email)return authMsg('Enter your email.');
+  busy('rsBtn',true);
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
+  busy('rsBtn',false);
+  if(error)return authMsg(error.message);
+  authMsg('Reset link sent — check your email.',true);
+}
+async function doNewPw(){
+  const p=val('npPass');if(p.length<8)return authMsg('Password must be at least 8 characters.');
+  busy('npBtn',true);
+  const {error}=await sb.auth.updateUser({password:p});
+  busy('npBtn',false);
+  if(error)return authMsg(error.message);
+  authMsg('Password updated — signing you in…',true);setTimeout(enterApp,800);
+}
+async function signOut(){try{if(sb)await sb.auth.signOut();}catch(e){}showAuth();goScreen('dashboard');window.scrollTo(0,0);}
+
+/* 2FA enrollment (from Settings) */
+async function twofaClick(el){
+  if(!sb){toast('Auth not ready');return;}
+  if(el.classList.contains('on')){
+    try{const {data}=await sb.auth.mfa.listFactors();for(const f of ((data&&data.totp)||[]))await sb.auth.mfa.unenroll({factorId:f.id});}catch(e){}
+    el.classList.remove('on');toast('Two-factor disabled');
+  }else{ enroll2FA(el); }
+}
+async function enroll2FA(el){
+  const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'app-'+Date.now()});
+  if(error){toast(error.message);return;}
+  enrollFactorId=data.id;
+  document.getElementById('askModal').innerHTML=`<div class="mhead"><b style="font-family:'Poppins';font-size:16px;flex:1">Set up two-factor auth</b><div class="iconbtn" style="width:30px;height:30px;border:0;background:none" onclick="cancelEnroll()">✕</div></div><div class="pad"><p class="note" style="margin-bottom:12px">Scan with Google Authenticator, Authy or 1Password, then enter the 6-digit code.</p><div style="text-align:center;margin-bottom:10px">${data.totp.qr_code}</div><div class="small mut" style="text-align:center;margin-bottom:12px;word-break:break-all">Manual key: <b>${data.totp.secret}</b></div><input id="enrollCode" class="authcode" maxlength="6" placeholder="••••••" inputmode="numeric"><button class="btn primary" style="width:100%;justify-content:center;margin-top:14px" onclick="verifyEnroll('${el.id||''}')">Verify &amp; enable</button></div>`;
+  document.getElementById('askOverlay').classList.add('show');
+}
+async function verifyEnroll(togId){
+  const code=val('enrollCode');if(!code)return toast('Enter the 6-digit code');
+  const {data:ch,error:e1}=await sb.auth.mfa.challenge({factorId:enrollFactorId});
+  if(e1)return toast(e1.message);
+  const {error:e2}=await sb.auth.mfa.verify({factorId:enrollFactorId,challengeId:ch.id,code});
+  if(e2)return toast(e2.message);
+  closeAsk();const t=togId&&document.getElementById(togId);if(t)t.classList.add('on');toast('Two-factor enabled ✓');
+}
+function cancelEnroll(){try{if(sb&&enrollFactorId)sb.auth.mfa.unenroll({factorId:enrollFactorId});}catch(e){}closeAsk();}
+
+/* session bootstrap */
+(async function(){
+  if(!sb){showPanel('apSignin');return;}
+  sb.auth.onAuthStateChange((event)=>{ if(event==='PASSWORD_RECOVERY'){document.getElementById('authScreen').classList.remove('hide');showPanel('apNewpw');} });
+  try{const {data:{session}}=await sb.auth.getSession();if(session){await routeAfterLogin();}else{showPanel('apSignin');}}catch(e){showPanel('apSignin');}
+})();
 </script>
 </body>
 </html>
