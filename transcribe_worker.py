@@ -215,10 +215,22 @@ def process(video):
     # --- smart chapters / moments / title / description ---
     needs_smart = SMART_CHAPTERS and not (detail.get("chapters"))
     if needs_smart:
+        vid_len = int(detail.get("length") or 0)
         transcript = detail.get("_transcript", "")
         if not transcript:
-            # rebuild transcript from existing caption if needed
-            transcript = title  # minimal fallback
+            # captions already exist from a prior run — pull the VTT and strip to text
+            try:
+                capurl = f"https://{CDN}/{guid}/captions/en.vtt"
+                req = urllib.request.Request(capurl, headers={
+                    "Referer": get("BUNNY_REFERER", "https://video.dividendshift.com/"),
+                    "User-Agent": "Mozilla/5.0 (compatible; DividendShiftTranscriber/1.0)"})
+                vtt = urllib.request.urlopen(req, timeout=60).read().decode("utf-8", "ignore")
+                transcript = " ".join(
+                    l.strip() for l in vtt.splitlines()
+                    if l.strip() and "-->" not in l and l.strip() != "WEBVTT" and not l.strip().isdigit())
+            except Exception as e:
+                print(f"    transcript fetch failed: {e}")
+                transcript = title
         try:
             meta = groq_llm_json(transcript)
         except Exception as e:
@@ -231,13 +243,19 @@ def process(video):
             bch = []
             for i, c in enumerate(chapters):
                 start = int(c.get("start_seconds", 0))
-                end = int(chapters[i + 1]["start_seconds"]) if i + 1 < len(chapters) else start + 60
-                bch.append({"title": c.get("title", f"Chapter {i+1}"), "start": start, "end": max(end, start + 1)})
+                if vid_len and start >= vid_len:
+                    continue  # drop chapters past the end of the video
+                end = int(chapters[i + 1]["start_seconds"]) if i + 1 < len(chapters) else (vid_len or start + 60)
+                end = max(start + 1, end)
+                if vid_len:
+                    end = min(end, vid_len)
+                bch.append({"title": c.get("title", f"Chapter {i+1}"), "start": start, "end": end})
             if bch:
                 update["chapters"] = bch
             moments = meta.get("moments") or []
             bm = [{"label": m.get("label", "")[:80], "timestamp": int(m.get("timestamp_seconds", 0))}
-                  for m in moments if m.get("label")]
+                  for m in moments if m.get("label")
+                  and (not vid_len or int(m.get("timestamp_seconds", 0)) < vid_len)]
             if bm:
                 update["moments"] = bm
             if SMART_TITLE and meta.get("title"):
