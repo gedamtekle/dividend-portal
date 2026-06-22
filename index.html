@@ -316,6 +316,18 @@
       <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back to sign in</a></div>
     </div>
 
+    <div class="authpanel" id="apPending" style="display:none">
+      <div style="text-align:center">
+        <div style="width:54px;height:54px;border-radius:50%;background:var(--blue-soft,#E8F0FF);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2F6BFF" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <h2 style="font-size:19px;margin-bottom:6px">Your access is pending approval</h2>
+        <p class="small mut" id="pendingMsg" style="margin-bottom:18px;line-height:1.5">Thanks for signing up! A Dividend Shift team member needs to approve your account before you can enter the portal. You’ll get an email at <b id="pendingEmail"></b> the moment you’re approved.</p>
+        <button class="btn" style="width:100%;justify-content:center" onclick="signOut()">Sign out</button>
+        <p class="small mut" style="margin-top:12px">Questions? <a href="mailto:support@dividendshift.com" style="color:var(--blue);font-weight:600">support@dividendshift.com</a></p>
+      </div>
+    </div>
+
     <div class="authpanel" id="apNewpw" style="display:none">
       <h2 style="font-size:18px;margin-bottom:4px">Set a new password</h2>
       <p class="small mut" style="margin-bottom:14px">Enter a new password for your account.</p>
@@ -350,9 +362,9 @@
     <div class="nav" data-screen="scouter" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Location Scouter <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2" style="margin-left:auto"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
     <div class="nav" data-screen="builder" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></svg>Website Builder <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2" style="margin-left:auto"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
     <div class="nav" data-screen="intake" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Location Intake <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2" style="margin-left:auto"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
-    <div class="navlbl">Operate</div>
-    <div class="nav" data-screen="admin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Analytics <span class="badge-admin" style="margin-left:auto">Admin</span></div>
-    <div class="nav" data-screen="team" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team <span class="badge-admin" style="margin-left:auto">Admin</span></div>
+    <div class="navlbl admin-only" style="display:none">Operate</div>
+    <div class="nav admin-only" style="display:none" data-screen="admin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Analytics <span class="badge-admin" style="margin-left:auto">Admin</span></div>
+    <div class="nav admin-only" style="display:none" data-screen="team" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="navlbl">Account</div>
     <div class="nav" data-screen="settings" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 3.6h.09A1.65 1.65 0 0 0 9 2.09V2a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 16 3.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.4 8v.09A1.65 1.65 0 0 0 21.91 9H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
     <div class="spacer"></div>
@@ -1341,7 +1353,35 @@ async function routeAfterLogin(){
       if(totp){mfaFactorId=totp.id;const {data:ch,error}=await sb.auth.mfa.challenge({factorId:totp.id});if(!error){mfaChallengeId=ch.id;showPanel('ap2fa');setTimeout(()=>{const c=document.getElementById('mfaCode');if(c)c.focus();},60);return;}}
     }
   }catch(e){console.warn('mfa check',e);}
+  await gateAndEnter();
+}
+/* ---- Access control: fetch the signed-in user's profile, gate by status + role ---- */
+let _me=null;
+async function gateAndEnter(){
+  let me=null;
+  try{
+    const {data:{user}}=await sb.auth.getUser();
+    if(user){
+      const {data}=await sb.from('profiles').select('role,status,email,full_name').eq('id',user.id).single();
+      me=data||{role:'client',status:'active',email:(user.email||'')};
+      if(!me.email)me.email=user.email||'';
+    }
+  }catch(e){me={role:'client',status:'active'};}
+  _me=me||{role:'client',status:'active'};
+  const status=(_me.status||'active');
+  if(status!=='active'){
+    document.getElementById('authScreen').classList.remove('hide');
+    const em=document.getElementById('pendingEmail'); if(em)em.textContent=(_me.email||'your email');
+    const h=document.querySelector('#apPending h2'), msg=document.getElementById('pendingMsg');
+    if(status==='suspended'){ if(h)h.textContent='Access suspended'; if(msg)msg.innerHTML='Your access is currently suspended. Please reach out to the team to have it restored.'; }
+    else { if(h)h.textContent='Your access is pending approval'; if(msg)msg.innerHTML='Thanks for signing up! A Dividend Shift team member needs to approve your account before you can enter the portal. You’ll get an email at <b id="pendingEmail">'+(_me.email||'your email')+'</b> the moment you’re approved.'; }
+    showPanel('apPending');
+    return;
+  }
+  const isAdmin=_me.role==='admin';
+  document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin?'':'none';});
   enterApp();
+  try{ if(typeof goScreen==='function') goScreen('dashboard'); }catch(e){}
 }
 async function doSignIn(){
   if(!sb)return authMsg('Auth is still loading — give it a second and retry.');
@@ -1359,7 +1399,7 @@ async function doMfaVerify(){
   const {error}=await sb.auth.mfa.verify({factorId:mfaFactorId,challengeId:mfaChallengeId,code});
   busy('mfaBtn',false);
   if(error)return authMsg(error.message);
-  enterApp();
+  await gateAndEnter();
 }
 /* signup step 1 -> photo gate (step 2, mandatory) */
 function signupContinue(){
