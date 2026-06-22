@@ -238,7 +238,8 @@
       <input id="liPass" class="field" type="password" style="margin:6px 0 6px" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
       <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 18px"><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apMagic')">Email me a link</a><a class="small" style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apReset')">Forgot password?</a></div>
       <button class="btn primary" id="liBtn" style="width:100%;justify-content:center" onclick="doSignIn()">Sign in</button>
-      <div class="small mut" style="text-align:center;margin-top:14px">New here? <a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignup')">Create an account</a></div>
+      <div class="small mut" style="text-align:center;margin-top:12px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="openPhone()">Text me a code instead</a></div>
+      <div class="small mut" style="text-align:center;margin-top:10px">New here? <a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignup')">Create an account</a></div>
     </div>
 
     <div class="authpanel" id="apSignup" style="display:none">
@@ -296,6 +297,23 @@
       <input id="rsEmail" class="field" type="email" placeholder="you@email.com" style="margin-bottom:14px">
       <button class="btn primary" id="rsBtn" style="width:100%;justify-content:center" onclick="doReset()">Send reset link</button>
       <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back</a></div>
+    </div>
+
+    <div class="authpanel" id="apPhone" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Sign in with your phone</h2>
+      <p class="small mut" style="margin-bottom:14px">We'll text a one-time code to your mobile.</p>
+      <div id="phStep1">
+        <label class="small mut" style="font-weight:600">Mobile number</label>
+        <input id="phNumber" class="field" type="tel" placeholder="(555) 123-4567" style="margin:6px 0 14px" onkeydown="if(event.key==='Enter')doPhoneSend()">
+        <button class="btn primary" id="phSendBtn" style="width:100%;justify-content:center" onclick="doPhoneSend()">Text me a code</button>
+      </div>
+      <div id="phStep2" style="display:none">
+        <label class="small mut" style="font-weight:600">Enter the 6-digit code</label>
+        <input id="phCode" class="field" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="margin:6px 0 14px;letter-spacing:4px;font-size:18px" onkeydown="if(event.key==='Enter')doPhoneVerify()">
+        <button class="btn primary" id="phVerifyBtn" style="width:100%;justify-content:center" onclick="doPhoneVerify()">Verify &amp; sign in</button>
+        <div class="small mut" style="text-align:center;margin-top:10px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="openPhone()">← Use a different number</a></div>
+      </div>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back to sign in</a></div>
     </div>
 
     <div class="authpanel" id="apNewpw" style="display:none">
@@ -865,6 +883,7 @@ function openClient(i){
       <div class="avatar" style="width:54px;height:54px;font-size:18px">${c.i}</div>
       <div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h1 style="font-size:22px">${c.n}</h1>${suspended?'<span class="pill" style="background:#FDECEC;color:#b4232a;border-color:#FAD9D9">Suspended</span>':'<span class="pill green">Active</span>'}</div><div class="small mut">${c.email} · ${c.plan} · joined ${c.joined}</div></div>
       <button class="btn" onclick="toast('Password reset email sent to ${c.email}')">Send password reset</button>
+      <button class="btn" onclick="adminTextClient(${i})">Send SMS</button>
       <button class="btn" style="${suspended?'background:var(--blue);color:#fff;border:0':'background:#FDECEC;color:#b4232a;border-color:#FAD9D9'}" onclick="toggleSuspend(${i})">${suspended?'Reactivate access':'Suspend access'}</button>
       ${canExport()?`<button class="btn" style="background:#14161D;color:#fff;border:0" onclick="generateLegalExport(${i})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Legal export</button>`:''}
     </div>
@@ -981,6 +1000,24 @@ const perms=[
 ];
 let currentRole='Owner';
 function canExport(){return currentRole==='Owner'||currentRole==='Admin';}
+/* ---- SMS sending via the send-sms Edge Function (admin only). No-ops gracefully until Twilio Auth Token is set + number approved. ---- */
+async function sendSms(to,body){
+  if(!sb)throw new Error('Auth not ready');
+  const {data,error}=await sb.functions.invoke('send-sms',{body:{to:to,body:body}});
+  if(error){let msg=error.message||'send failed';try{const j=await error.context.json();if(j&&(j.error||j.message))msg=(j.error||'')+(j.message?': '+j.message:'');}catch(e){}throw new Error(msg);}
+  return data;
+}
+async function adminTextClient(i){
+  const c=clients[i];
+  const to=(c&&c.phone)||prompt('Mobile number to text (e.g. +15551234567):');
+  if(!to)return;
+  const first=(c&&c.n?c.n.split(' ')[0]:'there');
+  const body=prompt('Message to '+(c?c.n:'client')+':','Hi '+first+', this is Dividend Shift — ');
+  if(!body)return;
+  toast('Sending text…');
+  try{await sendSms(to,body);toast('Text sent ✓');}
+  catch(e){toast('Not sent: '+e.message);}
+}
 function setCurrentRole(r){currentRole=r;renderTeam();if(document.getElementById('client').classList.contains('show')){const idx=clients.findIndex(x=>x.n===document.querySelector('#clientInner h1')?.textContent);if(idx>=0)openClient(idx);}toast('Previewing portal as '+r);}
 const roleColors={Owner:'background:#14161D;color:#fff;border:0',Admin:'background:var(--blue-soft);color:var(--blue-dim);border-color:#DCE6FF',Manager:'background:#FFF3D9;color:#9A6B0E;border-color:#F4E2B6',CES:'background:var(--green-soft);color:#137a47;border-color:#C5EAD6'};
 function changeRole(i,r){teamMembers[i].role=r;toast(teamMembers[i].n+' is now '+r);renderTeam();}
@@ -1389,6 +1426,45 @@ async function doMagic(){
   busy('mlBtn',false);
   if(error)return authMsg(error.message);
   authMsg('Login link sent — check your email.',true);
+}
+/* ---- Phone (SMS) sign-in: dormant until the Supabase Phone provider is enabled ---- */
+function normalizePhone(raw){
+  let p=(raw||'').trim().replace(/[^\d+]/g,'');
+  if(!p)return '';
+  if(p.startsWith('+'))return p;
+  if(p.length===10)return '+1'+p;            // US 10-digit
+  if(p.length===11&&p.startsWith('1'))return '+'+p;
+  return '+'+p;
+}
+function openPhone(){
+  document.getElementById('phStep1').style.display='';
+  document.getElementById('phStep2').style.display='none';
+  var c=document.getElementById('phCode'); if(c)c.value='';
+  showPanel('apPhone');
+}
+async function doPhoneSend(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const phone=normalizePhone(val('phNumber'));
+  if(phone.replace(/\D/g,'').length<11)return authMsg('Enter a valid mobile number, including area code.');
+  busy('phSendBtn',true);
+  const {error}=await sb.auth.signInWithOtp({phone});
+  busy('phSendBtn',false);
+  if(error)return authMsg(error.message);
+  window._phone=phone;
+  document.getElementById('phStep1').style.display='none';
+  document.getElementById('phStep2').style.display='';
+  setTimeout(function(){var c=document.getElementById('phCode');if(c)c.focus();},50);
+  authMsg('Code sent — check your texts.',true);
+}
+async function doPhoneVerify(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const code=val('phCode').trim();
+  if(code.length<4)return authMsg('Enter the code from your text message.');
+  busy('phVerifyBtn',true);
+  const {error}=await sb.auth.verifyOtp({phone:window._phone,token:code,type:'sms'});
+  busy('phVerifyBtn',false);
+  if(error)return authMsg(error.message);
+  await routeAfterLogin();
 }
 async function doReset(){
   if(!sb)return authMsg('Auth is still loading.');
