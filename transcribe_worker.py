@@ -80,13 +80,41 @@ def ffmpeg_path():
     except Exception:
         return "ffmpeg"  # fall back to system ffmpeg if present
 
+def url_status(url, referer, ua):
+    try:
+        req = urllib.request.Request(url, method="GET",
+                                     headers={"Referer": referer, "User-Agent": ua, "Range": "bytes=0-1"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except Exception as e:
+        return "ERR:" + type(e).__name__
+
 def extract_audio(guid, out_path):
-    src = f"https://{CDN}/{guid}/playlist.m3u8"
-    cmd = [ffmpeg_path(), "-y", "-i", src, "-vn", "-ac", "1", "-ar", "16000",
-           "-b:a", "32k", "-f", "mp3", out_path]
-    p = subprocess.run(cmd, capture_output=True)
-    if p.returncode != 0 or not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
-        raise RuntimeError("ffmpeg failed:\n" + p.stderr.decode()[-1500:])
+    referer = get("BUNNY_REFERER", "https://video.dividendshift.com/")
+    ua = "Mozilla/5.0 (compatible; DividendShiftTranscriber/1.0)"
+    candidates = [
+        f"https://{CDN}/{guid}/playlist.m3u8",
+        f"https://{CDN}/{guid}/play_720p.mp4",
+        f"https://{CDN}/{guid}/play_480p.mp4",
+        f"https://{CDN}/{guid}/play_360p.mp4",
+        f"https://{CDN}/{guid}/play_240p.mp4",
+        f"https://{CDN}/{guid}/original",
+    ]
+    errors = []
+    for src in candidates:
+        st = url_status(src, referer, ua)
+        print(f"    source {src.split('/')[-1]} -> http {st}")
+        cmd = [ffmpeg_path(), "-y", "-referer", referer, "-user_agent", ua,
+               "-i", src, "-vn", "-ac", "1", "-ar", "16000",
+               "-b:a", "32k", "-f", "mp3", out_path]
+        p = subprocess.run(cmd, capture_output=True)
+        if p.returncode == 0 and os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+            print(f"    audio OK via {src.split('/')[-1]} ({os.path.getsize(out_path)//1024} KB)")
+            return
+        errors.append(f"{src.split('/')[-1]}: rc={p.returncode} {p.stderr.decode()[-200:].strip()}")
+    raise RuntimeError("all audio sources failed:\n" + "\n".join(errors))
 
 # ---------- Groq ----------
 def groq_transcribe(audio_path):
