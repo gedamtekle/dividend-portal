@@ -1,0 +1,39 @@
+name: Transcribe Bunny videos\n\non:\n  schedule:\n    - cron: "17 * * * *"\n  workflow_dispatch: {}\n  repository_dispatch:\n    types: [bunny-video]\n\nconcurrency:\n  group: transcribe\n  cancel-in-progress: false\n\njobs:\n  transcribe:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: "3.12"\n      - name: Install ffmpeg + deps\n        run: |\n          sudo apt-get update -qq\n          sudo apt-get install -y -qq ffmpeg\n          pip install requests imageio-ffmpeg\n      - name: Run transcription worker\n        env:\n          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}\n          BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}\n        run: python transcribe_worker.py\n      - name: Re-check after 5 min (catches long videos that finish encoding late)\n        if: github.event_name == 'repository_dispatch'\n        env:\n          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}\n          BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}\n        run: |\n          sleep 300\n          python transcribe_worker.py\nname: Transcribe Bunny videos
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch: {}
+  repository_dispatch:
+    types: [bunny-video]
+
+concurrency:
+  group: transcribe
+  cancel-in-progress: false
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ffmpeg + deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          pip install requests imageio-ffmpeg
+      - name: Run transcription worker
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
+        run: python transcribe_worker.py
+      - name: Re-check after 5 min (catches long videos that finish encoding late)
+        if: github.event_name == 'repository_dispatch'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
+        run: |
+          sleep 300
+          python transcribe_worker.py
