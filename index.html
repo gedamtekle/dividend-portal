@@ -250,7 +250,13 @@
       <label class="small mut" style="font-weight:600">Email</label>
       <input id="suEmail" class="field" style="margin:6px 0 12px" placeholder="you@email.com" type="email">
       <label class="small mut" style="font-weight:600">Create a password</label>
-      <input id="suPass" class="field" type="password" style="margin:6px 0 16px" placeholder="At least 8 characters">
+      <input id="suPass" class="field" type="password" style="margin:6px 0 12px" placeholder="At least 8 characters">
+      <label class="small mut" style="font-weight:600">Mobile number <span style="font-weight:400">(for sign-in codes &amp; reminders)</span></label>
+      <input id="suPhone" class="field" type="tel" style="margin:6px 0 12px" placeholder="(555) 123-4567">
+      <label style="display:flex;gap:8px;align-items:flex-start;margin:2px 0 16px;cursor:pointer">
+        <input id="suSms" type="checkbox" style="margin-top:3px;flex:none">
+        <span class="small mut" style="line-height:1.45">I agree to receive account and reminder text messages (including one-time sign-in codes) from Dividend Shift at the number above. Msg &amp; data rates may apply; message frequency varies. Reply STOP to opt out, HELP for help. See our <a href="https://dividendshift.com/privacy-policy" target="_blank" style="color:var(--blue)">Privacy Policy</a> &amp; <a href="https://dividendshift.com/terms-of-service" target="_blank" style="color:var(--blue)">Terms</a>.</span>
+      </label>
       <button class="btn primary" id="suBtn" style="width:100%;justify-content:center" onclick="signupContinue()">Continue →</button>
       <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="showPanel('apSignin')">← Back to sign in</a></div>
     </div>
@@ -1367,8 +1373,9 @@ async function finishSignup(){
   if(!sb)return authMsg('Auth is still loading.');
   if(!window._avatarData)return authMsg('Please add a profile photo to continue.');
   const email=val('suEmail'),pass=val('suPass'),first=val('suFirst'),last=val('suLast');
+  const phone=val('suPhone');const smsConsent=!!(document.getElementById('suSms')&&document.getElementById('suSms').checked);
   busy('finishBtn',true);
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin,data:{first_name:first,last_name:last,full_name:(first+' '+last).trim(),avatar_url:window._avatarData}}});
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin,data:{first_name:first,last_name:last,full_name:(first+' '+last).trim(),avatar_url:window._avatarData,phone:phone,sms_consent:smsConsent,sms_consent_at:smsConsent?new Date().toISOString():null}}});
   busy('finishBtn',false);
   if(error)return authMsg(error.message);
   if(data.session){await routeAfterLogin();}
