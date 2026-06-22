@@ -74,11 +74,17 @@ def bunny_json(method, path, payload):
 
 # ---------- ffmpeg ----------
 def ffmpeg_path():
+    # Prefer the runner's system ffmpeg (reliable apt build on GitHub ubuntu
+    # runners). The imageio static binary segfaults here, so use it only if the
+    # system ffmpeg is genuinely missing.
+    import shutil
+    if shutil.which("ffmpeg"):
+        return "ffmpeg"
     try:
         import imageio_ffmpeg
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception:
-        return "ffmpeg"  # fall back to system ffmpeg if present
+        return "ffmpeg"
 
 def url_status(url, referer, ua):
     try:
