@@ -349,8 +349,11 @@
   <!-- ===== SIDEBAR ===== -->
   <aside class="side">
     <div class="brand">
-      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
-      <div><b>Dividend<br>Shift</b><div class="tag">Client Portal</div></div>
+      <img src="logo.png" alt="Dividend Shift" style="height:42px;width:auto;max-width:160px;object-fit:contain" onerror="this.style.display='none';var f=document.getElementById('brandFallback');if(f)f.style.display='flex'">
+      <div id="brandFallback" style="display:none;align-items:center;gap:10px">
+        <div class="logo" style="background:transparent;box-shadow:none"><svg viewBox="0 0 48 48" style="width:34px;height:34px"><g fill="none" stroke="#F2B33D" stroke-width="2.4" stroke-linecap="round"><circle cx="19" cy="19" r="13"/><path d="M6 19h26M19 6c5 4 5 22 0 26M19 6c-5 4-5 22 0 26"/><path d="M9 10a16 16 0 0 1 20 0" stroke-dasharray="2.5 4"/></g><circle cx="32" cy="33" r="11" fill="#F2B33D" stroke="#fff" stroke-width="2"/><text x="32" y="38" text-anchor="middle" font-size="13" font-weight="800" fill="#fff" font-family="Arial,sans-serif">B</text></svg></div>
+        <div><b>Dividend<br>Shift</b><div class="tag">Client Portal</div></div>
+      </div>
     </div>
     <div class="navlbl cli-nav">Learn</div>
     <div class="nav active" data-screen="dashboard" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</div>
@@ -366,6 +369,7 @@
     <div class="nav admin-only" style="display:none" data-screen="clients" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clients <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="admin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Admin Console <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="team" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team <span class="badge-admin" style="margin-left:auto">Admin</span></div>
+    <div class="nav admin-only" style="display:none" data-screen="adminsettings" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V12a1.65 1.65 0 0 0 1.51 1z"/></svg>Settings <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="navlbl">Account</div>
     <div class="nav" data-screen="settings" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 3.6h.09A1.65 1.65 0 0 0 9 2.09V2a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 16 3.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.4 8v.09A1.65 1.65 0 0 0 21.91 9H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
     <div class="spacer"></div>
@@ -635,6 +639,7 @@
 
       <!-- ============ CLIENTS LIST (admin) ============ -->
       <section class="screen" id="clients"><div id="clientsInner"></div></section>
+      <section class="screen" id="adminsettings"><div id="adminSettingsInner"></div></section>
 
       <!-- ============ CLIENT DETAIL (admin) ============ -->
       <section class="screen" id="client"><div id="clientInner"></div></section>
@@ -1079,6 +1084,10 @@ function fmtCallDate(iso){const d=new Date(iso);if(isNaN(d))return iso||'';retur
 function toLocalInput(iso){const d=new Date(iso);if(isNaN(d))return '';const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
 let _adminCache={clients:[],tasksByClient:{},calls:[]};
 
+const TZLIST=[['America/New_York','Eastern (New York)'],['America/Chicago','Central (Chicago)'],['America/Denver','Mountain (Denver)'],['America/Phoenix','Arizona (Phoenix)'],['America/Los_Angeles','Pacific (Los Angeles)'],['America/Anchorage','Alaska'],['Pacific/Honolulu','Hawaii'],['UTC','UTC'],['Europe/London','London'],['Europe/Paris','Central Europe (Paris)'],['Africa/Lagos','Lagos / West Africa'],['Asia/Dubai','Dubai'],['Asia/Kolkata','India'],['Asia/Singapore','Singapore'],['Asia/Tokyo','Tokyo'],['Australia/Sydney','Sydney']];
+function guessTz(){try{return Intl.DateTimeFormat().resolvedOptions().timeZone||'America/New_York';}catch(e){return 'America/New_York';}}
+function wallTimeToUTC(localStr,tz){const a=localStr.split('T'),dp=a[0].split('-').map(Number),tp=a[1].split(':').map(Number);const asUTC=Date.UTC(dp[0],dp[1]-1,dp[2],tp[0],tp[1]);const dtf=new Intl.DateTimeFormat('en-US',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});const p={};dtf.formatToParts(new Date(asUTC)).forEach(x=>p[x.type]=x.value);let hh=+p.hour;if(hh===24)hh=0;const tzAsUTC=Date.UTC(+p.year,+p.month-1,+p.day,hh,+p.minute,+p.second);return new Date(asUTC-(tzAsUTC-asUTC)).toISOString();}
+function utcToWallInput(iso,tz){const dtf=new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});const p={};dtf.formatToParts(new Date(iso)).forEach(x=>p[x.type]=x.value);let hh=p.hour;if(hh==='24')hh='00';return p.year+'-'+p.month+'-'+p.day+'T'+hh+':'+p.minute;}
 async function loadAdmin(){
   const host=document.getElementById('adminInner'); if(!host||!sb) return;
   host.innerHTML='<div class="card pad mut small">Loading admin console…</div>';
@@ -1110,10 +1119,18 @@ async function loadAdmin(){
       <div class="pad" style="padding-top:0;display:flex;flex-direction:column;gap:8px">${pending.map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><b>${esc(p.full_name||p.email)}</b><div class="small mut">${esc(p.email)}</div></div><button class="btn primary" style="padding:7px 14px" onclick="approveClient('${p.id}')">Approve</button><button class="btn" style="padding:7px 12px" onclick="suspendClient('${p.id}')">Deny</button></div>`).join('')}</div></div>`;
   }
 
+  const nowMs=Date.now();
+  const sc=calls.slice().sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
+  const upcoming=sc.filter(c=>new Date(c.starts_at).getTime()>=nowMs-3600000);
+  const past=sc.filter(c=>new Date(c.starts_at).getTime()<nowMs-3600000).reverse();
+  const callRow=(c,ed)=>`<div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><b>${esc(c.title)}</b><div class="small mut">${fmtCallDate(c.starts_at)}${c.tz?' · '+esc(c.tz.split('/').pop().replace(/_/g,' ')):''}${c.host?' · '+esc(c.host):''}</div>${c.link?`<div class="small" style="color:var(--blue);word-break:break-all">${esc(c.link)}</div>`:''}</div>${ed?`<button class="btn" style="padding:6px 11px" onclick="editCall('${c.id}')">Edit</button>`:''}<button class="btn" style="padding:6px 11px;color:#b4232a" onclick="deleteCall('${c.id}')">Delete</button></div>`;
+  const tzOpts=TZLIST.map(z=>`<option value="${z[0]}">${z[1]}</option>`).join('');
   const callsHtml=`<div class="card" style="margin-bottom:20px">
-    <div class="pad" style="padding-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px"><span style="font-size:15px;font-weight:700">📅 Coaching calls</span><span class="small mut">Clients see these on Live Training</span></div>
+    <div class="pad" style="padding-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px"><span style="font-size:15px;font-weight:700">📅 Coaching calls</span><span class="small mut">Clients see these in their own timezone</span></div>
     <div class="pad" style="padding-top:0">
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">${calls.length?calls.map(c=>`<div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><b>${esc(c.title)}</b><div class="small mut">${fmtCallDate(c.starts_at)}${c.host?' · '+esc(c.host):''}</div>${c.link?`<div class="small" style="color:var(--blue);word-break:break-all">${esc(c.link)}</div>`:''}</div><button class="btn" style="padding:6px 11px" onclick="editCall('${c.id}')">Edit</button><button class="btn" style="padding:6px 11px;color:#b4232a" onclick="deleteCall('${c.id}')">Delete</button></div>`).join(''):'<div class="small mut">No calls scheduled yet.</div>'}</div>
+      <div class="small mut" style="font-weight:700;margin-bottom:8px">Upcoming</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">${upcoming.length?upcoming.map(c=>callRow(c,true)).join(''):'<div class="small mut">No upcoming calls.</div>'}</div>
+      ${past.length?`<details style="margin-bottom:14px"><summary style="cursor:pointer;color:var(--mut);font-size:13px;font-weight:600">Past calls (${past.length})</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${past.map(c=>callRow(c,false)).join('')}</div></details>`:''}
       <div style="border-top:1px solid var(--line);padding-top:14px">
         <div class="small mut" style="font-weight:700;margin-bottom:8px" id="callFormTitle">Add a coaching call</div>
         <input type="hidden" id="callId">
@@ -1121,8 +1138,10 @@ async function loadAdmin(){
           <input class="field" id="callTitle" placeholder="Title (e.g. Weekly Q&amp;A)">
           <input class="field" id="callHost" placeholder="Host (e.g. Gedam)">
           <input class="field" id="callWhen" type="datetime-local">
-          <input class="field" id="callLink" placeholder="Stream / Zoom link">
+          <select class="field" id="callTz">${tzOpts}</select>
+          <input class="field" id="callLink" placeholder="Stream / Zoom link" style="grid-column:1/-1">
         </div>
+        <div class="small mut" style="margin-top:6px">Enter the time in the timezone you pick — clients see it in their own local time automatically.</div>
         <div style="display:flex;gap:8px;margin-top:10px"><button class="btn primary" onclick="saveCall()">Save call</button><button class="btn" onclick="resetCallForm()">Clear</button></div>
       </div>
     </div></div>`;
@@ -1133,21 +1152,23 @@ async function loadAdmin(){
   const clientsHtml=`<div class="card"><div class="pad" style="padding-bottom:6px"><span style="font-size:15px;font-weight:700">👥 Clients</span></div><div style="overflow:auto"><table><thead><tr><th>Client</th><th>Status</th><th style="width:190px">Task progress</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="mut small" style="padding:14px">No clients yet.</td></tr>'}</tbody></table></div></div>`;
 
   host.innerHTML=header+pendingHtml+callsHtml+clientsHtml;
+  try{const z=document.getElementById('callTz');if(z)z.value=guessTz();}catch(e){}
 }
 
 async function approveClient(id){await sb.from('profiles').update({status:'active'}).eq('id',id);toast('Client approved');loadAdmin();}
 async function suspendClient(id){await sb.from('profiles').update({status:'suspended'}).eq('id',id);toast('Access updated');loadAdmin();}
 
-function resetCallForm(){['callId','callTitle','callHost','callWhen','callLink'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});const t=document.getElementById('callFormTitle');if(t)t.textContent='Add a coaching call';}
-function editCall(id){const c=_adminCache.calls.find(x=>x.id===id);if(!c)return;document.getElementById('callId').value=c.id;document.getElementById('callTitle').value=c.title||'';document.getElementById('callHost').value=c.host||'';document.getElementById('callWhen').value=toLocalInput(c.starts_at);document.getElementById('callLink').value=c.link||'';document.getElementById('callFormTitle').textContent='Edit coaching call';window.scrollTo({top:0,behavior:'smooth'});}
+function resetCallForm(){['callId','callTitle','callHost','callWhen','callLink'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});const z=document.getElementById('callTz');if(z)z.value=guessTz();const t=document.getElementById('callFormTitle');if(t)t.textContent='Add a coaching call';}
+function editCall(id){const c=_adminCache.calls.find(x=>x.id===id);if(!c)return;const z=c.tz||guessTz();document.getElementById('callId').value=c.id;document.getElementById('callTitle').value=c.title||'';document.getElementById('callHost').value=c.host||'';document.getElementById('callWhen').value=utcToWallInput(c.starts_at,z);const zs=document.getElementById('callTz');if(zs)zs.value=z;document.getElementById('callLink').value=c.link||'';document.getElementById('callFormTitle').textContent='Edit coaching call';window.scrollTo({top:0,behavior:'smooth'});}
 async function saveCall(){
   const id=document.getElementById('callId').value;
   const title=document.getElementById('callTitle').value.trim();
   const host=document.getElementById('callHost').value.trim();
   const when=document.getElementById('callWhen').value;
+  const tz=(document.getElementById('callTz')||{}).value||guessTz();
   const link=document.getElementById('callLink').value.trim();
   if(!title||!when){toast('Title and date are required');return;}
-  const payload={title,host,starts_at:new Date(when).toISOString(),link};
+  const payload={title,host,starts_at:wallTimeToUTC(when,tz),link,tz};
   let res;
   if(id){res=await sb.from('coaching_calls').update(payload).eq('id',id);}
   else{res=await sb.from('coaching_calls').insert(payload);}
@@ -1204,7 +1225,8 @@ async function loadMyPath(){
   try{
     const {data:{user}}=await sb.auth.getUser();
     if(!user){host.innerHTML='';return;}
-    const tasks=(await sb.from('client_tasks').select('*').eq('client_id',user.id).order('sort',{ascending:true})).data||[];
+    const uid=window._impersonate||user.id;
+    const tasks=(await sb.from('client_tasks').select('*').eq('client_id',uid).order('sort',{ascending:true})).data||[];
     if(!tasks.length){host.innerHTML='';return;}
     const done=tasks.filter(t=>t.done).length;const pct=Math.round(done/tasks.length*100);
     host.innerHTML=`<div class="card pad"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div><div class="h-eyebrow">Your path</div><b style="font-size:16px">Your next steps</b></div><span class="pill ${pct===100?'green':'gold'}">${done}/${tasks.length} · ${pct}%</span></div><div class="bar" style="margin-bottom:14px"><i style="width:${pct}%"></i></div>${tasks.map(t=>`<div style="display:flex;align-items:center;gap:11px;padding:8px 0;border-top:1px solid var(--line)"><div class="toggle ${t.done?'on':''}" onclick="myToggleTask('${t.id}',${t.done?'false':'true'})"><i></i></div><div style="flex:1;${t.done?'text-decoration:line-through;color:var(--mut)':''}">${esc(t.title)}</div></div>`).join('')}</div>`;
@@ -1214,30 +1236,86 @@ async function myToggleTask(id,done){const d=(done===true||done==='true');await 
 /* load client data once a session is available (after login / refresh) */
 try{ if(sb&&sb.auth&&sb.auth.onAuthStateChange){ sb.auth.onAuthStateChange((_ev,sess)=>{ if(sess){ loadMyPath(); loadLiveFromDB(); } }); } }catch(e){}
 
+/* ============ ADMIN SETTINGS (modular config lists) ============ */
+async function loadAdminSettings(){
+  const host=document.getElementById('adminSettingsInner');if(!host||!sb)return;
+  host.innerHTML='<div class="card pad mut small">Loading…</div>';
+  const items=(await sb.from('config_items').select('*').order('list',{ascending:true}).order('sort',{ascending:true})).data||[];
+  const byList=l=>items.filter(i=>i.list===l).sort((a,b)=>a.sort-b.sort);
+  function listCard(list,title,desc){const arr=byList(list);return `<div class="card" style="margin-bottom:18px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">${title}</b><div class="small mut">${desc}</div></div><div class="pad" style="padding-top:0">${arr.length?arr.map((it,idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)"><span style="flex:1">${esc(it.label)}</span><button class="btn" style="padding:3px 8px" onclick="cfgMove('${it.id}','${list}',-1)" ${idx===0?'disabled':''}>↑</button><button class="btn" style="padding:3px 8px" onclick="cfgMove('${it.id}','${list}',1)" ${idx===arr.length-1?'disabled':''}>↓</button><button class="btn" style="padding:3px 8px" onclick="cfgRename('${it.id}')">✎</button><button class="btn" style="padding:3px 8px;color:#b4232a" onclick="cfgDel('${it.id}')">✕</button></div>`).join(''):'<div class="small mut" style="padding:6px 0">No items yet.</div>'}<div style="display:flex;gap:8px;margin-top:10px"><input class="field" id="add_${list}" placeholder="Add an item…" style="flex:1" onkeydown="if(event.key==='Enter')cfgAdd('${list}')"><button class="btn primary" onclick="cfgAdd('${list}')">Add</button></div></div></div>`;}
+  host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Settings</h1><p class="mut small" style="margin-bottom:18px">Edit your program structure without touching code — changes apply across the portal.</p>`+listCard('client_stages','Client stages','The fulfillment stages shown as the dropdown on each client.')+listCard('program_lessons','Program lessons','Your curriculum lessons, in order.');
+}
+async function cfgAdd(list){const inp=document.getElementById('add_'+list);const label=(inp.value||'').trim();if(!label)return;const mx=(await sb.from('config_items').select('sort').eq('list',list).order('sort',{ascending:false}).limit(1)).data;const nx=((mx&&mx[0]?mx[0].sort:0)+10);const r=await sb.from('config_items').insert({list:list,label:label,sort:nx});if(r.error){toast('Failed: '+r.error.message);return;}inp.value='';loadAdminSettings();}
+async function cfgRename(id){const label=prompt('Rename to:');if(!label)return;await sb.from('config_items').update({label:label.trim()}).eq('id',id);loadAdminSettings();}
+async function cfgDel(id){if(!confirm('Delete this item?'))return;await sb.from('config_items').delete().eq('id',id);loadAdminSettings();}
+async function cfgMove(id,list,dir){const arr=(await sb.from('config_items').select('*').eq('list',list).order('sort',{ascending:true})).data||[];const i=arr.findIndex(x=>x.id===id);const j=i+dir;if(i<0||j<0||j>=arr.length)return;const a=arr[i],b=arr[j];await sb.from('config_items').update({sort:b.sort}).eq('id',a.id);await sb.from('config_items').update({sort:a.sort}).eq('id',b.id);loadAdminSettings();}
+
+/* ============ SMS composer ============ */
+async function adminTextClientId(id){let phone='';try{const d=(await sb.from('profiles').select('phone').eq('id',id).single()).data;phone=(d&&d.phone)||'';}catch(e){}openSmsModal(phone);}
+function openSmsModal(phone){
+  let m=document.getElementById('smsModal');if(m)m.remove();
+  m=document.createElement('div');m.id='smsModal';m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  const opts=(phone?`<option value="${esc(phone)}">${esc(phone)} (on file)</option>`:'')+`<option value="__new">+ New number</option>`;
+  m.innerHTML=`<div class="card pad" style="max-width:430px;width:100%;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:16px">Send SMS</b><span style="cursor:pointer;font-size:20px;line-height:1" onclick="document.getElementById('smsModal').remove()">×</span></div>
+    <label class="small mut">Recipient</label>
+    <select class="field" id="smsPick" onchange="document.getElementById('smsNewWrap').style.display=this.value==='__new'?'block':'none'">${opts}</select>
+    <div id="smsNewWrap" style="display:${phone?'none':'block'};margin-top:10px"><label class="small mut">Number</label><div style="display:flex;gap:8px"><input class="field" id="smsCc" value="+1" readonly style="width:64px;text-align:center;background:#f4f6fb" title="Other country codes require owner approval"><input class="field" id="smsNum" placeholder="555 123 4567" style="flex:1"></div><div class="small mut" style="margin-top:4px">Only +1 is enabled — other country codes require owner approval.</div></div>
+    <label class="small mut" style="margin-top:10px;display:block">Message</label><textarea class="field" id="smsBody" rows="3" placeholder="Your message"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn primary" onclick="sendSmsModal()">Send</button><button class="btn" onclick="document.getElementById('smsModal').remove()">Cancel</button></div></div>`;
+  document.body.appendChild(m);
+}
+function sendSmsModal(){
+  const pick=document.getElementById('smsPick').value;
+  let to;
+  if(pick&&pick!=='__new'){to=pick;}
+  else{const cc=(document.getElementById('smsCc')||{value:'+1'}).value||'+1';if(cc.replace(/\s/g,'')!=='+1'){toast('Only +1 numbers allowed without owner approval');return;}let num=((document.getElementById('smsNum')||{}).value||'').replace(/[^0-9]/g,'');if(num.length<10){toast('Enter a valid 10-digit number');return;}to='+1'+num.slice(-10);}
+  const body=((document.getElementById('smsBody')||{}).value||'').trim();
+  if(!body){toast('Enter a message');return;}
+  const mm=document.getElementById('smsModal');if(mm)mm.remove();
+  if(typeof sendSms==='function'){sendSms(to,body);toast('Sending SMS…');}else{toast('SMS goes live once Twilio is approved');}
+}
+
+/* ============ top-right user menu ============ */
+function ensureUserMenu(){
+  if(!_me)return;
+  let w=document.getElementById('userMenu');if(w)w.remove();
+  const nm=esc(_me.full_name||_me.email||'Account');
+  const av=_me.avatar_url?`<img src="${esc(_me.avatar_url)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;display:block">`:`<div style="width:38px;height:38px;border-radius:50%;background:#2F6BFF;color:#fff;display:grid;place-items:center;font-weight:700">${esc((_me.full_name||_me.email||'?').slice(0,1).toUpperCase())}</div>`;
+  w=document.createElement('div');w.id='userMenu';w.style.cssText='position:fixed;top:14px;right:18px;z-index:9000';
+  w.innerHTML=`<div onclick="var d=document.getElementById('userDrop');d.style.display=d.style.display==='block'?'none':'block'" style="cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.14);border-radius:50%">${av}</div><div id="userDrop" style="display:none;position:absolute;right:0;top:48px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.16);min-width:190px;overflow:hidden"><div style="padding:12px 14px;border-bottom:1px solid var(--line)"><b style="font-size:13px">${nm}</b><div class="small mut" style="text-transform:capitalize">${esc(_me.role||'client')}</div></div><div style="padding:6px"><div onclick="goScreen('settings');document.getElementById('userDrop').style.display='none'" style="padding:9px 10px;border-radius:8px;cursor:pointer">Settings</div><div onclick="dsLogout()" style="padding:9px 10px;border-radius:8px;cursor:pointer;color:#b4232a">Log out</div></div></div>`;
+  document.body.appendChild(w);
+  if(!window._userMenuDocClick){window._userMenuDocClick=true;document.addEventListener('click',function(e){const um=document.getElementById('userMenu');const d=document.getElementById('userDrop');if(um&&d&&!um.contains(e.target))d.style.display='none';});}
+}
+async function dsLogout(){try{await sb.auth.signOut();}catch(e){}location.reload();}
+
 function go(el){document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));el.classList.add('active');show(el.dataset.screen);}
 function goScreen(id){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));show(id);}
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');window.scrollTo({top:0,behavior:'smooth'});
   document.querySelectorAll('.botnav button').forEach(b=>b.classList.toggle('on',b.dataset.screen===id));
   const sd=document.querySelector('.side');if(sd)sd.classList.remove('open');const sc=document.getElementById('scrim');if(sc)sc.classList.remove('show');
-  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='dashboard')loadMyPath();}
+  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')loadMyPath();}
 function toggleSide(){document.querySelector('.side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
 function botGo(b){goScreen(b.dataset.screen);}
 function ensureBanner(){let b=document.getElementById('previewBanner');if(!b){b=document.createElement('div');b.id='previewBanner';b.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0e1726;color:#fff;padding:9px 14px;border-radius:999px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:9999;display:none;align-items:center;gap:12px;font-size:13px';b.innerHTML='👁 Previewing as a client <button onclick="setView(\'admin\')" style="background:#F2B33D;color:#0e1726;border:0;border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer">Exit preview</button>';document.body.appendChild(b);}return b;}
+function isStaff(){return _me&&(_me.role==='admin'||_me.role==='team');}
+function viewAsClient(id,name){window._impersonate=id;window._impersonateName=name||'client';setView('client');}
 function setView(v){
-  const isAdmin=_me&&_me.role==='admin';
+  const staff=isStaff();
   const vc=document.getElementById('vClient'),va=document.getElementById('vAdmin');
   if(vc)vc.classList.toggle('on',v==='client');if(va)va.classList.toggle('on',v==='admin');
   const banner=ensureBanner();
   if(v==='admin'){
+    window._impersonate=null;window._impersonateName=null;
     document.querySelectorAll('.cli-nav').forEach(el=>el.style.display='none');
-    document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin?'':'none';});
+    document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=staff?'':'none';});
     banner.style.display='none';
     goScreen('clients');
   }else{
     document.querySelectorAll('.cli-nav').forEach(el=>{el.style.display='';});
     document.querySelectorAll('.admin-only').forEach(el=>{el.style.display='none';});
-    const sw=document.querySelector('.switch.admin-only');if(sw&&isAdmin)sw.style.display='';
-    banner.style.display=isAdmin?'inline-flex':'none';
+    const sw=document.querySelector('.switch.admin-only');if(sw&&staff)sw.style.display='';
+    if(staff){const nm=window._impersonate?('Viewing as '+(window._impersonateName||'client')):'Previewing as a client';banner.innerHTML='👁 '+nm+' <button onclick="setView(\'admin\')" style="background:#F2B33D;color:#0e1726;border:0;border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer">Exit</button>';banner.style.display='inline-flex';}else{banner.style.display='none';}
+    loadMyPath();
     goScreen('dashboard');
   }
 }
@@ -1395,6 +1473,10 @@ async function openClient(id){
   const tasks=(await sb.from('client_tasks').select('*').eq('client_id',id).order('sort',{ascending:true})).data||[];
   const done=tasks.filter(t=>t.done).length;const pct=tasks.length?Math.round(done/tasks.length*100):0;
   const ev=(await sb.from('client_events').select('*').eq('client_id',id).order('created_at',{ascending:false}).limit(100)).data||[];
+  const stageList=(await sb.from('config_items').select('label').eq('list','client_stages').order('sort',{ascending:true})).data||[];
+  let stageOpts='<option value="">— Not set —</option>'+stageList.map(s=>`<option ${s.label===c.stage?'selected':''}>${esc(s.label)}</option>`).join('');
+  if(c.stage&&!stageList.some(s=>s.label===c.stage))stageOpts+=`<option selected>${esc(c.stage)}</option>`;
+  const stageSelect=`<select class="field" id="pf_stage">${stageOpts}</select>`;
   const logins=ev.filter(e=>e.kind==='login');const views=ev.filter(e=>e.kind==='view');
   const lastLogin=logins[0]?logins[0].created_at:null;
   const avatar=c.avatar_url?`<img src="${esc(c.avatar_url)}" style="width:64px;height:64px;border-radius:16px;object-fit:cover">`:`<div style="width:64px;height:64px;border-radius:16px;background:#F2B33D;display:grid;place-items:center;color:#0e1726;font-weight:800;font-size:20px">${esc((c.full_name||c.email||'?').slice(0,2).toUpperCase())}</div>`;
@@ -1409,12 +1491,13 @@ async function openClient(id){
       <div style="text-align:center"><div style="font-size:24px;font-weight:800">${pct}%</div><div style="font-size:11px;color:#9fb0c9">${done}/${tasks.length} steps</div></div>
     </div>
     <div class="card pad" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" onclick="viewAsClient('${id}','${esc((c.full_name||c.email||'client')).replace(/'/g,'')}')">👁 View as this client</button>
       <button class="btn" onclick="resetClientLogin('${id}','${esc(c.email||'')}')">Reset login</button>
       <button class="btn" onclick="adminTextClientId('${id}')">Send SMS</button>
       ${c.status==='active'?`<button class="btn" style="color:#b4232a" onclick="suspendClient('${id}');goScreen('clients')">Suspend</button>`:`<button class="btn primary" onclick="approveClient('${id}');goScreen('clients')">Activate</button>`}
     </div>
     ${briefSection('Progress checklist',true,`<div class="bar" style="margin-bottom:12px"><i style="width:${pct}%"></i></div><div id="taskList">${tasks.length?tasks.map(taskRow).join(''):'<div class="small mut">No tasks yet.</div>'}</div><div style="display:flex;gap:8px;margin-top:10px"><input class="field" id="newTask" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTask()"><button class="btn primary" onclick="addTask()">Add</button></div>`)}
-    ${briefSection('Profile &amp; details',false,`<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">${avatar}<label class="btn" style="cursor:pointer">Upload photo<input type="file" accept="image/*" style="display:none" onchange="uploadAvatar('${id}',this)"></label></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="small mut">Full name</label><input class="field" id="pf_name" value="${esc(c.full_name||'')}"></div><div><label class="small mut">Program</label><input class="field" id="pf_program" value="${esc(c.program||'')}"></div><div><label class="small mut">Phone</label><input class="field" id="pf_phone" value="${esc(c.phone||'')}"></div><div><label class="small mut">Birthday</label><input class="field" id="pf_birthday" type="date" value="${esc(c.birthday||'')}"></div><div style="grid-column:1/-1"><label class="small mut">Address</label><input class="field" id="pf_address" value="${esc(c.address||'')}"></div><div style="grid-column:1/-1"><label class="small mut">Current stage</label><input class="field" id="pf_stage" value="${esc(c.stage||'')}" placeholder="e.g. LLC formed, processor pending"></div></div><button class="btn primary" style="margin-top:12px" onclick="saveProfile('${id}')">Save profile</button>`)}
+    ${briefSection('Profile &amp; details',false,`<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">${avatar}<label class="btn" style="cursor:pointer">Upload photo<input type="file" accept="image/*" style="display:none" onchange="uploadAvatar('${id}',this)"></label></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="small mut">Full name</label><input class="field" id="pf_name" value="${esc(c.full_name||'')}"></div><div><label class="small mut">Program</label><input class="field" id="pf_program" value="${esc(c.program||'')}"></div><div><label class="small mut">Phone</label><input class="field" id="pf_phone" value="${esc(c.phone||'')}"></div><div><label class="small mut">Birthday</label><input class="field" id="pf_birthday" type="date" value="${esc(c.birthday||'')}"></div><div style="grid-column:1/-1"><label class="small mut">Address</label><input class="field" id="pf_address" value="${esc(c.address||'')}"></div><div style="grid-column:1/-1"><label class="small mut">Current stage</label>${stageSelect}</div></div><button class="btn primary" style="margin-top:12px" onclick="saveProfile('${id}')">Save profile</button>`)}
     ${briefSection('Logins &amp; devices',false,loginRows)}
     ${briefSection('Content viewed',false,seenRows)}
   `;
@@ -1636,7 +1719,7 @@ async function gateAndEnter(){
   try{
     const {data:{user}}=await sb.auth.getUser();
     if(user){
-      const {data}=await sb.from('profiles').select('role,status,email,full_name').eq('id',user.id).single();
+      const {data}=await sb.from('profiles').select('role,status,email,full_name,avatar_url').eq('id',user.id).single();
       me=data||{role:'client',status:'active',email:(user.email||'')};
       if(!me.email)me.email=user.email||'';
     }
@@ -1652,7 +1735,7 @@ async function gateAndEnter(){
     showPanel('apPending');
     return;
   }
-  const isAdmin=_me.role==='admin';
+  const isAdmin=(_me.role==='admin'||_me.role==='team');
   document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin?'':'none';});
   enterApp();
   try{
@@ -1660,6 +1743,7 @@ async function gateAndEnter(){
     else { document.querySelectorAll('.cli-nav').forEach(el=>el.style.display=''); goScreen('dashboard'); }
   }catch(e){ try{goScreen('dashboard');}catch(_){} }
   try{ logLogin(); }catch(e){}
+  try{ ensureUserMenu(); }catch(e){}
 }
 async function doSignIn(){
   if(!sb)return authMsg('Auth is still loading — give it a second and retry.');
