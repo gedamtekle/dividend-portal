@@ -1373,8 +1373,9 @@ async function loadJourney(){
   let key=programKeyForName(progName);
   if(!(key&&window._content.modules[key]&&window._content.modules[key].length))key='default';
   window._journeyKey=key;
+  const locked=(status!=='active');window._journeyLocked=locked;
   const bn=document.getElementById('journeyBanner');
-  if(bn)bn.innerHTML=(status!=='active')?'<div class="card pad" style="background:#FFF8E7;border:1px solid #F2D58A;margin-bottom:16px"><b>Your access is pending approval.</b><div class="small mut" style="margin-top:2px">Explore the foundational modules now — your full program unlocks once a team member approves your account.</div></div>':'';
+  if(bn)bn.innerHTML=locked?'<div class="card pad" style="background:#FFF8E7;border:1px solid #F2D58A;margin-bottom:16px;display:flex;gap:12px;align-items:flex-start"><div style="font-size:20px">🔒</div><div><b>Your program is locked — pending approval.</b><div class="small mut" style="margin-top:2px">Thanks for joining! A Dividend Shift team member is reviewing your account. You’ll get an email the moment you’re approved, and your program unlocks automatically.</div></div></div>':'';
   const allMods=(window._content.modules[key]||[]);
   const mods=allMods.filter(m=>!m.parent_id).slice().sort((a,b)=>a.sort-b.sort);
   if(!mods.length){ if(typeof renderJourney==='function'){const c=document.getElementById('tierPreviewCard');if(c)c.style.display='';renderJourney();} return; }
@@ -1382,11 +1383,14 @@ async function loadJourney(){
   const subOf=pid=>allMods.filter(m=>m.parent_id===pid);
   const cards=mods.map((m,idx)=>{
     const subs=subOf(m.id);const cnt=lessOf(m.id).length+subs.reduce((n,s)=>n+lessOf(s.id).length,0);
-    return `<div class="jstage"><div class="jline"></div><div class="jnode active">${idx+1}</div>
-      <div class="card pad jcard" style="cursor:pointer" onclick="openModule('${key}','${m.id}')">
+    const click=locked?"toast('Locked — your access is pending approval. You\\'ll get an email once approved.')":`openModule('${key}','${m.id}')`;
+    const node=locked?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':(idx+1);
+    const right=locked?'<span class="btn slack" style="padding:8px 14px">🔒 Locked</span>':'<span class="btn" style="padding:8px 14px">Open →</span>';
+    return `<div class="jstage"><div class="jline"></div><div class="jnode ${locked?'':'active'}" ${locked?'style="background:var(--mut2)"':''}>${node}</div>
+      <div class="card pad jcard" style="cursor:pointer;${locked?'opacity:.92':''}" onclick="${click}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
           <div style="min-width:200px"><div class="small" style="color:var(--mut2);font-weight:600;letter-spacing:1px;text-transform:uppercase">Module ${idx+1}</div><h2 style="font-size:18px;margin:3px 0">${esc(m.title)}</h2></div>
-          <span class="btn" style="padding:8px 14px">Open →</span>
+          ${right}
         </div>
         <div class="small mut" style="margin-top:10px;display:flex;gap:16px">${cnt?('<span>▶ '+cnt+' lessons</span>'):'<span>No lessons yet</span>'}${subs.length?('<span>📂 '+subs.length+' submodules</span>'):''}</div>
       </div></div>`;
@@ -1394,6 +1398,7 @@ async function loadJourney(){
   document.getElementById('journeyList').innerHTML=cards;
 }
 function openModule(progKey,moduleId){
+  if(window._journeyLocked){toast('Locked — your access is pending approval.');goScreen('journey');return;}
   const mods=window._content.modules[progKey]||[];const m=mods.find(x=>x.id===moduleId);if(!m)return;
   const lessOf=mid=>(window._content.lessonsByModule[mid]||[]).slice().sort((a,b)=>a.sort-b.sort);
   const setTxt=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
@@ -1494,7 +1499,7 @@ function openCreateClient(){
     <label class="small mut" style="margin-top:10px;display:block">Mobile (for SMS invite)</label><div style="display:flex;gap:8px"><input class="field" id="cc_cc" value="+1" readonly style="width:64px;text-align:center;background:#f4f6fb" title="Other country codes require owner approval"><input class="field" id="cc_phone" placeholder="555 123 4567" style="flex:1"></div>
     <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" id="cc_email_chk" checked> Send email invite</label><label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" id="cc_sms_chk"> Send SMS invite</label></div>
     <div style="display:flex;gap:8px;margin-top:14px"><button class="btn primary" id="cc_btn" onclick="createClientSubmit()">Create &amp; invite</button><button class="btn" onclick="document.getElementById('createClientModal').remove()">Cancel</button></div>
-    <div class="small mut" style="margin-top:8px">They’ll get a secure link to set up access. SMS sends are +1 only until Twilio is approved.</div></div>`;
+    <div class="small mut" style="margin-top:8px">They’ll get an invite email and stay <b>pending</b> (program locked) until you approve them in their briefing. SMS sends are +1 only until Twilio is approved.</div></div>`;
   document.body.appendChild(m);
 }
 async function createClientSubmit(){
