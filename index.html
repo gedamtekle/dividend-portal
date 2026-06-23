@@ -372,6 +372,7 @@
     <div class="nav admin-only" style="display:none" data-screen="bugs" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2l1.88 1.88M16 2l-1.88 1.88M9 7.13V6a3 3 0 1 1 6 0v1.13M12 20a6 6 0 0 0 6-6v-3a6 6 0 0 0-12 0v3a6 6 0 0 0 6 6zM3 13h3M18 13h3M4 6l3 2M20 6l-3 2M3 19l3-1M21 19l-3-1"/></svg>Bug reports <span id="bugsNavBadge" class="pill" style="margin-left:auto;padding:1px 7px;font-size:10px;background:#FDECEC;color:#b4232a;border-color:#FAD9D9;display:none">0</span></div>
     <div class="nav admin-only" style="display:none" data-screen="team" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="adminsettings" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V12a1.65 1.65 0 0 0 1.51 1z"/></svg>Settings <span class="badge-admin" style="margin-left:auto">Admin</span></div>
+    <div class="nav admin-only" style="display:none" data-screen="helpdesk" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>Helpdesk <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="navlbl">Account</div>
     <div class="nav" data-screen="settings" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 3.6h.09A1.65 1.65 0 0 0 9 2.09V2a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 16 3.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.4 8v.09A1.65 1.65 0 0 0 21.91 9H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
     <div class="spacer"></div>
@@ -644,6 +645,7 @@
       <section class="screen" id="clients"><div id="clientsInner"></div></section>
       <section class="screen" id="content"><div id="contentInner"></div></section>
       <section class="screen" id="bugs"><div id="bugsInner"></div></section>
+      <section class="screen" id="helpdesk"><div id="helpdeskInner"></div></section>
       <section class="screen" id="adminsettings"><div id="adminSettingsInner"></div></section>
 
       <!-- ============ CLIENT DETAIL (admin) ============ -->
@@ -857,8 +859,13 @@ function openStage(key){
   _tabbar.style.display='';
   const C=window._content||{lessons:{},resources:{},faqs:{}};
   const dbL=(C.lessons&&C.lessons[key])||[];const dbR=(C.resources&&C.resources[key])||[];const dbF=(C.faqs&&C.faqs[key])||[];
-  const mods=dbL.length?dbL.map(l=>({t:l.title,dur:l.duration||'',pct:0})):s.modules;
-  document.getElementById('sModules').innerHTML='<div class="card pad">'+mods.map(lessrow).join('')+'</div>';
+  const dbMods=(C.modules&&C.modules[key])||[];
+  if(dbMods.length){
+    document.getElementById('sModules').innerHTML=renderClientModules(key);
+  }else{
+    const mods=dbL.length?dbL.map(l=>({t:l.title,dur:l.duration||'',pct:0})):s.modules;
+    document.getElementById('sModules').innerHTML='<div class="card pad">'+mods.map(lessrow).join('')+'</div>';
+  }
   const resArr=dbR.length?dbR.map(r=>({i:resIcon(r.kind),t:r.title,m:r.meta||resKindLabel(r.kind),url:r.url})):s.res.map(r=>({i:r.i,t:r.t,m:r.m,url:null}));
   document.getElementById('sRes').innerHTML=resArr.length?('<div class="grid" style="grid-template-columns:repeat(2,1fr)">'+resArr.map(r=>`<div class="res" ${r.url?`data-url="${esc(r.url)}" style="cursor:pointer" onclick="openRes(this)"`:''}><div class="ricon">${r.i}</div><div style="flex:1"><b style="font-size:13.5px">${esc(r.t)}</b><div class="small mut">${esc(r.m)}</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>`).join('')+'</div>'):'<div class="card pad small mut">No resources for this program yet.</div>';
   const faqArr=dbF.length?dbF.map(f=>({q:f.question,a:f.answer})):s.faq;
@@ -1269,7 +1276,7 @@ async function cfgMove(id,list,dir){const arr=(await sb.from('config_items').sel
 function resIcon(k){return k==='pdf'?'📄':(k==='doc'?'📑':(k==='video'?'▶️':'🔗'));}
 function resKindLabel(k){return k==='pdf'?'PDF':(k==='doc'?'Doc':(k==='video'?'Video':'Link'));}
 function openRes(el){const u=el&&el.dataset?el.dataset.url:'';if(u)window.open(u,'_blank','noopener');}
-window._content={lessons:{},resources:{},faqs:{}};
+window._content={lessons:{},resources:{},faqs:{},modules:{},lessonsByModule:{}};
 async function loadContent(){
   if(!sb)return;
   try{
@@ -1278,8 +1285,10 @@ async function loadContent(){
       sb.from('resources').select('*').order('program_key',{ascending:true}).order('sort',{ascending:true}),
       sb.from('faqs').select('*').order('program_key',{ascending:true}).order('sort',{ascending:true})
     ]);
+    let M={data:[]};try{M=await sb.from('modules').select('*').order('program_key',{ascending:true}).order('sort',{ascending:true});}catch(e){}
     const grp=rows=>{const o={};(rows||[]).forEach(r=>{(o[r.program_key]=o[r.program_key]||[]).push(r);});return o;};
-    window._content={lessons:grp(L.data),resources:grp(R.data),faqs:grp(F.data)};
+    const lbm={};(L.data||[]).forEach(l=>{if(l.module_id){(lbm[l.module_id]=lbm[l.module_id]||[]).push(l);}});
+    window._content={lessons:grp(L.data),resources:grp(R.data),faqs:grp(F.data),modules:grp(M.data||[]),lessonsByModule:lbm};
     const st=document.getElementById('stage');
     if(st&&st.classList.contains('show')&&typeof currentStageKey!=='undefined'){try{openStage(currentStageKey);}catch(e){}}
   }catch(e){}
@@ -1290,7 +1299,18 @@ function cmPrograms(){try{return stages.map(s=>({key:s.key,name:s.name}));}catch
 async function cmNextSort(table){const d=(await sb.from(table).select('sort').eq('program_key',window._cmProg).order('sort',{ascending:false}).limit(1)).data;return ((d&&d[0]?d[0].sort:0)+10);}
 async function cmDel(table,id){if(!confirm('Delete this item?'))return;const r=await sb.from(table).delete().eq('id',id);if(r.error){toast('Failed: '+r.error.message);return;}toast('Deleted');loadContentAdmin();loadContent();}
 async function cmMove(table,id,dir){const arr=(await sb.from(table).select('id,sort').eq('program_key',window._cmProg).order('sort',{ascending:true})).data||[];const i=arr.findIndex(x=>x.id===id);const j=i+dir;if(i<0||j<0||j>=arr.length)return;await sb.from(table).update({sort:arr[j].sort}).eq('id',arr[i].id);await sb.from(table).update({sort:arr[i].sort}).eq('id',arr[j].id);loadContentAdmin();loadContent();}
-async function cmAddLesson(){const t=val2('cm_l_title');if(!t){toast('Enter a lesson title');return;}const s=await cmNextSort('lessons');const r=await sb.from('lessons').insert({program_key:window._cmProg,title:t,duration:val2('cm_l_dur'),video_url:val2('cm_l_video'),sort:s});if(r.error){toast('Failed: '+r.error.message);return;}toast('Lesson added');loadContentAdmin();loadContent();}
+async function cmAddLesson(){const t=val2('cm_l_title');if(!t){toast('Enter a lesson title');return;}const s=await cmNextSort('lessons');const r=await sb.from('lessons').insert({program_key:window._cmProg,module_id:val2('cm_l_module')||null,title:t,duration:val2('cm_l_dur'),video_url:val2('cm_l_video'),sort:s});if(r.error){toast('Failed: '+r.error.message);return;}toast('Lesson added');loadContentAdmin();loadContent();}
+/* ---- modules & submodules ---- */
+async function modSibSort(program,parentId){let q=sb.from('modules').select('sort').eq('program_key',program);q=parentId?q.eq('parent_id',parentId):q.is('parent_id',null);const d=(await q.order('sort',{ascending:false}).limit(1)).data;return ((d&&d[0]?d[0].sort:0)+10);}
+async function modAdd(){const t=val2('cm_m_title');if(!t){toast('Enter a module name');return;}const s=await modSibSort(window._cmProg,null);const r=await sb.from('modules').insert({program_key:window._cmProg,title:t,sort:s});if(r.error){toast('Failed: '+r.error.message);return;}toast('Module added');loadContentAdmin();loadContent();}
+async function modAddSub(pid){const t=prompt('Submodule name:');if(!t||!t.trim())return;const s=await modSibSort(window._cmProg,pid);const r=await sb.from('modules').insert({program_key:window._cmProg,parent_id:pid,title:t.trim(),sort:s});if(r.error){toast('Failed: '+r.error.message);return;}toast('Submodule added');loadContentAdmin();loadContent();}
+async function modRename(id){const t=prompt('Rename module:');if(!t||!t.trim())return;await sb.from('modules').update({title:t.trim()}).eq('id',id);loadContentAdmin();loadContent();}
+async function modDel(id){if(!confirm('Delete this module (and its submodules)? Lessons inside are kept but unassigned.'))return;const r=await sb.from('modules').delete().eq('id',id);if(r.error){toast('Failed: '+r.error.message);return;}toast('Module deleted');loadContentAdmin();loadContent();}
+async function modMove(id,dir){const cur=(await sb.from('modules').select('*').eq('id',id).single()).data;if(!cur)return;let q=sb.from('modules').select('id,sort').eq('program_key',cur.program_key);q=cur.parent_id?q.eq('parent_id',cur.parent_id):q.is('parent_id',null);const arr=(await q.order('sort',{ascending:true})).data||[];const i=arr.findIndex(x=>x.id===id);const j=i+dir;if(i<0||j<0||j>=arr.length)return;await sb.from('modules').update({sort:arr[j].sort}).eq('id',arr[i].id);await sb.from('modules').update({sort:arr[i].sort}).eq('id',arr[j].id);loadContentAdmin();loadContent();}
+function modClone(id){const progs=cmPrograms();let m=document.getElementById('cloneModal');if(m)m.remove();m=document.createElement('div');m.id='cloneModal';m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';m.innerHTML=`<div class="card pad" style="max-width:420px;width:100%;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:16px">⧉ Clone module</b><span style="cursor:pointer;font-size:20px;line-height:1" onclick="document.getElementById('cloneModal').remove()">×</span></div><p class="small mut" style="margin-bottom:10px">Copies the module, its submodules and lessons. Lessons keep the same video links.</p><label class="small mut">Copy into program</label><select class="field" id="cloneProg">${progs.map(p=>`<option value="${esc(p.key)}" ${p.key===window._cmProg?'selected':''}>${esc(p.name)}</option>`).join('')}</select><div style="display:flex;gap:8px;margin-top:14px"><button class="btn primary" onclick="doCloneModule('${id}')">Clone</button><button class="btn" onclick="document.getElementById('cloneModal').remove()">Cancel</button></div></div>`;document.body.appendChild(m);}
+async function cloneModuleRec(srcId,targetProgram,parentId,copyLabel){const mod=(await sb.from('modules').select('*').eq('id',srcId).single()).data;if(!mod)return;const s=await modSibSort(targetProgram,parentId);const nm=(await sb.from('modules').insert({program_key:targetProgram,parent_id:parentId||null,title:mod.title+(copyLabel?' (copy)':''),sort:s}).select().single()).data;if(!nm)return;const lessons=(await sb.from('lessons').select('*').eq('module_id',srcId).order('sort',{ascending:true})).data||[];for(const l of lessons){await sb.from('lessons').insert({program_key:targetProgram,module_id:nm.id,title:l.title,duration:l.duration,video_url:l.video_url,sort:l.sort});}const subs=(await sb.from('modules').select('id').eq('parent_id',srcId).order('sort',{ascending:true})).data||[];for(const sub of subs){await cloneModuleRec(sub.id,targetProgram,nm.id,false);}}
+async function doCloneModule(id){const target=val2('cloneProg')||window._cmProg;const mm=document.getElementById('cloneModal');if(mm)mm.remove();toast('Cloning…');try{await cloneModuleRec(id,target,null,true);toast('Module cloned');}catch(e){toast('Clone failed: '+e.message);}window._cmProg=target;loadContentAdmin();loadContent();}
+function renderClientModules(key){const C=window._content||{};const mods=(C.modules&&C.modules[key])||[];const lbm=C.lessonsByModule||{};const tops=mods.filter(m=>!m.parent_id).slice().sort((a,b)=>a.sort-b.sort);const childrenOf=pid=>mods.filter(m=>m.parent_id===pid).slice().sort((a,b)=>a.sort-b.sort);const lessOf=mid=>(lbm[mid]||[]).slice().sort((a,b)=>a.sort-b.sort).map(l=>({t:l.title,dur:l.duration||'',pct:0}));function block(m,depth){const less=lessOf(m.id);let h='';h+=`<div style="margin:${depth?'12px 0 6px':'2px 0 8px'}"><span style="font-weight:700;font-size:${depth?13.5:15.5}px;${depth?'color:var(--mut2)':''}">${depth?'↳ ':''}${esc(m.title)}</span></div>`;if(less.length)h+='<div class="card pad" style="margin-bottom:10px">'+less.map(lessrow).join('')+'</div>';childrenOf(m.id).forEach(c=>{h+=block(c,depth+1);});return h;}let html=tops.map(m=>block(m,0)).join('');const orphan=((C.lessons&&C.lessons[key])||[]).filter(l=>!l.module_id).map(l=>({t:l.title,dur:l.duration||'',pct:0}));if(orphan.length)html+='<div class="card pad">'+orphan.map(lessrow).join('')+'</div>';return html||'<div class="card pad small mut">No lessons yet.</div>';}
 async function cmAddResLink(){const t=val2('cm_r_title');if(!t){toast('Enter a title');return;}const kind=val2('cm_r_kind')||'link';const s=await cmNextSort('resources');const r=await sb.from('resources').insert({program_key:window._cmProg,title:t,kind:kind,url:val2('cm_r_url'),meta:val2('cm_r_meta'),sort:s});if(r.error){toast('Failed: '+r.error.message);return;}toast('Resource added');loadContentAdmin();loadContent();}
 async function cmUploadRes(input){const f=input.files&&input.files[0];if(!f)return;toast('Uploading '+f.name+'…');const ext=(f.name.split('.').pop()||'pdf').toLowerCase();const key=window._cmProg+'/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_');const up=await sb.storage.from('resources').upload(key,f,{upsert:false,cacheControl:'3600'});if(up.error){toast('Upload failed: '+up.error.message);return;}const url=sb.storage.from('resources').getPublicUrl(key).data.publicUrl;const kind=(ext==='pdf')?'pdf':(['doc','docx','txt','rtf','pages'].indexOf(ext)>=0?'doc':'link');const kb=Math.round(f.size/1024);const meta=ext.toUpperCase()+' · '+(kb>1024?(Math.round(kb/102.4)/10)+' MB':kb+' KB');const s=await cmNextSort('resources');const r=await sb.from('resources').insert({program_key:window._cmProg,title:f.name.replace(/\.[^.]+$/,''),kind:kind,url:url,meta:meta,sort:s});if(r.error){toast('Uploaded, but save failed: '+r.error.message);return;}toast('Resource uploaded');loadContentAdmin();loadContent();}
 async function cmAddFaq(){const q=val2('cm_f_q');const a=val2('cm_f_a');if(!q||!a){toast('Enter both a question and an answer');return;}const s=await cmNextSort('faqs');const r=await sb.from('faqs').insert({program_key:window._cmProg,question:q,answer:a,sort:s});if(r.error){toast('Failed: '+r.error.message);return;}toast('Question added');loadContentAdmin();loadContent();}
@@ -1299,20 +1319,29 @@ async function loadContentAdmin(){
   if(!isStaff()){host.innerHTML='<div class="card pad mut small">Admins and team only.</div>';return;}
   const progs=cmPrograms();const cur=window._cmProg||(progs[0]&&progs[0].key);window._cmProg=cur;
   host.innerHTML='<div class="card pad mut small">Loading…</div>';
-  const [L,R,F]=await Promise.all([
+  const [L,R,F,M]=await Promise.all([
     sb.from('lessons').select('*').eq('program_key',cur).order('sort',{ascending:true}),
     sb.from('resources').select('*').eq('program_key',cur).order('sort',{ascending:true}),
-    sb.from('faqs').select('*').eq('program_key',cur).order('sort',{ascending:true})
+    sb.from('faqs').select('*').eq('program_key',cur).order('sort',{ascending:true}),
+    sb.from('modules').select('*').eq('program_key',cur).order('sort',{ascending:true})
   ]);
-  const lessons=L.data||[],res=R.data||[],faqs=F.data||[];
+  const lessons=L.data||[],res=R.data||[],faqs=F.data||[],mods=M.data||[];
   const progSel=`<select class="field" id="cmProg" style="max-width:300px" onchange="window._cmProg=this.value;loadContentAdmin()">${progs.map(p=>`<option value="${esc(p.key)}" ${p.key===cur?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`;
-  const lessonRows=lessons.length?lessons.map((it,idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)"><div style="flex:1"><b style="font-size:13.5px">${esc(it.title)}</b><div class="small mut">${esc(it.duration||'')}${it.video_url?' · 🎬 video linked':''}</div></div><button class="btn" style="padding:3px 8px" onclick="cmMove('lessons','${it.id}',-1)" ${idx===0?'disabled':''}>↑</button><button class="btn" style="padding:3px 8px" onclick="cmMove('lessons','${it.id}',1)" ${idx===lessons.length-1?'disabled':''}>↓</button><button class="btn" style="padding:3px 8px;color:#b4232a" onclick="cmDel('lessons','${it.id}')">✕</button></div>`).join(''):'<div class="small mut" style="padding:6px 0">No lessons yet.</div>';
-  const lessonsCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Lessons</b><div class="small mut">Curriculum videos for this program, in order.</div></div><div class="pad" style="padding-top:0">${lessonRows}<div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:12px"><input class="field" id="cm_l_title" placeholder="Lesson title"><input class="field" id="cm_l_dur" placeholder="Duration e.g. 14:20"></div><input class="field" id="cm_l_video" placeholder="Video URL or Bunny embed (optional)" style="margin-top:8px"><button class="btn primary" style="margin-top:10px" onclick="cmAddLesson()">＋ Add lesson</button></div></div>`;
+  const subsOf=pid=>mods.filter(m=>m.parent_id===pid);
+  const tops=mods.filter(m=>!m.parent_id);
+  function modManRow(m,depth){const isTop=!m.parent_id;return `<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-top:1px solid var(--line);${depth?'padding-left:20px':''}"><span style="flex:1;font-weight:${depth?500:600};font-size:13.5px">${depth?'↳ ':'📦 '}${esc(m.title)}</span>${isTop?`<button class="btn" style="padding:3px 7px" title="Add submodule" onclick="modAddSub('${m.id}')">＋sub</button>`:''}<button class="btn" style="padding:3px 7px" title="Clone module" onclick="modClone('${m.id}')">⧉</button><button class="btn" style="padding:3px 7px" onclick="modMove('${m.id}',-1)">↑</button><button class="btn" style="padding:3px 7px" onclick="modMove('${m.id}',1)">↓</button><button class="btn" style="padding:3px 7px" onclick="modRename('${m.id}')">✎</button><button class="btn" style="padding:3px 7px;color:#b4232a" onclick="modDel('${m.id}')">✕</button></div>`;}
+  let modListHtml='';tops.forEach(m=>{modListHtml+=modManRow(m,0);subsOf(m.id).forEach(sm=>{modListHtml+=modManRow(sm,1);});});
+  if(!mods.length)modListHtml='<div class="small mut" style="padding:6px 0">No modules yet — add one below, or add lessons without a module.</div>';
+  const modulesCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Modules &amp; submodules</b><div class="small mut">Group lessons into modules. ⧉ clones a module with its submodules &amp; lessons (same video links) into this or another program.</div></div><div class="pad" style="padding-top:0">${modListHtml}<div style="display:flex;gap:8px;margin-top:12px"><input class="field" id="cm_m_title" placeholder="New module name" style="flex:1" onkeydown="if(event.key==='Enter')modAdd()"><button class="btn primary" onclick="modAdd()">＋ Add module</button></div></div></div>`;
+  const modName=id=>{const m=mods.find(x=>x.id===id);return m?((m.parent_id?'↳ ':'')+m.title):'(no module)';};
+  const modOpts='<option value="">— No module —</option>'+mods.map(m=>`<option value="${m.id}">${m.parent_id?'↳ ':''}${esc(m.title)}</option>`).join('');
+  const lessonRows=lessons.length?lessons.map((it,idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)"><div style="flex:1"><b style="font-size:13.5px">${esc(it.title)}</b><div class="small mut">${esc(it.duration||'')}${it.video_url?' · 🎬 video':''} · ${esc(modName(it.module_id))}</div></div><button class="btn" style="padding:3px 8px" onclick="cmMove('lessons','${it.id}',-1)" ${idx===0?'disabled':''}>↑</button><button class="btn" style="padding:3px 8px" onclick="cmMove('lessons','${it.id}',1)" ${idx===lessons.length-1?'disabled':''}>↓</button><button class="btn" style="padding:3px 8px;color:#b4232a" onclick="cmDel('lessons','${it.id}')">✕</button></div>`).join(''):'<div class="small mut" style="padding:6px 0">No lessons yet.</div>';
+  const lessonsCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Lessons</b><div class="small mut">Curriculum videos. Assign each to a module (optional).</div></div><div class="pad" style="padding-top:0">${lessonRows}<div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:12px"><input class="field" id="cm_l_title" placeholder="Lesson title"><input class="field" id="cm_l_dur" placeholder="Duration e.g. 14:20"></div><input class="field" id="cm_l_video" placeholder="Video URL or Bunny embed (optional)" style="margin-top:8px"><select class="field" id="cm_l_module" style="margin-top:8px">${modOpts}</select><button class="btn primary" style="margin-top:10px" onclick="cmAddLesson()">＋ Add lesson</button></div></div>`;
   const resRows=res.length?res.map((it,idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)"><div class="ricon">${resIcon(it.kind)}</div><div style="flex:1"><b style="font-size:13.5px">${esc(it.title)}</b><div class="small mut">${esc(it.meta||resKindLabel(it.kind))}${it.url?` · <a href="${esc(it.url)}" target="_blank" rel="noopener" style="color:var(--blue)">open</a>`:''}</div></div><button class="btn" style="padding:3px 8px" onclick="cmMove('resources','${it.id}',-1)" ${idx===0?'disabled':''}>↑</button><button class="btn" style="padding:3px 8px" onclick="cmMove('resources','${it.id}',1)" ${idx===res.length-1?'disabled':''}>↓</button><button class="btn" style="padding:3px 8px;color:#b4232a" onclick="cmDel('resources','${it.id}')">✕</button></div>`).join(''):'<div class="small mut" style="padding:6px 0">No resources yet.</div>';
   const resCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Resources</b><div class="small mut">PDFs, worksheets, links and docs clients can open.</div></div><div class="pad" style="padding-top:0">${resRows}<div style="margin-top:12px;padding:12px;border:1px dashed var(--line2);border-radius:10px"><b class="small">Upload a file (PDF / doc)</b><div style="margin-top:8px"><label class="btn" style="cursor:pointer">Choose file<input type="file" accept=".pdf,.doc,.docx,.txt,.rtf,application/pdf" style="display:none" onchange="cmUploadRes(this)"></label></div></div><div style="margin-top:12px;padding:12px;border:1px dashed var(--line2);border-radius:10px"><b class="small">Or add a link</b><div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:8px"><input class="field" id="cm_r_title" placeholder="Title"><select class="field" id="cm_r_kind"><option value="link">Link</option><option value="doc">Doc</option><option value="pdf">PDF</option><option value="video">Video</option></select></div><input class="field" id="cm_r_url" placeholder="https://…" style="margin-top:8px"><input class="field" id="cm_r_meta" placeholder="Subtitle (optional) e.g. PDF · 2 pages" style="margin-top:8px"><button class="btn primary" style="margin-top:10px" onclick="cmAddResLink()">＋ Add resource</button></div></div></div>`;
   const faqRows=faqs.length?faqs.map((it,idx)=>`<div style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><b style="font-size:13.5px">${esc(it.question)}</b><div class="small mut" style="margin-top:3px">${esc(it.answer)}</div></div><button class="btn" style="padding:3px 8px" onclick="cmMove('faqs','${it.id}',-1)" ${idx===0?'disabled':''}>↑</button><button class="btn" style="padding:3px 8px" onclick="cmMove('faqs','${it.id}',1)" ${idx===faqs.length-1?'disabled':''}>↓</button><button class="btn" style="padding:3px 8px;color:#b4232a" onclick="cmDel('faqs','${it.id}')">✕</button></div></div>`).join(''):'<div class="small mut" style="padding:6px 0">No questions yet.</div>';
   const faqCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Common Questions</b><div class="small mut">FAQ shown on the program page.</div></div><div class="pad" style="padding-top:0">${faqRows}<input class="field" id="cm_f_q" placeholder="Question" style="margin-top:12px"><textarea class="field" id="cm_f_a" rows="3" placeholder="Answer" style="margin-top:8px"></textarea><button class="btn primary" style="margin-top:10px" onclick="cmAddFaq()">＋ Add question</button></div></div>`;
-  host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Content</h1><p class="mut small" style="margin-bottom:14px">Manage what clients see in each program — lessons, downloadable resources, and common questions. Changes go live instantly on the client side.</p><div style="margin-bottom:16px"><label class="small mut">Program</label><br>${progSel}</div>`+lessonsCard+resCard+faqCard;
+  host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Content</h1><p class="mut small" style="margin-bottom:14px">Manage what clients see in each program — lessons, downloadable resources, and common questions. Changes go live instantly on the client side.</p><div style="margin-bottom:16px"><label class="small mut">Program</label><br>${progSel}</div>`+modulesCard+lessonsCard+resCard+faqCard;
 }
 
 /* ============ Team bug reporting ============ */
@@ -1327,6 +1356,59 @@ async function loadBugs(){const host=document.getElementById('bugsInner');if(!ho
 async function resolveBug(id){const r=await sb.from('bug_reports').update({status:'resolved'}).eq('id',id);if(r.error){toast('Failed: '+r.error.message);return;}toast('Marked resolved');loadBugs();}
 async function reopenBug(id){await sb.from('bug_reports').update({status:'open'}).eq('id',id);loadBugs();}
 async function delBug(id){if(!confirm('Delete this report?'))return;await sb.from('bug_reports').delete().eq('id',id);loadBugs();}
+
+/* ============ Admin helpdesk ============ */
+const HELP=[
+  {title:'Clients & enrollment',items:[
+    {q:'Approve / activate a new client',how:'New sign-ups are pending until approved. Open the client and click Activate.',screen:'clients'},
+    {q:'Suspend or restore access',how:'In the client briefing use Suspend / Activate.',screen:'clients'},
+    {q:'Open a client’s full record',how:'Clients → click a client for their briefing (progress, logins, devices, content viewed) — each has its own link.',screen:'clients'},
+    {q:'Reset a client’s login',how:'Client briefing → Reset login (sends a password-reset email).',screen:'clients'},
+    {q:'Text a client',how:'Client briefing → Send SMS (pick their number or enter a new +1 number).',screen:'clients'},
+    {q:'Preview the portal as a client',how:'Client briefing → 👁 View as this client. Exit with the floating banner.',screen:'clients'},
+    {q:'Set a client’s current stage',how:'Client briefing → Profile & details → Current stage dropdown.',screen:'clients'}
+  ]},
+  {title:'Program content (what clients see)',items:[
+    {q:'Add or reorder a lesson',how:'Content → choose a program → Lessons → Add lesson.',screen:'content'},
+    {q:'Upload a PDF / worksheet',how:'Content → choose a program → Resources → Upload a file.',screen:'content'},
+    {q:'Add a link or doc resource',how:'Content → Resources → Or add a link.',screen:'content'},
+    {q:'Add a common question (FAQ)',how:'Content → Common Questions → Add question.',screen:'content'},
+    {q:'Upload a coaching-call replay or program video',how:'Upload to Bunny Stream and name the file with the session date (e.g. 6_16_2026) so it sorts correctly. It auto-transcribes and appears under Live Training / the program.',link:'https://dash.bunny.net/stream/688516',linkLabel:'Open Bunny Stream ↗'}
+  ]},
+  {title:'Coaching calls',items:[
+    {q:'Schedule a coaching call',how:'Admin Console → Coaching calls. Set date, link and timezone — clients see it in their own local time.',screen:'admin'},
+    {q:'Edit or remove an upcoming call',how:'Admin Console → upcoming calls → Edit.',screen:'admin'},
+    {q:'Review past calls',how:'Admin Console → Past calls (collapsed).',screen:'admin'}
+  ]},
+  {title:'Settings & program structure',items:[
+    {q:'Add / rename / reorder client stages',how:'Settings → Client stages.',screen:'adminsettings'},
+    {q:'Approve the weekly grit quote',how:'Settings → Weekly grit quote → Make current (refresh each Sunday).',screen:'adminsettings'}
+  ]},
+  {title:'Team & bug reports',items:[
+    {q:'Review and resolve bug reports',how:'Bug reports → Resolve / Reopen. Open count shows on the nav and the bell.',screen:'bugs'},
+    {q:'Report a bug yourself',how:'Opens the report form (also in the top-right avatar menu).',action:'bug'},
+    {q:'Manage team members',how:'Team.',screen:'team'}
+  ]},
+  {title:'Behind the scenes (advanced)',items:[
+    {q:'Edit or redeploy the portal',how:'The site auto-deploys when index.html is committed to GitHub.',link:'https://github.com/gedamtekle/dividend-portal',linkLabel:'Open GitHub ↗'},
+    {q:'Check video transcription jobs',how:'Transcription runs automatically when a video finishes encoding. View runs in GitHub Actions.',link:'https://github.com/gedamtekle/dividend-portal/actions',linkLabel:'Open Actions ↗'},
+    {q:'Manage users, data & uploaded files',how:'Supabase dashboard — auth users, tables, storage buckets.',link:'https://supabase.com/dashboard/project/dehttbxrkeqhsfkfpfwt',linkLabel:'Open Supabase ↗'},
+    {q:'SMS (Twilio)',how:'Sends are +1 only until owner approval. Manage the number/account in Twilio.',link:'https://console.twilio.com',linkLabel:'Open Twilio ↗'}
+  ]}
+];
+function helpItem(it){
+  let action='';
+  if(it.screen)action=`<button class="btn primary" style="padding:6px 12px;white-space:nowrap" onclick="goScreen('${it.screen}')">Open</button>`;
+  else if(it.action==='bug')action=`<button class="btn primary" style="padding:6px 12px;white-space:nowrap" onclick="openBugModal()">Open</button>`;
+  else if(it.link)action=`<a class="btn" style="padding:6px 12px;white-space:nowrap" href="${esc(it.link)}" target="_blank" rel="noopener">${esc(it.linkLabel||'Open ↗')}</a>`;
+  return `<div style="display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)"><div style="flex:1"><div style="font-weight:600;font-size:14px">${esc(it.q)}</div><div class="small mut" style="margin-top:3px">${esc(it.how)}</div></div><div>${action}</div></div>`;
+}
+function loadHelpdesk(){
+  const host=document.getElementById('helpdeskInner');if(!host)return;
+  if(!isStaff()){host.innerHTML='<div class="card pad mut small">Admins and team only.</div>';return;}
+  const cards=HELP.map(sec=>`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:2px"><b style="font-size:15px">${esc(sec.title)}</b></div><div class="pad" style="padding-top:0">${sec.items.map(helpItem).join('')}</div></div>`).join('');
+  host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Admin Helpdesk</h1><p class="mut small" style="margin-bottom:18px">Every admin task in one place — each step links straight to where you do it.</p>${cards}<div class="card pad small mut">Can’t find something? Use 🐞 Report a bug (top-right) and it goes to the owners.</div>`;
+}
 
 /* ============ SMS composer ============ */
 async function adminTextClientId(id){let phone='';try{const d=(await sb.from('profiles').select('phone').eq('id',id).single()).data;phone=(d&&d.phone)||'';}catch(e){}openSmsModal(phone);}
@@ -1373,7 +1455,7 @@ function goScreen(id){document.querySelectorAll('.nav').forEach(n=>n.classList.t
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');window.scrollTo({top:0,behavior:'smooth'});
   document.querySelectorAll('.botnav button').forEach(b=>b.classList.toggle('on',b.dataset.screen===id));
   const sd=document.querySelector('.side');if(sd)sd.classList.remove('open');const sc=document.getElementById('scrim');if(sc)sc.classList.remove('show');
-  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')loadMyPath();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();}
+  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')loadMyPath();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();}
 function toggleSide(){document.querySelector('.side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
 function botGo(b){goScreen(b.dataset.screen);}
 function ensureBanner(){let b=document.getElementById('previewBanner');if(!b){b=document.createElement('div');b.id='previewBanner';b.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0e1726;color:#fff;padding:9px 14px;border-radius:999px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:9999;display:none;align-items:center;gap:12px;font-size:13px';b.innerHTML='👁 Previewing as a client <button onclick="setView(\'admin\')" style="background:#F2B33D;color:#0e1726;border:0;border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer">Exit preview</button>';document.body.appendChild(b);}return b;}
