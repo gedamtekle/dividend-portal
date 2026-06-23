@@ -1360,6 +1360,7 @@ async function delBug(id){if(!confirm('Delete this report?'))return;await sb.fro
 /* ============ Admin helpdesk ============ */
 const HELP=[
   {title:'Clients & enrollment',items:[
+    {q:'Create a client & send an invite',how:'Clients → Create client. They get an email and/or SMS link to set up access.',action:'createclient'},
     {q:'Approve / activate a new client',how:'New sign-ups are pending until approved. Open the client and click Activate.',screen:'clients'},
     {q:'Suspend or restore access',how:'In the client briefing use Suspend / Activate.',screen:'clients'},
     {q:'Open a client’s full record',how:'Clients → click a client for their briefing (progress, logins, devices, content viewed) — each has its own link.',screen:'clients'},
@@ -1400,6 +1401,7 @@ function helpItem(it){
   let action='';
   if(it.screen)action=`<button class="btn primary" style="padding:6px 12px;white-space:nowrap" onclick="goScreen('${it.screen}')">Open</button>`;
   else if(it.action==='bug')action=`<button class="btn primary" style="padding:6px 12px;white-space:nowrap" onclick="openBugModal()">Open</button>`;
+  else if(it.action==='createclient')action=`<button class="btn primary" style="padding:6px 12px;white-space:nowrap" onclick="openCreateClient()">Open</button>`;
   else if(it.link)action=`<a class="btn" style="padding:6px 12px;white-space:nowrap" href="${esc(it.link)}" target="_blank" rel="noopener">${esc(it.linkLabel||'Open ↗')}</a>`;
   return `<div style="display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)"><div style="flex:1"><div style="font-weight:600;font-size:14px">${esc(it.q)}</div><div class="small mut" style="margin-top:3px">${esc(it.how)}</div></div><div>${action}</div></div>`;
 }
@@ -1408,6 +1410,44 @@ function loadHelpdesk(){
   if(!isStaff()){host.innerHTML='<div class="card pad mut small">Admins and team only.</div>';return;}
   const cards=HELP.map(sec=>`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:2px"><b style="font-size:15px">${esc(sec.title)}</b></div><div class="pad" style="padding-top:0">${sec.items.map(helpItem).join('')}</div></div>`).join('');
   host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Admin Helpdesk</h1><p class="mut small" style="margin-bottom:18px">Every admin task in one place — each step links straight to where you do it.</p>${cards}<div class="card pad small mut">Can’t find something? Use 🐞 Report a bug (top-right) and it goes to the owners.</div>`;
+}
+
+/* ============ Create client (email/SMS invite) ============ */
+function openCreateClient(){
+  let m=document.getElementById('createClientModal');if(m)m.remove();
+  const progs=(typeof cmPrograms==='function')?cmPrograms():[];
+  const progOpts='<option value="">— No program —</option>'+progs.map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+  m=document.createElement('div');m.id='createClientModal';m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML=`<div class="card pad" style="max-width:480px;width:100%;background:#fff;max-height:90vh;overflow:auto"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:16px">＋ Create client</b><span style="cursor:pointer;font-size:20px;line-height:1" onclick="document.getElementById('createClientModal').remove()">×</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="small mut">Full name</label><input class="field" id="cc_name" placeholder="Jane Doe"></div><div><label class="small mut">Program</label><select class="field" id="cc_program">${progOpts}</select></div></div>
+    <label class="small mut" style="margin-top:10px;display:block">Email</label><input class="field" id="cc_email" type="email" placeholder="jane@email.com">
+    <label class="small mut" style="margin-top:10px;display:block">Mobile (for SMS invite)</label><div style="display:flex;gap:8px"><input class="field" id="cc_cc" value="+1" readonly style="width:64px;text-align:center;background:#f4f6fb" title="Other country codes require owner approval"><input class="field" id="cc_phone" placeholder="555 123 4567" style="flex:1"></div>
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" id="cc_email_chk" checked> Send email invite</label><label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" id="cc_sms_chk"> Send SMS invite</label></div>
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn primary" id="cc_btn" onclick="createClientSubmit()">Create &amp; invite</button><button class="btn" onclick="document.getElementById('createClientModal').remove()">Cancel</button></div>
+    <div class="small mut" style="margin-top:8px">They’ll get a secure link to set up access. SMS sends are +1 only until Twilio is approved.</div></div>`;
+  document.body.appendChild(m);
+}
+async function createClientSubmit(){
+  const email=val2('cc_email');const name=val2('cc_name');const program=val2('cc_program');
+  const cc=(document.getElementById('cc_cc')||{value:'+1'}).value||'+1';
+  const phoneDigits=((document.getElementById('cc_phone')||{}).value||'').replace(/[^0-9]/g,'');
+  const sendEmail=document.getElementById('cc_email_chk').checked;
+  const sendSms=document.getElementById('cc_sms_chk').checked;
+  if(!email){toast('Enter an email');return;}
+  if(!sendEmail&&!sendSms){toast('Pick email and/or SMS invite');return;}
+  let phone='';
+  if(sendSms){if(cc.replace(/\s/g,'')!=='+1'){toast('Only +1 numbers allowed without owner approval');return;}if(phoneDigits.length<10){toast('Enter a valid 10-digit mobile for SMS');return;}phone='+1'+phoneDigits.slice(-10);}
+  else if(phoneDigits.length>=10){phone='+1'+phoneDigits.slice(-10);}
+  const btn=document.getElementById('cc_btn');if(btn){btn.disabled=true;btn.textContent='Creating…';}
+  try{
+    const {data,error}=await sb.functions.invoke('invite-client',{body:{email:email,full_name:name,phone:phone,program:program,send_email:sendEmail,send_sms:sendSms,redirect_to:location.origin}});
+    if(error){let msg=error.message||'failed';try{const j=await error.context.json();if(j&&(j.error||j.message))msg=j.error||j.message;}catch(e){}throw new Error(msg);}
+    if(data&&data.error)throw new Error(data.error);
+    const mm=document.getElementById('createClientModal');if(mm)mm.remove();
+    let extra='';if(sendSms&&data&&data.sms&&data.sms!=='sent')extra=' · SMS: '+String(data.sms).replace(/_/g,' ');
+    toast('Client created'+(sendEmail?' · email sent':'')+extra);
+    if(typeof loadClients==='function')loadClients();
+  }catch(e){toast('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Create & invite';}}
 }
 
 /* ============ SMS composer ============ */
@@ -1621,7 +1661,7 @@ async function loadClients(){
   const list=profiles.filter(p=>p.role!=='admin');
   const rows=list.map(c=>{const pr=prog[c.id]||{d:0,t:0};const stage=c.stage||(pr.t?pr.d+'/'+pr.t+' steps':'Not started');
     return `<tr style="cursor:pointer" onclick="openClient('${c.id}')"><td><b style="color:var(--blue-dim)">${esc(c.full_name||c.email)}</b><div class="small mut">${esc(c.email)}</div></td><td class="mut">${fmtDateShort(c.created_at)}</td><td>${esc(c.program||'—')}</td><td class="mut">${fmtAgoShort(lastLogin[c.id])}</td><td>${esc(stage)}</td></tr>`;}).join('');
-  host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Clients</h1><p class="mut small" style="margin-bottom:18px">${list.length} enrolled · click a client to open their briefing</p><div class="card"><div style="overflow:auto"><table><thead><tr><th>Client</th><th>Enrolled</th><th>Program</th><th>Last login</th><th>Stage</th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="mut small" style="padding:14px">No clients yet.</td></tr>'}</tbody></table></div></div>`;
+  host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px"><div><h1 style="font-size:24px;margin-bottom:4px">Clients</h1><p class="mut small" style="margin:0">${list.length} enrolled · click a client to open their briefing</p></div><button class="btn primary" onclick="openCreateClient()">＋ Create client</button></div><div class="card"><div style="overflow:auto"><table><thead><tr><th>Client</th><th>Enrolled</th><th>Program</th><th>Last login</th><th>Stage</th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="mut small" style="padding:14px">No clients yet.</td></tr>'}</tbody></table></div></div>`;
 }
 
 function briefSection(title,open,inner){return `<div class="card" style="margin-bottom:14px"><div onclick="var x=this.nextElementSibling;x.style.display=x.style.display==='none'?'block':'none';this.querySelector('.chv').textContent=x.style.display==='none'?'▸':'▾'" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer"><b style="font-size:15px">${title}</b><span class="chv" style="color:var(--mut)">${open?'▾':'▸'}</span></div><div style="padding:0 16px 16px;display:${open?'block':'none'}">${inner}</div></div>`;}
