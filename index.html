@@ -1435,12 +1435,34 @@ const INTAKE_FORMS={
     {t:'Legal & policies',f:[{k:'legal_name',l:'Legal business name / LLC',type:'text'},{k:'need_privacy',l:'Generate a Privacy Policy for you?',type:'select',opts:['Yes please','No, I have one']},{k:'need_terms',l:'Generate Terms of Service?',type:'select',opts:['Yes please','No, I have one']},{k:'refund_policy',l:'Refund / guarantee policy',type:'textarea'}]},
     {t:'Integrations & notes',f:[{k:'calendar_tool',l:'Calendar tool',type:'text'},{k:'email_tool',l:'Email marketing tool',type:'text'},{k:'payment_processor',l:'Payment processor',type:'text'},{k:'other_integrations',l:'Other tools to connect',type:'text'},{k:'notes',l:'Anything else we should know?',type:'textarea'}]}
   ]},
-  location:{title:'Location Intake',intro:'This replaces your onboarding call. Watch the walkthrough, then give us every detail so our call center can start finding and placing locations for you.',video:'https://www.loom.com/embed/40cafbfb5ea94ca1a7a663949bd7d7d0',videoNote:'Watch the full walkthrough — it explains every section. Mark it complete to unlock the questionnaire.',gate:true,sections:[
-    {t:'Your info (operator)',f:[{k:'op_name',l:'Your name',type:'text',req:true},{k:'op_email',l:'Your email',type:'email'}]},
-    {t:'Merchant business',f:[{k:'m_name',l:'Business name',type:'text',req:true},{k:'m_contact',l:'Contact person',type:'text',req:true},{k:'m_role',l:'Their role/title',type:'text'},{k:'m_phone',l:'Phone',type:'tel',req:true},{k:'m_email',l:'Email',type:'email'},{k:'m_address',l:'Address',type:'textarea'}]},
-    {t:'Business profile',f:[{k:'m_type',l:'Business type',type:'select',opts:['Restaurant / Bar','Retail store','Auto / Mechanic','Salon / Spa','Convenience / Liquor','Smoke / Vape','Other']},{k:'m_avg_ticket',l:'Average transaction ($)',type:'text'},{k:'m_volume',l:'Est. monthly volume ($)',type:'text'},{k:'m_txn_day',l:'Transactions per day'}]},
-    {t:'Fit & status',f:[{k:'m_decision',l:'Decision-maker on site?',type:'select',opts:['Yes — owner on site','No — corporate/absentee','Not sure']},{k:'m_processor',l:'Current card processor',type:'text'},{k:'m_accepts_crypto',l:'Accepts crypto today?',type:'select',opts:['No','Yes','Not sure']}]},
-    {t:'Logistics',f:[{k:'m_best_time',l:'Best time to reach them',type:'text'},{k:'m_notes',l:'Notes / context',type:'textarea'}]}
+  location:{title:'Location Finder Intake Form',intro:'Location Onboarding Questionnaire — please fill the info below so we can begin searching for your location(s). This replaces your onboarding call.',video:'https://www.loom.com/embed/40cafbfb5ea94ca1a7a663949bd7d7d0',videoNote:'Please watch this video first. Mark it complete to unlock the questionnaire.',gate:true,sections:[
+    {t:'About you',f:[
+      {k:'first_name',l:'Your Full Name — First Name',type:'text',req:true},
+      {k:'last_name',l:'Your Full Name — Last Name',type:'text',req:true},
+      {k:'email',l:'Your Email Address',type:'email',req:true},
+      {k:'mobile',l:'Your Best Mobile Number',type:'tel',req:true},
+      {k:'solo_partner',l:'Are you meeting with the merchants solo or with partner(s)?',type:'select',opts:['Solo','With a partner.'],req:true},
+      {k:'timezone',l:'What is your current Time Zone?',type:'select',opts:['Eastern Time (ET)','Central Time (CT)','Mountain Time (MT)','Pacific Time (PT)','Alaska Time (AKT)','Hawaii-Aleutian Time (HAT)','Other'],req:true},
+      {k:'comfort',l:'How comfortable are you talking to merchants?',type:'select',opts:['Very comfortable','Somewhat comfortable','Neutral','Beginner','Other'],req:true}
+    ]},
+    {t:'Your availability',f:[
+      {k:'days',l:'What days of the week are you typically available to meet with the business(es)?',type:'multi',opts:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],req:true},
+      {k:'mon_start',l:'Monday START of Availability',type:'time'},{k:'mon_end',l:'Monday END of Availability',type:'time'},
+      {k:'tue_start',l:'Tuesday START of Availability',type:'time'},{k:'tue_end',l:'Tuesday END of Availability',type:'time'},
+      {k:'wed_start',l:'Wednesday START of Availability',type:'time'},{k:'wed_end',l:'Wednesday END of Availability',type:'time'},
+      {k:'thu_start',l:'Thursday START of Availability',type:'time'},{k:'thu_end',l:'Thursday END of Availability',type:'time'},
+      {k:'fri_start',l:'Friday START of Availability',type:'time'},{k:'fri_end',l:'Friday END of Availability',type:'time'},
+      {k:'sat_start',l:'Saturday START of Availability',type:'time'},{k:'sat_end',l:'Saturday END of Availability',type:'time'},
+      {k:'sun_start',l:'Sunday Start of Availability',type:'time'},{k:'sun_end',l:'Sunday END of Availability',type:'time'},
+      {k:'avail_notes',l:'Any additional availability notes we should be aware of?',type:'textarea',req:true}
+    ]},
+    {t:'Location & travel',f:[
+      {k:'city_state',l:'Please provide your current City & State.',type:'address',req:true},
+      {k:'home_zip',l:'What is your home Zip Code?',type:'text',req:true},
+      {k:'your_zip',l:'Please provide your Zip Code.',type:'address',req:true},
+      {k:'avoid_areas',l:'Please describe any areas you DO NOT want to go to. We will attempt to accommodate your request(s).',type:'textarea',req:true},
+      {k:'travel_areas',l:'What additional areas other than your home zip code can you travel to?',type:'textarea',req:true}
+    ]}
   ]}
 };
 function intakeField(formKey,f,val){
@@ -1448,6 +1470,9 @@ function intakeField(formKey,f,val){
   let ctrl='';
   if(f.type==='textarea')ctrl=`<textarea class="field" id="${id}" rows="3">${esc(v)}</textarea>`;
   else if(f.type==='select'){ctrl=`<select class="field" id="${id}"><option value="">— Select —</option>`+(f.opts||[]).map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')+`</select>`;}
+  else if(f.type==='multi'){const sel=(typeof v==='string'&&v)?v.split(', '):(Array.isArray(v)?v:[]);ctrl='<div style="display:flex;flex-wrap:wrap;gap:6px 16px">'+(f.opts||[]).map(o=>`<label style="display:inline-flex;align-items:center;gap:6px;font-size:13.5px"><input type="checkbox" data-grp="${id}" value="${esc(o)}" ${sel.indexOf(o)>=0?'checked':''}> ${esc(o)}</label>`).join('')+'</div>';}
+  else if(f.type==='time')ctrl=`<input class="field" id="${id}" type="time" value="${esc(v)}" style="max-width:200px">`;
+  else if(f.type==='address'){const a=(val&&typeof val==='object')?val:{};ctrl=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input class="field" id="${id}_street" placeholder="Street address" value="${esc(a.street||'')}" style="grid-column:1/-1"><input class="field" id="${id}_city" placeholder="City" value="${esc(a.city||'')}"><input class="field" id="${id}_state" placeholder="State / Province" value="${esc(a.state||'')}"><input class="field" id="${id}_zip" placeholder="ZIP / Postal" value="${esc(a.zip||'')}"></div>`;}
   else ctrl=`<input class="field" id="${id}" type="${f.type==='email'?'email':(f.type==='tel'?'tel':(f.type==='url'?'url':'text'))}" value="${esc(v)}">`;
   return `<div style="margin-bottom:12px"><label class="small mut" style="display:block;margin-bottom:4px">${esc(f.l)}${req}</label>${ctrl}</div>`;
 }
@@ -1482,7 +1507,15 @@ function schemaTitle(formKey){const s=INTAKE_FORMS[formKey];return (s&&s.title)|
 async function submitIntake(formKey){
   const schema=INTAKE_FORMS[formKey];if(!schema||!sb)return;
   const data={};let missing=[];
-  schema.sections.forEach(sec=>sec.f.forEach(f=>{const el=document.getElementById('if_'+formKey+'_'+f.k);const v=el?(el.value||'').trim():'';data[f.k]=v;if(f.req&&!v)missing.push(f.l);}));
+  schema.sections.forEach(sec=>sec.f.forEach(f=>{
+    const id='if_'+formKey+'_'+f.k;let v='';
+    if(f.type==='multi'){v=[].slice.call(document.querySelectorAll('input[data-grp="'+id+'"]:checked')).map(x=>x.value).join(', ');}
+    else if(f.type==='address'){const g=k=>{const el=document.getElementById(id+'_'+k);return el?(el.value||'').trim():'';};v={street:g('street'),city:g('city'),state:g('state'),zip:g('zip')};}
+    else {const el=document.getElementById(id);v=el?(el.value||'').trim():'';}
+    data[f.k]=v;
+    const empty=(f.type==='address')?!(v.street||v.city||v.state||v.zip):!v;
+    if(f.req&&empty)missing.push(f.l);
+  }));
   if(missing.length){toast('Please complete: '+missing.slice(0,3).join(', ')+(missing.length>3?'…':''));return;}
   const btn=document.getElementById('intakeSubmitBtn');if(btn){btn.disabled=true;btn.textContent='Submitting…';}
   let uid=null;try{uid=(await sb.auth.getUser()).data.user.id;}catch(e){}
@@ -1842,7 +1875,7 @@ async function openClient(id){
   const seenRows=Object.keys(seen).slice(0,40).map(k=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)"><div style="flex:1">${esc(k)}</div><div class="small mut">${seen[k].n}× · ${fmtAgoShort(seen[k].last)}</div></div>`).join('')||'<div class="small mut" style="padding:6px 0">No content viewed yet.</div>';
   const loginRows=logins.slice(0,20).map(l=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)"><div>${new Date(l.created_at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div><div class="small mut" style="text-transform:capitalize">${esc(l.device||'—')} · ${esc(l.browser||'')}</div></div>`).join('')||'<div class="small mut" style="padding:6px 0">No logins recorded yet.</div>';
   let intakeRows='<div class="small mut" style="padding:6px 0">No intake forms submitted yet.</div>';
-  try{const intakes=(await sb.from('intake_submissions').select('*').eq('client_id',id)).data||[];if(intakes.length){intakeRows=intakes.map(s=>{const schema=(typeof INTAKE_FORMS!=='undefined')?INTAKE_FORMS[s.form_key]:null;const labelOf=k=>{if(schema){for(const sec of schema.sections){const f=sec.f.find(x=>x.k===k);if(f)return f.l;}}return k;};const d=s.data||{};const rws=Object.keys(d).filter(k=>d[k]).map(k=>`<div style="display:flex;gap:10px;padding:5px 0;border-top:1px solid var(--line)"><div style="flex:0 0 42%;color:var(--mut)">${esc(labelOf(k))}</div><div style="flex:1">${esc(String(d[k]))}</div></div>`).join('');return `<div style="margin-bottom:14px"><div style="font-weight:700;margin-bottom:4px">${esc((schema&&schema.title)||s.form_key)} <span class="small mut">· ${fmtAgoShort(s.updated_at||s.created_at)}</span></div>${rws||'<div class="small mut">No answers.</div>'}</div>`;}).join('');}}catch(e){}
+  try{const intakes=(await sb.from('intake_submissions').select('*').eq('client_id',id)).data||[];if(intakes.length){intakeRows=intakes.map(s=>{const schema=(typeof INTAKE_FORMS!=='undefined')?INTAKE_FORMS[s.form_key]:null;const labelOf=k=>{if(schema){for(const sec of schema.sections){const f=sec.f.find(x=>x.k===k);if(f)return f.l;}}return k;};const d=s.data||{};const rws=Object.keys(d).filter(k=>{const val=d[k];return val&&(typeof val==='object'?(val.street||val.city||val.state||val.zip):String(val).trim());}).map(k=>{const val=d[k];const disp=(typeof val==='object')?[val.street,val.city,val.state,val.zip].filter(Boolean).join(', '):String(val);return `<div style="display:flex;gap:10px;padding:5px 0;border-top:1px solid var(--line)"><div style="flex:0 0 42%;color:var(--mut)">${esc(labelOf(k))}</div><div style="flex:1">${esc(disp)}</div></div>`;}).join('');return `<div style="margin-bottom:14px"><div style="font-weight:700;margin-bottom:4px">${esc((schema&&schema.title)||s.form_key)} <span class="small mut">· ${fmtAgoShort(s.updated_at||s.created_at)}</span></div>${rws||'<div class="small mut">No answers.</div>'}</div>`;}).join('');}}catch(e){}
   host.innerHTML=`
     <button class="btn" style="padding:8px 13px;margin-bottom:14px" onclick="goScreen('clients')">← All clients</button>
     <div style="background:#0e1726;color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
