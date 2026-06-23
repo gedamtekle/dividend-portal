@@ -414,6 +414,7 @@
 
       <!-- ============ DASHBOARD ============ -->
       <section class="screen show" id="dashboard">
+        <div id="adminHome" style="display:none"></div>
         <div class="h-eyebrow">Welcome back, Marcus</div>
         <div class="card pad" style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px;background:linear-gradient(135deg,#F3F7FF,#FFFFFF)">
           <div style="min-width:200px;flex:1">
@@ -1175,7 +1176,7 @@ async function loadAdmin(){
   try{const z=document.getElementById('callTz');if(z)z.value=guessTz();}catch(e){}
 }
 
-async function approveClient(id){const r=await sb.from('profiles').update({status:'active'}).eq('id',id);if(r.error){toast('Failed: '+r.error.message);return;}let email='';try{const c=((_adminCache&&_adminCache.clients)||[]).find(x=>x.id===id);if(c)email=c.email;else{const d=(await sb.from('profiles').select('email').eq('id',id).single()).data;if(d)email=d.email;}}catch(e){}try{if(email)sb.functions.invoke('team-notify',{body:{type:'approved',email:email}});}catch(e){}toast('Client approved');try{loadAdmin();}catch(e){}try{if(document.getElementById('clients')&&document.getElementById('clients').classList.contains('show'))loadClients();}catch(e){}}
+async function approveClient(id){const r=await sb.from('profiles').update({status:'active'}).eq('id',id);if(r.error){toast('Failed: '+r.error.message);return;}let email='';try{const c=((_adminCache&&_adminCache.clients)||[]).find(x=>x.id===id);if(c)email=c.email;else{const d=(await sb.from('profiles').select('email').eq('id',id).single()).data;if(d)email=d.email;}}catch(e){}try{if(email)sb.functions.invoke('team-notify',{body:{type:'approved',email:email}});}catch(e){}toast('Client approved');try{loadAdmin();}catch(e){}try{refreshAdminHome();}catch(e){}try{if(document.getElementById('clients')&&document.getElementById('clients').classList.contains('show'))loadClients();}catch(e){}}
 function confirmRemoval(name,actionLabel,onConfirm,opts){
   opts=opts||{};
   const nm=String(name||'this person');
@@ -1195,7 +1196,7 @@ function removeTeamMember(i){const m=(typeof teamMembers!=='undefined')?teamMemb
 async function suspendClient(id){
   let name='this client';
   try{const c=((_adminCache&&_adminCache.clients)||[]).find(x=>x.id===id);if(c){name=c.full_name||c.email;}else{const d=(await sb.from('profiles').select('full_name,email').eq('id',id).single()).data;if(d)name=d.full_name||d.email;}}catch(e){}
-  confirmRemoval(name,'Remove client access',async function(){const r=await sb.from('profiles').update({status:'suspended'}).eq('id',id);if(r.error){toast('Failed: '+r.error.message);return;}toast('Access removed for '+name);try{loadAdmin();}catch(e){}try{if(document.getElementById('clients')&&document.getElementById('clients').classList.contains('show'))loadClients();}catch(e){}});
+  confirmRemoval(name,'Remove client access',async function(){const r=await sb.from('profiles').update({status:'suspended'}).eq('id',id);if(r.error){toast('Failed: '+r.error.message);return;}toast('Access removed for '+name);try{loadAdmin();}catch(e){}try{refreshAdminHome();}catch(e){}try{if(document.getElementById('clients')&&document.getElementById('clients').classList.contains('show'))loadClients();}catch(e){}});
 }
 
 function resetCallForm(){['callId','callTitle','callHost','callWhen','callLink'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});const z=document.getElementById('callTz');if(z)z.value=guessTz();const t=document.getElementById('callFormTitle');if(t)t.textContent='Add a coaching call';}
@@ -1273,8 +1274,50 @@ async function loadMyPath(){
   }catch(e){console.warn('mypath',e);host.innerHTML='';}
 }
 async function myToggleTask(id,done){const d=(done===true||done==='true');await sb.from('client_tasks').update({done:d,done_at:d?new Date().toISOString():null}).eq('id',id);loadMyPath();}
+/* ===== Admin dashboard (client-delivery home, distinct from the client dashboard) ===== */
+function renderDashboard(){
+  const sec=document.getElementById('dashboard');if(!sec)return;
+  const ah=document.getElementById('adminHome');
+  const admin=isStaff()&&!window._impersonate&&window._view!=='client';
+  if(ah)ah.style.display=admin?'block':'none';
+  Array.prototype.forEach.call(sec.children,function(c){if(c.id==='adminHome')return;c.style.display=admin?'none':'';});
+  if(admin)loadAdminHome();else loadMyPath();
+}
+function openClientById(id){window._openClientId=id;goScreen('clients');}
+async function loadAdminHome(){
+  const host=document.getElementById('adminHome');if(!host||!sb)return;
+  host.innerHTML='<div class="card pad mut small">Loading client delivery…</div>';
+  let profiles=[],tasks=[];
+  try{
+    profiles=(await sb.from('profiles').select('id,full_name,email,role,status,program,created_at')).data||[];
+    tasks=(await sb.from('client_tasks').select('client_id,done')).data||[];
+  }catch(e){host.innerHTML='<div class="card pad">Failed to load: '+esc(String(e))+'</div>';return;}
+  const clients=profiles.filter(p=>p.role!=='admin'&&p.role!=='team');
+  const active=clients.filter(p=>p.status==='active');
+  const pending=clients.filter(p=>p.status==='pending');
+  const suspended=clients.filter(p=>p.status==='suspended');
+  const now=Date.now();const d14=now-14*864e5;const d7=now-7*864e5;
+  const recent=clients.filter(p=>p.created_at&&new Date(p.created_at).getTime()>=d14).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const new7=clients.filter(p=>p.created_at&&new Date(p.created_at).getTime()>=d7).length;
+  const tByC={};tasks.forEach(t=>{(tByC[t.client_id]=tByC[t.client_id]||{d:0,t:0});tByC[t.client_id].t++;if(t.done)tByC[t.client_id].d++;});
+  const stat=(n,l,c)=>`<div class="card pad" style="text-align:center"><div style="font-size:26px;font-weight:800;color:${c||'#0e1726'}">${n}</div><div class="small mut">${l}</div></div>`;
+  const statusPill=s=>{const m={active:['#E8F6EE','#1b7f4b','Active'],pending:['#FFF3D9','#9A6B0E','Pending'],suspended:['#FDECEC','#b4232a','Suspended']};const x=m[s]||['#eef','#555',s||'—'];return `<span class="pill" style="background:${x[0]};color:${x[1]};border:0">${x[2]}</span>`;};
+  let h=`<div style="background:#0e1726;color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#F2B33D;font-weight:700">Admin Dashboard</div><div style="font-size:22px;font-weight:700">Client Delivery</div></div>`;
+  h+=`<div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">${stat(active.length,'Active clients')}${stat(pending.length,'Pending approval',pending.length?'#9A6B0E':'#0e1726')}${stat(new7,'New (7 days)')}${stat(suspended.length,'Suspended',suspended.length?'#b4232a':'#0e1726')}</div>`;
+  h+=`<div class="card" style="margin-bottom:20px"><div class="pad" style="padding-bottom:6px;display:flex;align-items:center;gap:8px"><b style="font-size:15px">⏳ Pending approvals &amp; new signups</b>${pending.length?`<span class="pill" style="background:#FFF3D9;color:#9A6B0E;border:0">${pending.length} waiting</span>`:''}</div><div class="pad" style="padding-top:0">`;
+  h+=pending.length?pending.map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line);flex-wrap:wrap"><div style="flex:1;min-width:160px"><b style="font-size:13.5px">${esc(p.full_name||p.email)}</b><div class="small mut">${esc(p.email)}${p.program?(' · '+esc(p.program)):''}</div></div><button class="btn primary" style="padding:6px 13px" onclick="approveClient('${p.id}')">Approve</button><button class="btn" style="padding:6px 11px" onclick="suspendClient('${p.id}')">Deny</button></div>`).join(''):'<div class="small mut" style="padding:6px 0">No one waiting — all caught up. 🎉</div>';
+  h+=`</div></div>`;
+  h+=`<div class="card" style="margin-bottom:20px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">📈 Active clients — onboarding progress</b></div><div class="pad" style="padding-top:0">`;
+  h+=active.length?active.slice(0,12).map(p=>{const t=tByC[p.id]||{d:0,t:0};const pct=t.t?Math.round(t.d/t.t*100):0;return `<div style="padding:9px 0;border-top:1px solid var(--line)"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><b style="font-size:13.5px">${esc(p.full_name||p.email)}</b><div class="small mut">${esc(p.program||'—')}</div></div><span class="small mut">${t.t?(t.d+'/'+t.t+' · '+pct+'%'):'no tasks'}</span><button class="btn" style="padding:5px 10px" onclick="openClientById('${p.id}')">Open</button></div><div class="bar" style="margin-top:7px"><i style="width:${pct}%"></i></div></div>`;}).join('')+(active.length>12?'<div class="small mut" style="padding-top:8px"><a onclick="goScreen(\'clients\')" style="color:var(--blue);cursor:pointer">View all '+active.length+' clients →</a></div>':''):'<div class="small mut" style="padding:6px 0">No active clients yet.</div>';
+  h+=`</div></div>`;
+  h+=`<div class="card" style="margin-bottom:20px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">🆕 Recent clients — last 14 days</b></div><div class="pad" style="padding-top:0">`;
+  h+=recent.length?recent.map(p=>{const days=Math.max(0,Math.round((now-new Date(p.created_at).getTime())/864e5));return `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line);flex-wrap:wrap"><div style="flex:1;min-width:160px"><b style="font-size:13.5px">${esc(p.full_name||p.email)}</b><div class="small mut">${esc(p.email)} · ${days===0?'today':(days+'d ago')}</div></div>${statusPill(p.status)}<button class="btn" style="padding:5px 10px" onclick="openClientById('${p.id}')">Open</button></div>`;}).join(''):'<div class="small mut" style="padding:6px 0">No new clients in the last 14 days.</div>';
+  h+=`</div></div>`;
+  host.innerHTML=h;
+}
+function refreshAdminHome(){const ah=document.getElementById('adminHome');if(ah&&ah.style.display!=='none')loadAdminHome();}
 /* load client data once a session is available (after login / refresh) */
-try{ if(sb&&sb.auth&&sb.auth.onAuthStateChange){ sb.auth.onAuthStateChange((_ev,sess)=>{ if(sess){ loadMyPath(); loadLiveFromDB(); loadQuote(); loadContent(); refreshBugBadge(); } }); } }catch(e){}
+try{ if(sb&&sb.auth&&sb.auth.onAuthStateChange){ sb.auth.onAuthStateChange((_ev,sess)=>{ if(sess){ loadMyPath(); loadLiveFromDB(); loadQuote(); loadContent(); refreshBugBadge(); try{renderDashboard();}catch(e){} } }); } }catch(e){}
 
 /* ============ ADMIN SETTINGS (modular config lists) ============ */
 async function loadAdminSettings(){
@@ -1383,10 +1426,8 @@ async function loadContentAdmin(){
   const progSel=`<select class="field" id="cmProg" style="max-width:320px" onchange="window._cmProg=this.value;loadContentAdmin()">${progs.map(p=>`<option value="${esc(p.key)}" ${p.key===cur?'selected':''}>${esc(p.name)}${p.tier?(' — '+tierLabel(p.tier)+' tier'):''}</option>`).join('')}</select>`;
   const subsOf=pid=>mods.filter(m=>m.parent_id===pid);
   const tops=mods.filter(m=>!m.parent_id);
-  function modManRow(m,depth){const isTop=!m.parent_id;return `<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-top:1px solid var(--line);${depth?'padding-left:20px':''}"><span style="flex:1;font-weight:${depth?500:600};font-size:13.5px">${depth?'↳ ':'📦 '}${esc(m.title)}</span>${isTop?`<button class="btn" style="padding:3px 7px" title="Add submodule" onclick="modAddSub('${m.id}')">＋sub</button>`:''}<button class="btn" style="padding:3px 7px" title="Clone module" onclick="modClone('${m.id}')">⧉</button><button class="btn" style="padding:3px 7px" onclick="modMove('${m.id}',-1)">↑</button><button class="btn" style="padding:3px 7px" onclick="modMove('${m.id}',1)">↓</button><button class="btn" style="padding:3px 7px" onclick="modRename('${m.id}')">✎</button><button class="btn" style="padding:3px 7px;color:#b4232a" onclick="modDel('${m.id}')">✕</button></div>`;}
-  let modListHtml='';tops.forEach(m=>{modListHtml+=modManRow(m,0);subsOf(m.id).forEach(sm=>{modListHtml+=modManRow(sm,1);});});
-  if(!mods.length)modListHtml='<div class="small mut" style="padding:6px 0">No modules yet — add one below, or add lessons without a module.</div>';
-  const modulesCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Modules &amp; submodules</b><div class="small mut">Group lessons into modules. ⧉ clones a module with its submodules &amp; lessons (same video links) into this or another program.</div></div><div class="pad" style="padding-top:0">${modListHtml}<div style="display:flex;gap:8px;margin-top:12px"><input class="field" id="cm_m_title" placeholder="New module name" style="flex:1" onkeydown="if(event.key==='Enter')modAdd()"><button class="btn primary" onclick="modAdd()">＋ Add module</button></div></div></div>`;
+  window._cmData={mods:mods,lessons:lessons,prog:cur};
+  const modulesCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Modules &amp; lessons</b><div class="small mut">Expand a module to edit its lessons inline. 👁 previews the exact client view · ⧉ clones with submodules &amp; lessons.</div></div><div class="pad" style="padding-top:0"><div id="cm_modwrap"></div><div style="display:flex;gap:8px;margin-top:12px"><input class="field" id="cm_m_title" placeholder="New module name" style="flex:1" onkeydown="if(event.key==='Enter')modAdd()"><button class="btn primary" onclick="modAdd()">＋ Add module</button></div></div></div>`;
   const modName=id=>{const m=mods.find(x=>x.id===id);return m?((m.parent_id?'↳ ':'')+m.title):'(no module)';};
   const modOpts='<option value="">— No module —</option>'+mods.map(m=>`<option value="${m.id}">${m.parent_id?'↳ ':''}${esc(m.title)}</option>`).join('');
   const lessonRows=lessons.length?lessons.map((it,idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)"><div style="flex:1"><b style="font-size:13.5px">${esc(it.title)}</b><div class="small mut">${esc(it.duration||'')}${it.video_url?' · 🎬 video':''} · ${esc(modName(it.module_id))}</div></div><button class="btn" style="padding:3px 8px" onclick="cmMove('lessons','${it.id}',-1)" ${idx===0?'disabled':''}>↑</button><button class="btn" style="padding:3px 8px" onclick="cmMove('lessons','${it.id}',1)" ${idx===lessons.length-1?'disabled':''}>↓</button><button class="btn" style="padding:3px 8px;color:#b4232a" onclick="cmDel('lessons','${it.id}')">✕</button></div>`).join(''):'<div class="small mut" style="padding:6px 0">No lessons yet.</div>';
@@ -1398,8 +1439,26 @@ async function loadContentAdmin(){
   const videoListCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Your Bunny videos</b><div class="small mut">Everything in the library. Delete removes it from Bunny permanently.</div></div><div class="pad" style="padding-top:0"><div id="cm_videos_list" class="small mut">Loading videos…</div></div></div>`;
   const videoCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Upload a course video</b><div class="small mut">Sends straight to Bunny (our video host) — no dashboards. When it finishes, click “Use as lesson video”.</div></div><div class="pad" style="padding-top:0"><div style="display:grid;grid-template-columns:2fr 1fr;gap:8px"><input class="field" id="cm_v_title" placeholder="Video title (defaults to file name)"><select class="field" id="cm_v_coll"><option value="">Loading collections…</option></select></div><div style="margin-top:10px"><label class="btn primary" style="cursor:pointer">Choose video file<input type="file" accept="video/*" style="display:none" onchange="cmBunnyUpload(this)"></label> <span class="small mut">MP4 / MOV — large files are fine.</span></div><div id="cm_v_prog" style="display:none;margin-top:12px"><div style="height:8px;background:var(--line2);border-radius:99px;overflow:hidden"><div id="cm_v_bar" style="height:100%;width:0%;background:var(--blue);transition:width .2s"></div></div><div class="small mut" id="cm_v_pct" style="margin-top:6px">Starting…</div></div><div id="cm_v_done" style="display:none;margin-top:12px"></div></div></div>`;
   host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Content</h1><p class="mut small" style="margin-bottom:14px">Manage what clients see in each program — lessons, downloadable resources, and common questions. Changes go live instantly on the client side.</p><div style="margin-bottom:16px"><label class="small mut">Program</label><br>${progSel}</div>`+modulesCard+videoCard+videoListCard+lessonsCard+resCard+faqCard;
-  cmBunnyInit();cmLoadVideos();
+  cmBunnyInit();cmLoadVideos();cmRenderModules();
 }
+/* ---- Kajabi-style module accordion (expand + inline edit + per-module preview) ---- */
+window._cmOpen=window._cmOpen||{};
+function cmToggleMod(id){window._cmOpen[id]=!window._cmOpen[id];cmRenderModules();}
+function cmRenderModules(){
+  const wrap=document.getElementById('cm_modwrap');if(!wrap)return;
+  const D=window._cmData||{mods:[],lessons:[]};const mods=D.mods||[];const lessons=D.lessons||[];
+  const tops=mods.filter(m=>!m.parent_id).slice().sort((a,b)=>a.sort-b.sort);
+  const subsOf=pid=>mods.filter(m=>m.parent_id===pid).slice().sort((a,b)=>a.sort-b.sort);
+  const lessOf=mid=>lessons.filter(l=>l.module_id===mid).slice().sort((a,b)=>a.sort-b.sort);
+  if(!mods.length){wrap.innerHTML='<div class="small mut" style="padding:6px 0">No modules yet — add one below.</div>';return;}
+  const lessonRows=(mid)=>{const ls=lessOf(mid);const rows=ls.length?ls.map((it,idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0 6px 10px;border-top:1px solid var(--line)"><span style="flex:1;min-width:0;font-size:13px">🎬 ${esc(it.title)}<span class="small mut">${it.duration?(' · '+esc(it.duration)):''}</span>${it.video_url?'':' <span style="color:#b4232a;font-size:11px">· no video</span>'}</span><button class="btn" style="padding:2px 7px" onclick="cmMove('lessons','${it.id}',-1)" ${idx===0?'disabled':''}>↑</button><button class="btn" style="padding:2px 7px" onclick="cmMove('lessons','${it.id}',1)" ${idx===ls.length-1?'disabled':''}>↓</button><button class="btn" style="padding:2px 7px;color:#b4232a" onclick="cmDel('lessons','${it.id}')">✕</button></div>`).join(''):'<div class="small mut" style="padding:6px 0 6px 10px">No lessons yet.</div>';return rows+`<div style="display:flex;gap:6px;margin:8px 0 2px 10px"><input class="field" id="ql_t_${mid}" placeholder="Lesson title" style="flex:2;padding:6px 9px"><input class="field" id="ql_v_${mid}" placeholder="Video URL / embed" style="flex:2;padding:6px 9px"><button class="btn primary" style="padding:5px 11px" onclick="cmQuickAddLesson('${mid}')">＋</button></div>`;};
+  let h='';
+  tops.forEach((m,i)=>{const open=!!window._cmOpen[m.id];const subs=subsOf(m.id);const lc=lessOf(m.id).length;
+    h+=`<div style="border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden"><div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fafbfc;flex-wrap:wrap"><span style="cursor:pointer;font-size:12px;color:var(--mut2);width:12px" onclick="cmToggleMod('${m.id}')">${open?'▾':'▸'}</span><span style="flex:1;min-width:120px;font-weight:700;font-size:14px;cursor:pointer" onclick="cmToggleMod('${m.id}')">${i+1}. ${esc(m.title)}</span><span class="small mut">${lc} lesson${lc===1?'':'s'}${subs.length?(' · '+subs.length+' sub'):''}</span><button class="btn" style="padding:3px 8px" title="Preview client view" onclick="cmPreviewModule('${m.id}')">👁 Preview</button><button class="btn" style="padding:3px 7px" title="Add submodule" onclick="modAddSub('${m.id}')">＋sub</button><button class="btn" style="padding:3px 7px" title="Clone" onclick="modClone('${m.id}')">⧉</button><button class="btn" style="padding:3px 7px" onclick="modMove('${m.id}',-1)">↑</button><button class="btn" style="padding:3px 7px" onclick="modMove('${m.id}',1)">↓</button><button class="btn" style="padding:3px 7px" onclick="modRename('${m.id}')">✎</button><button class="btn" style="padding:3px 7px;color:#b4232a" onclick="modDel('${m.id}')">✕</button></div><div style="display:${open?'block':'none'};padding:6px 12px 12px">${lessonRows(m.id)}${subs.map(sm=>`<div style="margin-top:10px;border-top:1px dashed var(--line2);padding-top:8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="flex:1;min-width:120px;font-weight:600;font-size:13px;color:var(--mut2)">↳ ${esc(sm.title)}</span><button class="btn" style="padding:2px 7px" title="Preview" onclick="cmPreviewModule('${sm.id}')">👁</button><button class="btn" style="padding:2px 7px" onclick="modMove('${sm.id}',-1)">↑</button><button class="btn" style="padding:2px 7px" onclick="modMove('${sm.id}',1)">↓</button><button class="btn" style="padding:2px 7px" onclick="modRename('${sm.id}')">✎</button><button class="btn" style="padding:2px 7px;color:#b4232a" onclick="modDel('${sm.id}')">✕</button></div>${lessonRows(sm.id)}</div>`).join('')}</div></div>`;});
+  wrap.innerHTML=h;
+}
+async function cmQuickAddLesson(mid){const te=document.getElementById('ql_t_'+mid),ve=document.getElementById('ql_v_'+mid);const t=te?te.value.trim():'';const v=ve?ve.value.trim():'';if(!t){toast('Enter a lesson title');return;}const s=await cmNextSort('lessons');const r=await sb.from('lessons').insert({program_key:window._cmProg,title:t,video_url:v||null,module_id:mid,sort:s});if(r.error){toast('Failed: '+r.error.message);return;}toast('Lesson added');window._cmOpen[mid]=true;loadContentAdmin();loadContent();}
+async function cmPreviewModule(mid){toast('Opening client preview…');try{await loadContent();}catch(e){}window._journeyLocked=false;try{openModule(window._cmProg,mid);}catch(e){toast('Preview failed: '+e.message);}}
 /* ---- Bunny video uploader (admin) ---- */
 function ensureTus(){return new Promise((res,rej)=>{if(window.tus)return res();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js';s.onload=()=>res();s.onerror=()=>rej(new Error('uploader'));document.head.appendChild(s);});}
 async function cmBunnyInit(){const sel=document.getElementById('cm_v_coll');if(!sel||!sb)return;try{const r=await sb.functions.invoke('bunny-upload',{body:{action:'collections'}});const items=(r.data&&r.data.items)||[];sel.innerHTML='<option value="">— No collection —</option>'+items.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');}catch(e){sel.innerHTML='<option value="">— No collection —</option>';}}
@@ -1777,13 +1836,14 @@ function goScreen(id){document.querySelectorAll('.nav').forEach(n=>n.classList.t
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');window.scrollTo({top:0,behavior:'smooth'});
   document.querySelectorAll('.botnav button').forEach(b=>b.classList.toggle('on',b.dataset.screen===id));
   const sd=document.querySelector('.side');if(sd)sd.classList.remove('open');const sc=document.getElementById('scrim');if(sc)sc.classList.remove('show');
-  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')loadMyPath();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();if(id==='journey')loadJourney();if(id==='builder')loadIntake('website');if(id==='intake')loadIntake('location');if(id==='bookmarks')loadBookmarks();}
+  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')renderDashboard();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();if(id==='journey')loadJourney();if(id==='builder')loadIntake('website');if(id==='intake')loadIntake('location');if(id==='bookmarks')loadBookmarks();}
 function toggleSide(){document.querySelector('.side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
 function botGo(b){goScreen(b.dataset.screen);}
 function ensureBanner(){let b=document.getElementById('previewBanner');if(!b){b=document.createElement('div');b.id='previewBanner';b.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0e1726;color:#fff;padding:9px 14px;border-radius:999px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:9999;display:none;align-items:center;gap:12px;font-size:13px';b.innerHTML='👁 Previewing as a client <button onclick="setView(\'admin\')" style="background:#F2B33D;color:#0e1726;border:0;border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer">Exit preview</button>';document.body.appendChild(b);}return b;}
 function isStaff(){return _me&&(_me.role==='admin'||_me.role==='team');}
 function viewAsClient(id,name){window._impersonate=id;window._impersonateName=name||'client';setView('client');}
 function setView(v){
+  window._view=v;
   const staff=isStaff();
   const vc=document.getElementById('vClient'),va=document.getElementById('vAdmin');
   if(vc)vc.classList.toggle('on',v==='client');if(va)va.classList.toggle('on',v==='admin');
