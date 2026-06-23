@@ -1435,7 +1435,7 @@ const INTAKE_FORMS={
     {t:'Legal & policies',f:[{k:'legal_name',l:'Legal business name / LLC',type:'text'},{k:'need_privacy',l:'Generate a Privacy Policy for you?',type:'select',opts:['Yes please','No, I have one']},{k:'need_terms',l:'Generate Terms of Service?',type:'select',opts:['Yes please','No, I have one']},{k:'refund_policy',l:'Refund / guarantee policy',type:'textarea'}]},
     {t:'Integrations & notes',f:[{k:'calendar_tool',l:'Calendar tool',type:'text'},{k:'email_tool',l:'Email marketing tool',type:'text'},{k:'payment_processor',l:'Payment processor',type:'text'},{k:'other_integrations',l:'Other tools to connect',type:'text'},{k:'notes',l:'Anything else we should know?',type:'textarea'}]}
   ]},
-  location:{title:'Location Intake',intro:'Submit a merchant location you want us to help onboard. The more detail, the faster we can qualify and place it.',sections:[
+  location:{title:'Location Intake',intro:'This replaces your onboarding call. Watch the walkthrough, then give us every detail so our call center can start finding and placing locations for you.',video:'https://www.loom.com/embed/40cafbfb5ea94ca1a7a663949bd7d7d0',videoNote:'Watch the full walkthrough — it explains every section. Mark it complete to unlock the questionnaire.',gate:true,sections:[
     {t:'Your info (operator)',f:[{k:'op_name',l:'Your name',type:'text',req:true},{k:'op_email',l:'Your email',type:'email'}]},
     {t:'Merchant business',f:[{k:'m_name',l:'Business name',type:'text',req:true},{k:'m_contact',l:'Contact person',type:'text',req:true},{k:'m_role',l:'Their role/title',type:'text'},{k:'m_phone',l:'Phone',type:'tel',req:true},{k:'m_email',l:'Email',type:'email'},{k:'m_address',l:'Address',type:'textarea'}]},
     {t:'Business profile',f:[{k:'m_type',l:'Business type',type:'select',opts:['Restaurant / Bar','Retail store','Auto / Mechanic','Salon / Spa','Convenience / Liquor','Smoke / Vape','Other']},{k:'m_avg_ticket',l:'Average transaction ($)',type:'text'},{k:'m_volume',l:'Est. monthly volume ($)',type:'text'},{k:'m_txn_day',l:'Transactions per day'}]},
@@ -1455,13 +1455,30 @@ async function loadIntake(formKey){
   const host=document.getElementById(formKey==='website'?'builderInner':'intakeInner');if(!host)return;
   const schema=INTAKE_FORMS[formKey];if(!schema){host.innerHTML='';return;}
   host.innerHTML='<div class="card pad mut small">Loading…</div>';
-  let existing=null;
-  try{const uid=(await sb.auth.getUser()).data.user.id;const d=(await sb.from('intake_submissions').select('*').eq('client_id',uid).eq('form_key',formKey).maybeSingle()).data;existing=d;}catch(e){}
+  let existing=null,acked=false,uid=null;
+  try{uid=(await sb.auth.getUser()).data.user.id;}catch(e){}
+  try{if(uid){const rows=(await sb.from('intake_submissions').select('*').eq('client_id',uid).in('form_key',[formKey,formKey+'_ack'])).data||[];existing=rows.find(r=>r.form_key===formKey)||null;acked=!!rows.find(r=>r.form_key===formKey+'_ack');}}catch(e){}
   const data=(existing&&existing.data)||{};
+  const header=`<div class="h-eyebrow">${formKey==='website'?'Build my website':'Submit a location'}</div><h1 style="font-size:25px;margin-bottom:6px">${esc(schema.title)}</h1><p class="mut" style="margin-bottom:18px">${esc(schema.intro)}</p>`;
+  const videoCard=schema.video?`<div class="card" style="margin-bottom:16px;overflow:hidden"><div class="pad" style="padding-bottom:10px"><b style="font-size:15px">▶ Watch this first</b><div class="small mut">${esc(schema.videoNote||'A quick walkthrough before you fill out the form.')}</div></div><div style="position:relative;padding-bottom:56.25%;height:0;background:#000"><iframe src="${esc(schema.video)}" frameborder="0" allowfullscreen webkitallowfullscreen mozallowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div></div>`:'';
+  if(schema.gate&&!acked){
+    host.innerHTML=header+videoCard+`<div class="card pad" style="text-align:center;border:1px dashed var(--line2)"><div style="font-size:26px">🔒</div><b style="font-size:15px">Finish the video to unlock the questionnaire</b><div class="small mut" style="margin:6px 0 14px">Once you’ve watched the walkthrough, mark it complete and the form will appear.</div><button class="btn primary" id="ackBtn" onclick="markIntakeComplete('${formKey}')">✓ I’ve watched it — unlock the form</button></div>`;
+    return;
+  }
   const cards=schema.sections.map(sec=>`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:4px"><b style="font-size:15px">${esc(sec.t)}</b></div><div class="pad" style="padding-top:0">${sec.f.map(f=>intakeField(formKey,f,data[f.k])).join('')}</div></div>`).join('');
   const submittedNote=existing?`<div class="card pad" style="background:#EAF7EE;border:1px solid #BfE6CB;margin-bottom:16px"><b>✓ Submitted ${fmtAgoShort(existing.updated_at||existing.created_at)}</b><div class="small mut">You can update your answers and resubmit anytime.</div></div>`:'';
-  host.innerHTML=`<div class="h-eyebrow">${formKey==='website'?'Build my website':'Submit a location'}</div><h1 style="font-size:25px;margin-bottom:6px">${esc(schema.title)}</h1><p class="mut" style="margin-bottom:18px">${esc(schema.intro)}</p>${submittedNote}${cards}<div style="display:flex;gap:10px;align-items:center;margin-bottom:30px"><button class="btn primary" id="intakeSubmitBtn" onclick="submitIntake('${formKey}')">${existing?'Update & resubmit':'Submit'}</button><span class="small mut">We’ll be notified the moment you submit.</span></div>`;
+  host.innerHTML=header+videoCard+submittedNote+cards+`<div style="display:flex;gap:10px;align-items:center;margin-bottom:30px"><button class="btn primary" id="intakeSubmitBtn" onclick="submitIntake('${formKey}')">${existing?'Update & resubmit':'Submit'}</button><span class="small mut">We’ll be notified the moment you submit.</span></div>`;
 }
+async function markIntakeComplete(formKey){
+  let uid=null;try{uid=(await sb.auth.getUser()).data.user.id;}catch(e){}
+  const btn=document.getElementById('ackBtn');if(btn){btn.disabled=true;btn.textContent='Unlocking…';}
+  const r=await sb.from('intake_submissions').upsert({client_id:uid,form_key:formKey+'_ack',data:{ack:true},updated_at:new Date().toISOString()},{onConflict:'client_id,form_key'});
+  if(r.error){toast('Failed: '+r.error.message);if(btn){btn.disabled=false;btn.textContent='✓ I’ve watched it — unlock the form';}return;}
+  try{logEvent&&logEvent('video','Completed '+(schemaTitle(formKey))+' overview');}catch(e){}
+  toast('Unlocked — complete the form below');
+  loadIntake(formKey);
+}
+function schemaTitle(formKey){const s=INTAKE_FORMS[formKey];return (s&&s.title)||formKey;}
 async function submitIntake(formKey){
   const schema=INTAKE_FORMS[formKey];if(!schema||!sb)return;
   const data={};let missing=[];
