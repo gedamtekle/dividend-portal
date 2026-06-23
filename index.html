@@ -1574,6 +1574,7 @@ async function submitIntake(formKey){
   if(res.error){toast('Save failed: '+res.error.message);if(btn){btn.disabled=false;btn.textContent='Submit';}return;}
   try{logEvent&&logEvent('intake','Submitted '+schema.title);}catch(e){}
   try{const wh=(await sb.from('config_items').select('label').eq('list','intake_webhook').limit(1)).data;const url=wh&&wh[0]&&wh[0].label;if(url){fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({form:formKey,client_id:uid,name:(_me&&_me.full_name)||'',email:(_me&&_me.email)||'',submitted_at:new Date().toISOString(),data:data})}).catch(()=>{});}}catch(e){}
+  try{const rows=[];schema.sections.forEach(sec=>sec.f.forEach(f=>{const val=data[f.k];if(val==null||val==='')return;let v;if(typeof val==='object'){if(Array.isArray(val))v=val.join(', ');else if('street'in val||'city'in val||'state'in val||'zip'in val)v=[val.street,val.city,val.state,val.zip].filter(Boolean).join(', ');else v=Object.keys(val).map(d=>d+': '+((val[d]||[]).map(r=>(r.start||'?')+'–'+(r.end||'?')).join(', '))).join(' | ');}else v=String(val);if(v&&String(v).trim())rows.push({l:f.l,v:String(v)});}));sb.functions.invoke('team-notify',{body:{type:'intake',form_key:formKey,name:(_me&&(_me.full_name||_me.email))||'',email:(_me&&_me.email)||'',rows:rows}});}catch(e){}
   toast('Submitted — thank you!');
   loadIntake(formKey);
 }
@@ -2264,6 +2265,7 @@ async function finishSignup(){
   const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin,data:{first_name:first,last_name:last,full_name:(first+' '+last).trim(),avatar_url:window._avatarData,phone:phone,sms_consent:smsConsent,sms_consent_at:smsConsent?new Date().toISOString():null}}});
   busy('finishBtn',false);
   if(error)return authMsg(error.message);
+  try{sb.functions.invoke('team-notify',{body:{type:'signup',name:(first+' '+last).trim(),email:email}});}catch(e){}
   if(data.session){await routeAfterLogin();}
   else authMsg('Account created — check your email to confirm, then sign in.',true);
 }
