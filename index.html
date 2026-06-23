@@ -452,11 +452,12 @@
         <div class="h-eyebrow">The RRS System</div>
         <h1 style="font-size:25px;margin-bottom:6px">My Journey</h1>
         <p class="mut" style="margin-bottom:18px">Your programs are unlocked based on what you've purchased. Locked programs show how to upgrade.</p>
-        <div class="card pad" style="margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div class="card pad" id="tierPreviewCard" style="margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <span class="small mut" style="font-weight:600">Preview as plan:</span>
           <div class="seg" id="tierSeg"></div>
           <span class="small mut" style="margin-left:auto">Demo only — shows gating per plan tier</span>
         </div>
+        <div id="journeyBanner"></div>
         <div id="journeyList"></div>
       </section>
 
@@ -1332,7 +1333,7 @@ async function cmAddFaq(){const q=val2('cm_f_q');const a=val2('cm_f_a');if(!q||!
 async function loadContentAdmin(){
   const host=document.getElementById('contentInner');if(!host||!sb)return;
   if(!isStaff()){host.innerHTML='<div class="card pad mut small">Admins and team only.</div>';return;}
-  const progs=cmPrograms();const cur=window._cmProg||(progs[0]&&progs[0].key);window._cmProg=cur;
+  const progs=contentPrograms();const plans=cmPrograms();const cur=window._cmProg||(plans[0]&&plans[0].key)||(progs[0]&&progs[0].key);window._cmProg=cur;
   host.innerHTML='<div class="card pad mut small">Loading…</div>';
   const [L,R,F,M]=await Promise.all([
     sb.from('lessons').select('*').eq('program_key',cur).order('sort',{ascending:true}),
@@ -1357,6 +1358,60 @@ async function loadContentAdmin(){
   const faqRows=faqs.length?faqs.map((it,idx)=>`<div style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><b style="font-size:13.5px">${esc(it.question)}</b><div class="small mut" style="margin-top:3px">${esc(it.answer)}</div></div><button class="btn" style="padding:3px 8px" onclick="cmMove('faqs','${it.id}',-1)" ${idx===0?'disabled':''}>↑</button><button class="btn" style="padding:3px 8px" onclick="cmMove('faqs','${it.id}',1)" ${idx===faqs.length-1?'disabled':''}>↓</button><button class="btn" style="padding:3px 8px;color:#b4232a" onclick="cmDel('faqs','${it.id}')">✕</button></div></div>`).join(''):'<div class="small mut" style="padding:6px 0">No questions yet.</div>';
   const faqCard=`<div class="card" style="margin-bottom:16px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Common Questions</b><div class="small mut">FAQ shown on the program page.</div></div><div class="pad" style="padding-top:0">${faqRows}<input class="field" id="cm_f_q" placeholder="Question" style="margin-top:12px"><textarea class="field" id="cm_f_a" rows="3" placeholder="Answer" style="margin-top:8px"></textarea><button class="btn primary" style="margin-top:10px" onclick="cmAddFaq()">＋ Add question</button></div></div>`;
   host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Content</h1><p class="mut small" style="margin-bottom:14px">Manage what clients see in each program — lessons, downloadable resources, and common questions. Changes go live instantly on the client side.</p><div style="margin-bottom:16px"><label class="small mut">Program</label><br>${progSel}</div>`+modulesCard+lessonsCard+resCard+faqCard;
+}
+
+/* ============ Client journey (program-driven) ============ */
+function contentPrograms(){return [{key:'default',name:'Default journey (pending / unassigned)',tier:null}].concat(cmPrograms());}
+function programKeyForName(name){if(!name)return null;const p=(window._programs||[]).find(x=>x.name===name);return p?p.key:null;}
+async function loadJourney(){
+  const card=document.getElementById('tierPreviewCard');if(card)card.style.display='none';
+  let progName=null,status='active';
+  try{
+    if(window._impersonate){const d=(await sb.from('profiles').select('program,status').eq('id',window._impersonate).single()).data;progName=d&&d.program;status=(d&&d.status)||'active';}
+    else{progName=_me&&_me.program;status=(_me&&_me.status)||'active';}
+  }catch(e){}
+  let key=programKeyForName(progName);
+  if(!(key&&window._content.modules[key]&&window._content.modules[key].length))key='default';
+  window._journeyKey=key;
+  const bn=document.getElementById('journeyBanner');
+  if(bn)bn.innerHTML=(status!=='active')?'<div class="card pad" style="background:#FFF8E7;border:1px solid #F2D58A;margin-bottom:16px"><b>Your access is pending approval.</b><div class="small mut" style="margin-top:2px">Explore the foundational modules now — your full program unlocks once a team member approves your account.</div></div>':'';
+  const allMods=(window._content.modules[key]||[]);
+  const mods=allMods.filter(m=>!m.parent_id).slice().sort((a,b)=>a.sort-b.sort);
+  if(!mods.length){ if(typeof renderJourney==='function'){const c=document.getElementById('tierPreviewCard');if(c)c.style.display='';renderJourney();} return; }
+  const lessOf=mid=>(window._content.lessonsByModule[mid]||[]);
+  const subOf=pid=>allMods.filter(m=>m.parent_id===pid);
+  const cards=mods.map((m,idx)=>{
+    const subs=subOf(m.id);const cnt=lessOf(m.id).length+subs.reduce((n,s)=>n+lessOf(s.id).length,0);
+    return `<div class="jstage"><div class="jline"></div><div class="jnode active">${idx+1}</div>
+      <div class="card pad jcard" style="cursor:pointer" onclick="openModule('${key}','${m.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
+          <div style="min-width:200px"><div class="small" style="color:var(--mut2);font-weight:600;letter-spacing:1px;text-transform:uppercase">Module ${idx+1}</div><h2 style="font-size:18px;margin:3px 0">${esc(m.title)}</h2></div>
+          <span class="btn" style="padding:8px 14px">Open →</span>
+        </div>
+        <div class="small mut" style="margin-top:10px;display:flex;gap:16px">${cnt?('<span>▶ '+cnt+' lessons</span>'):'<span>No lessons yet</span>'}${subs.length?('<span>📂 '+subs.length+' submodules</span>'):''}</div>
+      </div></div>`;
+  }).join('');
+  document.getElementById('journeyList').innerHTML=cards;
+}
+function openModule(progKey,moduleId){
+  const mods=window._content.modules[progKey]||[];const m=mods.find(x=>x.id===moduleId);if(!m)return;
+  const lessOf=mid=>(window._content.lessonsByModule[mid]||[]).slice().sort((a,b)=>a.sort-b.sort);
+  const setTxt=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setTxt('stTag','Module');setTxt('stName',m.title);setTxt('stSub','');setTxt('stProgTxt','');
+  const pb=document.getElementById('stProgBar');if(pb)pb.style.width='0%';
+  const at=document.getElementById('stAskTeam');if(at)at.setAttribute('onclick',"openAsk('"+String(m.title||'').replace(/'/g,'')+"')");
+  const tb=document.querySelector('#stage .tabbar');if(tb)tb.style.display='';
+  let h='';const less=lessOf(moduleId);
+  if(less.length)h+='<div class="card pad">'+less.map(l=>({t:l.title,dur:l.duration||'',pct:0})).map(lessrow).join('')+'</div>';
+  mods.filter(x=>x.parent_id===moduleId).slice().sort((a,b)=>a.sort-b.sort).forEach(sm=>{h+='<div style="margin:12px 0 6px"><span style="font-weight:700;font-size:13.5px;color:var(--mut2)">↳ '+esc(sm.title)+'</span></div>';const sl=lessOf(sm.id);if(sl.length)h+='<div class="card pad" style="margin-bottom:10px">'+sl.map(l=>({t:l.title,dur:l.duration||'',pct:0})).map(lessrow).join('')+'</div>';});
+  document.getElementById('sModules').innerHTML=h||'<div class="card pad small mut">No lessons in this module yet.</div>';
+  const C=window._content;const dbR=(C.resources[progKey]||[]);const dbF=(C.faqs[progKey]||[]);
+  document.getElementById('sRes').innerHTML=dbR.length?('<div class="grid" style="grid-template-columns:repeat(2,1fr)">'+dbR.map(r=>`<div class="res" ${r.url?`data-url="${esc(r.url)}" style="cursor:pointer" onclick="openRes(this)"`:''}><div class="ricon">${resIcon(r.kind)}</div><div style="flex:1"><b style="font-size:13.5px">${esc(r.title)}</b><div class="small mut">${esc(r.meta||resKindLabel(r.kind))}</div></div></div>`).join('')+'</div>'):'<div class="card pad small mut">No resources yet.</div>';
+  document.getElementById('sFaq').innerHTML=dbF.length?dbF.map(f=>`<div class="faq"><div class="q" onclick="this.parentElement.classList.toggle('open')"><span>${esc(f.question)}</span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="a"><div class="inner">${esc(f.answer)}</div></div></div>`).join(''):'<div class="card pad small mut">No questions yet.</div>';
+  document.querySelectorAll('#stage .tabbar button').forEach((b,i)=>b.classList.toggle('on',i===0));
+  document.getElementById('sModules').style.display='block';document.getElementById('sRes').style.display='none';document.getElementById('sFaq').style.display='none';
+  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.screen==='journey'));
+  show('stage');
 }
 
 /* ============ Team bug reporting ============ */
@@ -1510,7 +1565,7 @@ function goScreen(id){document.querySelectorAll('.nav').forEach(n=>n.classList.t
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');window.scrollTo({top:0,behavior:'smooth'});
   document.querySelectorAll('.botnav button').forEach(b=>b.classList.toggle('on',b.dataset.screen===id));
   const sd=document.querySelector('.side');if(sd)sd.classList.remove('open');const sc=document.getElementById('scrim');if(sc)sc.classList.remove('show');
-  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')loadMyPath();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();}
+  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')loadMyPath();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();if(id==='journey')loadJourney();}
 function toggleSide(){document.querySelector('.side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
 function botGo(b){goScreen(b.dataset.screen);}
 function ensureBanner(){let b=document.getElementById('previewBanner');if(!b){b=document.createElement('div');b.id='previewBanner';b.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0e1726;color:#fff;padding:9px 14px;border-radius:999px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:9999;display:none;align-items:center;gap:12px;font-size:13px';b.innerHTML='👁 Previewing as a client <button onclick="setView(\'admin\')" style="background:#F2B33D;color:#0e1726;border:0;border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer">Exit preview</button>';document.body.appendChild(b);}return b;}
@@ -1940,33 +1995,33 @@ async function gateAndEnter(){
   try{
     const {data:{user}}=await sb.auth.getUser();
     if(user){
-      const {data}=await sb.from('profiles').select('role,status,email,full_name,avatar_url').eq('id',user.id).single();
+      const {data}=await sb.from('profiles').select('role,status,email,full_name,avatar_url,program').eq('id',user.id).single();
       me=data||{role:'client',status:'active',email:(user.email||'')};
       if(!me.email)me.email=user.email||'';
     }
   }catch(e){me={role:'client',status:'active'};}
   _me=me||{role:'client',status:'active'};
   const status=(_me.status||'active');
-  if(status!=='active'){
+  if(status==='suspended'){
     document.getElementById('authScreen').classList.remove('hide');
     const em=document.getElementById('pendingEmail'); if(em)em.textContent=(_me.email||'your email');
     const h=document.querySelector('#apPending h2'), msg=document.getElementById('pendingMsg');
-    if(status==='suspended'){ if(h)h.textContent='Access suspended'; if(msg)msg.innerHTML='Your access is currently suspended. Please reach out to the team to have it restored.'; }
-    else { if(h)h.textContent='Your access is pending approval'; if(msg)msg.innerHTML='Thanks for signing up! A Dividend Shift team member needs to approve your account before you can enter the portal. You’ll get an email at <b id="pendingEmail">'+(_me.email||'your email')+'</b> the moment you’re approved.'; }
+    if(h)h.textContent='Access suspended'; if(msg)msg.innerHTML='Your access is currently suspended. Please reach out to the team to have it restored.';
     showPanel('apPending');
     return;
   }
-  const isAdmin=(_me.role==='admin'||_me.role==='team');
+  const isPending=(status!=='active');
+  const isAdmin=(!isPending)&&(_me.role==='admin'||_me.role==='team');
   document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin?'':'none';});
   enterApp();
-  try{
-    if(isAdmin){ setView('admin'); }
-    else { document.querySelectorAll('.cli-nav').forEach(el=>el.style.display=''); goScreen('dashboard'); }
-  }catch(e){ try{goScreen('dashboard');}catch(_){} }
   try{ logLogin(); }catch(e){}
   try{ ensureUserMenu(); }catch(e){}
-  try{ loadContent(); }catch(e){}
+  try{ await loadContent(); }catch(e){}
   try{ refreshBugBadge(); }catch(e){}
+  try{
+    if(isAdmin){ setView('admin'); }
+    else { document.querySelectorAll('.cli-nav').forEach(el=>el.style.display=''); document.querySelectorAll('.admin-only').forEach(el=>el.style.display='none'); goScreen(isPending?'journey':'dashboard'); }
+  }catch(e){ try{goScreen('dashboard');}catch(_){} }
 }
 async function doSignIn(){
   if(!sb)return authMsg('Auth is still loading — give it a second and retry.');
