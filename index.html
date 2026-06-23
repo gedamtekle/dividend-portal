@@ -1270,7 +1270,9 @@ async function loadAdminSettings(){
   const programsCard=`<div class="card" style="margin-bottom:18px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Programs (plans)</b><div class="small mut">Your client plans / tiers. Build each plan’s curriculum (modules &amp; lessons) in the Content area.</div></div><div class="pad" style="padding-top:0">${progRows}<div style="display:flex;gap:8px;margin-top:10px"><input class="field" id="add_program" placeholder="New program name" style="flex:1" onkeydown="if(event.key==='Enter')progAdd()"><button class="btn primary" onclick="progAdd()">Add</button></div></div></div>`;
   const whRow=(await sb.from('config_items').select('label').eq('list','intake_webhook').limit(1)).data;const whVal=(whRow&&whRow[0]&&whRow[0].label)||'';
   const webhookCard=`<div class="card" style="margin-bottom:18px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Intake completion webhook</b><div class="small mut">Optional. When a client submits the Website or Location intake, we POST the answers to this URL (Zapier, Make, or a GHL inbound webhook).</div></div><div class="pad" style="padding-top:0"><div style="display:flex;gap:8px"><input class="field" id="intakeWebhook" placeholder="https://hooks.zapier.com/…" style="flex:1" value="${esc(whVal)}"><button class="btn primary" onclick="saveIntakeWebhook()">Save</button></div></div></div>`;
-  host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Settings</h1><p class="mut small" style="margin-bottom:18px">Edit your program structure without touching code — changes apply across the portal.</p>`+programsCard+contentPointer+listCard('client_stages','Client stages','The fulfillment stages shown as the dropdown on each client.')+webhookCard+quoteCard;
+  const gkRow=(await sb.from('config_items').select('label').eq('list','gmaps_key').limit(1)).data;const gkVal=(gkRow&&gkRow[0]&&gkRow[0].label)||'';
+  const mapsCard=`<div class="card" style="margin-bottom:18px"><div class="pad" style="padding-bottom:6px"><b style="font-size:15px">Google Maps API key</b><div class="small mut">Powers the live 20-mile radius map on the Location Intake and the map image in the PDF report. In Google Cloud, enable <b>Maps JavaScript API</b>, <b>Geocoding API</b> and <b>Maps Static API</b>, then restrict the key to your domain.</div></div><div class="pad" style="padding-top:0"><div style="display:flex;gap:8px"><input class="field" id="gmapsKey" placeholder="AIza…" style="flex:1" value="${esc(gkVal)}"><button class="btn primary" onclick="saveGmapsKey()">Save</button></div></div></div>`;
+  host.innerHTML=`<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Settings</h1><p class="mut small" style="margin-bottom:18px">Edit your program structure without touching code — changes apply across the portal.</p>`+programsCard+contentPointer+listCard('client_stages','Client stages','The fulfillment stages shown as the dropdown on each client.')+webhookCard+mapsCard+quoteCard;
 }
 async function loadQuote(){const el=document.getElementById('gritQuote');if(!el||!sb)return;try{const d=(await sb.from('config_items').select('label').eq('list','quote_active').order('created_at',{ascending:false}).limit(1)).data;el.textContent=(d&&d[0])?'“'+d[0].label+'”':'';}catch(e){}}
 async function setActiveQuote(id){const it=(await sb.from('config_items').select('label').eq('id',id).single()).data;if(!it)return;await sb.from('config_items').delete().eq('list','quote_active');const r=await sb.from('config_items').insert({list:'quote_active',label:it.label,sort:0});if(r.error){toast('Failed: '+r.error.message);return;}toast('Quote of the week set');loadQuote();loadAdminSettings();}
@@ -1451,7 +1453,7 @@ const INTAKE_FORMS={
     ]},
     {t:'Location & travel',f:[
       {k:'city_state',l:'Please provide your current City & State.',type:'address',req:true},
-      {k:'home_zip',l:'What is your home Zip Code?',type:'text',req:true},
+      {k:'home_zip',l:'What is your home Zip Code?',type:'zipmap',req:true},
       {k:'your_zip',l:'Please provide your Zip Code.',type:'address',req:true},
       {k:'avoid_areas',l:'Please describe any areas you DO NOT want to go to. We will attempt to accommodate your request(s).',type:'textarea',req:true},
       {k:'travel_areas',l:'What additional areas other than your home zip code can you travel to?',type:'textarea',req:true}
@@ -1467,6 +1469,7 @@ function intakeField(formKey,f,val){
   else if(f.type==='time')ctrl=`<input class="field" id="${id}" type="time" value="${esc(v)}" style="max-width:200px">`;
   else if(f.type==='address'){const a=(val&&typeof val==='object')?val:{};ctrl=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input class="field" id="${id}_street" placeholder="Street address" value="${esc(a.street||'')}" style="grid-column:1/-1"><input class="field" id="${id}_city" placeholder="City" value="${esc(a.city||'')}"><input class="field" id="${id}_state" placeholder="State / Province" value="${esc(a.state||'')}"><input class="field" id="${id}_zip" placeholder="ZIP / Postal" value="${esc(a.zip||'')}"></div>`;}
   else if(f.type==='availability'){ctrl='<div id="availWidget"></div>';}
+  else if(f.type==='zipmap'){ctrl=`<input class="field" id="${id}" type="text" inputmode="numeric" maxlength="10" value="${esc(v)}" placeholder="e.g. 33179" oninput="zipMapUpdate()"><div id="zipMapWrap" style="margin-top:10px"></div>`;}
   else ctrl=`<input class="field" id="${id}" type="${f.type==='email'?'email':(f.type==='tel'?'tel':(f.type==='url'?'url':'text'))}" value="${esc(v)}">`;
   return `<div style="margin-bottom:12px"><label class="small mut" style="display:block;margin-bottom:4px">${esc(f.l)}${req}</label>${ctrl}</div>`;
 }
@@ -1484,6 +1487,42 @@ function availToggle(day){if(window._avail[day]!==undefined)delete window._avail
 function availAddRange(day){(window._avail[day]=window._avail[day]||[]).push({start:'',end:''});renderAvail();}
 function availRemoveRange(day,i){if(!window._avail[day])return;window._avail[day].splice(i,1);if(window._avail[day].length===0)window._avail[day].push({start:'',end:''});renderAvail();}
 function availSet(day,i,k,val){if(window._avail[day]&&window._avail[day][i])window._avail[day][i][k]=val;}
+/* ---- ZIP radius map (Google Maps) ---- */
+async function getGmapsKey(){if(typeof window._gmapsKey!=='undefined')return window._gmapsKey;try{const d=(await sb.from('config_items').select('label').eq('list','gmaps_key').limit(1)).data;window._gmapsKey=(d&&d[0]&&d[0].label)||'';}catch(e){window._gmapsKey='';}return window._gmapsKey;}
+function ensureGoogleMaps(key,cb){
+  if(window.google&&window.google.maps){cb();return;}
+  window._gmapCbs=window._gmapCbs||[];window._gmapCbs.push(cb);
+  if(window._gmapLoading)return;window._gmapLoading=true;
+  window._gmapInit=function(){window._gmapLoading=false;(window._gmapCbs||[]).forEach(function(f){try{f();}catch(e){}});window._gmapCbs=[];};
+  const s=document.createElement('script');s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&callback=_gmapInit';s.async=true;s.defer=true;s.onerror=function(){const w=document.getElementById('zipMapWrap');if(w)w.innerHTML='<div class="small" style="color:#b4232a;padding:8px">Could not load Google Maps — check the API key and that Maps JavaScript API + Geocoding API are enabled.</div>';};document.head.appendChild(s);
+}
+function zipMapUpdate(){
+  const el=document.getElementById('if_location_home_zip');const wrap=document.getElementById('zipMapWrap');if(!el||!wrap)return;
+  const zip=(el.value||'').replace(/[^0-9]/g,'').slice(0,5);
+  if(zip.length<5){wrap.innerHTML='';return;}
+  const key=window._gmapsKey;
+  if(!key){wrap.innerHTML='<div class="small mut" style="padding:10px;border:1px dashed var(--line2);border-radius:10px">🗺️ Your 20-mile radius map appears here once Google Maps is connected (admin adds an API key in Settings).</div>';return;}
+  ensureGoogleMaps(key,function(){drawZipMap(zip);});
+}
+function drawZipMap(zip){
+  const wrap=document.getElementById('zipMapWrap');if(!wrap)return;
+  if(!document.getElementById('zipMapCanvas'))wrap.innerHTML='<div style="font-weight:600;font-size:13px;margin-bottom:6px">Your 20-mile coverage radius</div><div id="zipMapCanvas" style="width:100%;height:300px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"></div><div class="small mut" id="zipMapCap" style="margin-top:6px">Loading map…</div>';
+  const geocoder=new google.maps.Geocoder();
+  geocoder.geocode({componentRestrictions:{postalCode:zip,country:'US'}},function(res,status){
+    const cap=document.getElementById('zipMapCap');
+    if(status!=='OK'||!res||!res[0]){if(cap)cap.textContent='Couldn’t find ZIP '+zip+' — double-check it.';return;}
+    const loc=res[0].geometry.location;const center={lat:loc.lat(),lng:loc.lng()};
+    const map=new google.maps.Map(document.getElementById('zipMapCanvas'),{center:center,zoom:9,mapTypeControl:false,streetViewControl:false,fullscreenControl:false});
+    const circle=new google.maps.Circle({map:map,center:center,radius:32186.88,strokeColor:'#2F6BFF',strokeOpacity:0.9,strokeWeight:2,fillColor:'#2F6BFF',fillOpacity:0.15});
+    new google.maps.Marker({map:map,position:center});
+    map.fitBounds(circle.getBounds());
+    window._zipCenter={zip:zip,lat:center.lat,lng:center.lng,radius_mi:20};
+    if(cap)cap.textContent='20-mile radius around '+zip+' — the area our team will target. Adjust your ZIP above if needed before submitting.';
+  });
+}
+function circlePts(lat,lng,miles,n){const pts=[];const r=miles/3958.8;const latR=lat*Math.PI/180;for(let i=0;i<=n;i++){const a=2*Math.PI*i/n;const dLat=r*Math.cos(a)*180/Math.PI;const dLng=r*Math.sin(a)/Math.cos(latR)*180/Math.PI;pts.push((lat+dLat).toFixed(5)+','+(lng+dLng).toFixed(5));}return pts;}
+function staticMapUrl(m,key){const pts=circlePts(m.lat,m.lng,m.radius_mi||20,36);return 'https://maps.googleapis.com/maps/api/staticmap?size=640x360&scale=2&path=color:0x2F6BFFcc%7Cweight:2%7Cfillcolor:0x2F6BFF33%7C'+pts.join('%7C')+'&markers=color:blue%7C'+m.lat+','+m.lng+'&key='+encodeURIComponent(key);}
+function printRadiusReport(el){const name=(el.dataset.name||'').replace(/[<>]/g,''),zip=(el.dataset.zip||'').replace(/[<>]/g,''),url=el.dataset.url||'';const w=window.open('','_blank');if(!w)return;w.document.write('<html><head><title>Coverage Radius — '+name+'</title><style>body{font-family:Arial,Helvetica,sans-serif;padding:32px;color:#0e1726}h1{font-size:20px;margin:0 0 4px}img{width:100%;max-width:680px;border:1px solid #ccc;border-radius:8px;margin-top:14px}.meta{color:#444;font-size:13px;line-height:1.6}</style></head><body><h1>Dividend Shift — 20-Mile Coverage Radius</h1><div class="meta"><b>Operator:</b> '+name+'<br><b>Home ZIP:</b> '+zip+'<br><b>Search radius:</b> 20 miles</div>'+(url?'<img src="'+url+'">':'<p>No map available.</p>')+'<p style="color:#777;font-size:11px;margin-top:18px">Generated from the Dividend Shift Location Finder Intake.</p><scr'+'ipt>setTimeout(function(){window.print();},700);</scr'+'ipt></body></html>');w.document.close();}
 async function loadIntake(formKey){
   const host=document.getElementById(formKey==='website'?'builderInner':'intakeInner');if(!host)return;
   const schema=INTAKE_FORMS[formKey];if(!schema){host.innerHTML='';return;}
@@ -1493,6 +1532,7 @@ async function loadIntake(formKey){
   try{if(uid){const rows=(await sb.from('intake_submissions').select('*').eq('client_id',uid).in('form_key',[formKey,formKey+'_ack'])).data||[];existing=rows.find(r=>r.form_key===formKey)||null;acked=!!rows.find(r=>r.form_key===formKey+'_ack');}}catch(e){}
   const data=(existing&&existing.data)||{};
   window._avail=(data.availability&&typeof data.availability==='object'&&!Array.isArray(data.availability))?JSON.parse(JSON.stringify(data.availability)):{};
+  if(formKey==='location'){try{await getGmapsKey();}catch(e){}window._zipCenter=(data._map&&data._map.lat)?data._map:null;}
   const header=`<div class="h-eyebrow">${formKey==='website'?'Build my website':'Submit a location'}</div><h1 style="font-size:25px;margin-bottom:6px">${esc(schema.title)}</h1><p class="mut" style="margin-bottom:18px">${esc(schema.intro)}</p>`;
   const videoCard=schema.video?`<div class="card" style="margin-bottom:16px;overflow:hidden"><div class="pad" style="padding-bottom:10px"><b style="font-size:15px">▶ Watch this first</b><div class="small mut">${esc(schema.videoNote||'A quick walkthrough before you fill out the form.')}</div></div><div style="position:relative;padding-bottom:56.25%;height:0;background:#000"><iframe src="${esc(schema.video)}" frameborder="0" allowfullscreen webkitallowfullscreen mozallowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div></div>`:'';
   if(schema.gate&&!acked){
@@ -1503,6 +1543,7 @@ async function loadIntake(formKey){
   const submittedNote=existing?`<div class="card pad" style="background:#EAF7EE;border:1px solid #BfE6CB;margin-bottom:16px"><b>✓ Submitted ${fmtAgoShort(existing.updated_at||existing.created_at)}</b><div class="small mut">You can update your answers and resubmit anytime.</div></div>`:'';
   host.innerHTML=header+videoCard+submittedNote+cards+`<div style="display:flex;gap:10px;align-items:center;margin-bottom:30px"><button class="btn primary" id="intakeSubmitBtn" onclick="submitIntake('${formKey}')">${existing?'Update & resubmit':'Submit'}</button><span class="small mut">We’ll be notified the moment you submit.</span></div>`;
   if(document.getElementById('availWidget'))renderAvail();
+  if(document.getElementById('zipMapWrap'))zipMapUpdate();
 }
 async function markIntakeComplete(formKey){
   let uid=null;try{uid=(await sb.auth.getUser()).data.user.id;}catch(e){}
@@ -1524,6 +1565,7 @@ async function submitIntake(formKey){
     if(f.type==='availability'){const src=window._avail||{};const av={};let dayCount=0,bad=false;Object.keys(src).forEach(day=>{const clean=(src[day]||[]).filter(r=>r.start||r.end);if(clean.length===0)bad=true;clean.forEach(r=>{if(!r.start||!r.end)bad=true;});av[day]=clean;dayCount++;});data[f.k]=av;if(f.req&&dayCount===0)missing.push('Select at least one available day');else if(bad)missing.push('Add a start & end time for each selected day');return;}
     const el=document.getElementById(id);const v=el?(el.value||'').trim():'';data[f.k]=v;if(f.req&&!v)missing.push(f.l);
   }));
+  if(formKey==='location'&&window._zipCenter&&window._zipCenter.lat)data._map=window._zipCenter;
   if(missing.length){toast('Please complete: '+missing.slice(0,3).join(', ')+(missing.length>3?'…':''));return;}
   const btn=document.getElementById('intakeSubmitBtn');if(btn){btn.disabled=true;btn.textContent='Submitting…';}
   let uid=null;try{uid=(await sb.auth.getUser()).data.user.id;}catch(e){}
@@ -1536,6 +1578,7 @@ async function submitIntake(formKey){
   loadIntake(formKey);
 }
 async function saveIntakeWebhook(){const v=val2('intakeWebhook');await sb.from('config_items').delete().eq('list','intake_webhook');if(v){const r=await sb.from('config_items').insert({list:'intake_webhook',label:v,sort:0});if(r.error){toast('Failed: '+r.error.message);return;}}toast('Webhook saved');}
+async function saveGmapsKey(){const v=val2('gmapsKey');await sb.from('config_items').delete().eq('list','gmaps_key');if(v){const r=await sb.from('config_items').insert({list:'gmaps_key',label:v,sort:0});if(r.error){toast('Failed: '+r.error.message);return;}}window._gmapsKey=v;toast('Google Maps key saved');}
 
 /* ============ Team bug reporting ============ */
 function currentScreenName(){const s=document.querySelector('.screen.show');const id=s?s.id:'';const map={dashboard:'Dashboard',journey:'My Journey',player:'Now Playing',live:'Live Training',coach:'AI Coach',stage:'Program stage',clients:'Clients',admin:'Admin Console',content:'Content',bugs:'Bug reports',adminsettings:'Settings',settings:'Account settings',team:'Team',client:'Client briefing',scouter:'Location Scouter',builder:'Website Builder',intake:'Location Intake'};return map[id]||id||'Portal';}
@@ -1883,7 +1926,7 @@ async function openClient(id){
   const seenRows=Object.keys(seen).slice(0,40).map(k=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)"><div style="flex:1">${esc(k)}</div><div class="small mut">${seen[k].n}× · ${fmtAgoShort(seen[k].last)}</div></div>`).join('')||'<div class="small mut" style="padding:6px 0">No content viewed yet.</div>';
   const loginRows=logins.slice(0,20).map(l=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)"><div>${new Date(l.created_at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div><div class="small mut" style="text-transform:capitalize">${esc(l.device||'—')} · ${esc(l.browser||'')}</div></div>`).join('')||'<div class="small mut" style="padding:6px 0">No logins recorded yet.</div>';
   let intakeRows='<div class="small mut" style="padding:6px 0">No intake forms submitted yet.</div>';
-  try{const intakes=(await sb.from('intake_submissions').select('*').eq('client_id',id)).data||[];if(intakes.length){intakeRows=intakes.map(s=>{const schema=(typeof INTAKE_FORMS!=='undefined')?INTAKE_FORMS[s.form_key]:null;const labelOf=k=>{if(schema){for(const sec of schema.sections){const f=sec.f.find(x=>x.k===k);if(f)return f.l;}}return k;};const d=s.data||{};const isAddr=o=>o&&typeof o==='object'&&('street'in o||'city'in o||'state'in o||'zip'in o);const dispV=val=>{if(val&&typeof val==='object'){if(Array.isArray(val))return val.join(', ');if(isAddr(val))return [val.street,val.city,val.state,val.zip].filter(Boolean).join(', ');return Object.keys(val).map(day=>day+': '+((val[day]||[]).map(r=>(r.start||'?')+'–'+(r.end||'?')).join(', ')||'—')).join('  ·  ');}return String(val);};const nonEmpty=val=>{if(val&&typeof val==='object'){if(Array.isArray(val))return val.length>0;if(isAddr(val))return !!(val.street||val.city||val.state||val.zip);return Object.keys(val).length>0;}return String(val).trim();};const rws=Object.keys(d).filter(k=>nonEmpty(d[k])).map(k=>`<div style="display:flex;gap:10px;padding:5px 0;border-top:1px solid var(--line)"><div style="flex:0 0 42%;color:var(--mut)">${esc(labelOf(k))}</div><div style="flex:1">${esc(dispV(d[k]))}</div></div>`).join('');return `<div style="margin-bottom:14px"><div style="font-weight:700;margin-bottom:4px">${esc((schema&&schema.title)||s.form_key)} <span class="small mut">· ${fmtAgoShort(s.updated_at||s.created_at)}</span></div>${rws||'<div class="small mut">No answers.</div>'}</div>`;}).join('');}}catch(e){}
+  try{let gmk='';try{gmk=await getGmapsKey();}catch(e){}const intakes=(await sb.from('intake_submissions').select('*').eq('client_id',id)).data||[];if(intakes.length){intakeRows=intakes.map(s=>{const schema=(typeof INTAKE_FORMS!=='undefined')?INTAKE_FORMS[s.form_key]:null;const labelOf=k=>{if(schema){for(const sec of schema.sections){const f=sec.f.find(x=>x.k===k);if(f)return f.l;}}return k;};const d=s.data||{};const isAddr=o=>o&&typeof o==='object'&&('street'in o||'city'in o||'state'in o||'zip'in o);const dispV=val=>{if(val&&typeof val==='object'){if(Array.isArray(val))return val.join(', ');if(isAddr(val))return [val.street,val.city,val.state,val.zip].filter(Boolean).join(', ');return Object.keys(val).map(day=>day+': '+((val[day]||[]).map(r=>(r.start||'?')+'–'+(r.end||'?')).join(', ')||'—')).join('  ·  ');}return String(val);};const nonEmpty=val=>{if(val&&typeof val==='object'){if(Array.isArray(val))return val.length>0;if(isAddr(val))return !!(val.street||val.city||val.state||val.zip);return Object.keys(val).length>0;}return String(val).trim();};const rws=Object.keys(d).filter(k=>k.charAt(0)!=='_'&&nonEmpty(d[k])).map(k=>`<div style="display:flex;gap:10px;padding:5px 0;border-top:1px solid var(--line)"><div style="flex:0 0 42%;color:var(--mut)">${esc(labelOf(k))}</div><div style="flex:1">${esc(dispV(d[k]))}</div></div>`).join('');const m=d._map;const mapHtml=(m&&m.lat&&gmk)?('<img src="'+esc(staticMapUrl(m,gmk))+'" style="width:100%;max-width:520px;border-radius:10px;margin-top:10px;border:1px solid var(--line)"><div style="margin-top:6px"><button class="btn" style="padding:4px 10px" data-name="'+esc(c.full_name||c.email||'')+'" data-zip="'+esc(m.zip||'')+'" data-url="'+esc(staticMapUrl(m,gmk))+'" onclick="printRadiusReport(this)">🗺 Save radius PDF</button></div>'):(m&&m.lat?('<div class="small mut" style="margin-top:8px">📍 20-mile radius around '+esc(m.zip||'')+' — add a Google Maps key in Settings to render the map.</div>'):'');return `<div style="margin-bottom:14px"><div style="font-weight:700;margin-bottom:4px">${esc((schema&&schema.title)||s.form_key)} <span class="small mut">· ${fmtAgoShort(s.updated_at||s.created_at)}</span></div>${rws||'<div class="small mut">No answers.</div>'}${mapHtml}</div>`;}).join('');}}catch(e){}
   host.innerHTML=`
     <button class="btn" style="padding:8px 13px;margin-bottom:14px" onclick="goScreen('clients')">← All clients</button>
     <div style="background:#0e1726;color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
