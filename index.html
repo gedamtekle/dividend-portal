@@ -1377,6 +1377,14 @@ async function loadContent(){
     const lbm={};(L.data||[]).forEach(l=>{if(l.module_id){(lbm[l.module_id]=lbm[l.module_id]||[]).push(l);}});
     window._content={lessons:grp(L.data),resources:grp(R.data),faqs:grp(F.data),modules:grp(M.data||[]),lessonsByModule:lbm};
     try{loadBookmarksData();}catch(e){}
+    try{
+      const [QZ,QQ]=await Promise.all([sb.from('quizzes').select('*'),sb.from('quiz_questions').select('*').order('sort',{ascending:true})]);
+      const qByMod={};(QZ.data||[]).forEach(q=>{qByMod[q.module_id]=q;});
+      const qqByQuiz={};(QQ.data||[]).forEach(x=>{(qqByQuiz[x.quiz_id]=qqByQuiz[x.quiz_id]||[]).push(x);});
+      window._content.quizzes=qByMod;window._content.quizQ=qqByQuiz;
+      const AT=(await sb.from('quiz_attempts').select('quiz_id,passed')).data||[];
+      const passed={};AT.forEach(a=>{if(a.passed)passed[a.quiz_id]=true;});window._quizPassed=passed;
+    }catch(e){window._content.quizzes={};window._content.quizQ={};window._quizPassed={};}
     const st=document.getElementById('stage');
     if(st&&st.classList.contains('show')&&typeof currentStageKey!=='undefined'){try{openStage(currentStageKey);}catch(e){}}
   }catch(e){}
@@ -1426,6 +1434,12 @@ async function loadContentAdmin(){
     sb.from('modules').select('*').eq('program_key',cur).order('sort',{ascending:true})
   ]);
   window._cmData={mods:M.data||[],lessons:L.data||[],res:R.data||[],faqs:F.data||[],prog:cur};
+  try{
+    const QZ=(await sb.from('quizzes').select('*').eq('program_key',cur)).data||[];
+    const qids=QZ.map(q=>q.id);let QQ=[];if(qids.length){QQ=(await sb.from('quiz_questions').select('*').in('quiz_id',qids).order('sort',{ascending:true})).data||[];}
+    const qByMod={};QZ.forEach(q=>{qByMod[q.module_id]=q;});const qqByQuiz={};QQ.forEach(x=>{(qqByQuiz[x.quiz_id]=qqByQuiz[x.quiz_id]||[]).push(x);});
+    window._cmData.quizzes=qByMod;window._cmData.quizQ=qqByQuiz;
+  }catch(e){window._cmData.quizzes={};window._cmData.quizQ={};}
   if(nav.level==='module')cmRenderModuleDetail(host);
   else if(nav.level==='resources'||nav.level==='faq'||nav.level==='videos')cmRenderPanel(host,nav.level);
   else cmRenderHome(host);
@@ -1453,7 +1467,7 @@ function cmRenderHome(host){
   let folders=tops.map(m=>{const lc=lessOf(m.id);const sc=subOf(m.id);return cmFolder('📦',m.title,lc+' lesson'+(lc===1?'':'s')+(sc?(' · '+sc+' sub'):''),"cmOpenModule('"+m.id+"')");}).join('');
   folders+=cmFolder('📄','Resources',D.res.length+' item'+(D.res.length===1?'':'s'),"cmOpenPanel('resources')");
   folders+=cmFolder('❓','Common Questions',D.faqs.length+' item'+(D.faqs.length===1?'':'s'),"cmOpenPanel('faq')");
-  folders+=cmFolder('🎬','Videos','Upload &amp; manage',"cmOpenPanel('videos')");
+  folders+=cmFolder('🎬','Videos','Upload & manage',"cmOpenPanel('videos')");
   host.innerHTML=cmHead()+cmCrumb([{t:'Programs',fn:'cmToPrograms()'},{t:cmProgName(D.prog)}])+cmGrid(folders)+'<div style="display:flex;gap:8px;margin-top:16px;max-width:480px"><input class="field" id="cm_m_title" placeholder="New module name" style="flex:1" onkeydown="if(event.key===\'Enter\')modAdd()"><button class="btn primary" onclick="modAdd()">＋ Add module</button></div>';
 }
 function cmLessonList(mid){
@@ -1475,8 +1489,61 @@ function cmRenderModuleDetail(host){
   h+='<div class="sec-title" style="margin-top:4px"><h2 style="font-size:15px">Submodules</h2></div>';
   h+=(subs.length?cmGrid(subFolders):'<div class="card pad small mut" style="margin-bottom:12px">No submodules.</div>');
   h+='<div style="margin-top:12px"><button class="btn" onclick="modAddSub(\''+m.id+'\')">＋ Add submodule</button></div>';
+  h+=cmQuizEditor(m.id);
   host.innerHTML=h;
 }
+function cmQuizEditor(mid){
+  const D=window._cmData;const qz=(D.quizzes||{})[mid];
+  let h='<div class="sec-title" style="margin-top:18px"><h2 style="font-size:15px">📝 End-of-module quiz</h2></div>';
+  if(!qz){return h+'<div class="card pad"><div class="small mut" style="margin-bottom:8px">No quiz yet for this module.</div><button class="btn primary" onclick="qzCreate(\''+mid+'\')">＋ Add a quiz</button></div>';}
+  const qs=(D.quizQ||{})[qz.id]||[];const qid=qz.id;
+  const gopts=[['none','No gating — knowledge check'],['complete','Must pass to complete module'],['unlock','Must pass to unlock next module']];
+  h+='<div class="card pad">';
+  h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" '+(qz.enabled?'checked':'')+' onchange="qzSet(\''+qid+'\',\'enabled\',this.checked)"> Enabled</label><input class="field" style="flex:1;min-width:160px" value="'+esc(qz.title||'')+'" onchange="qzSet(\''+qid+'\',\'title\',this.value)" placeholder="Quiz title"><label style="font-size:13px;display:flex;align-items:center;gap:6px">Pass %<input class="field" type="number" min="0" max="100" value="'+(qz.pass_pct||70)+'" style="width:80px" onchange="qzSet(\''+qid+'\',\'pass_pct\',parseInt(this.value)||70)"></label><button class="btn" style="color:#b4232a" onclick="qzDelQuiz(\''+qid+'\')">Delete quiz</button></div>';
+  h+='<div style="margin-bottom:12px"><span class="small mut">Behavior: </span><select class="field" style="max-width:280px" onchange="qzSet(\''+qid+'\',\'gating\',this.value)">'+gopts.map(o=>'<option value="'+o[0]+'" '+(qz.gating===o[0]?'selected':'')+'>'+o[1]+'</option>').join('')+'</select></div>';
+  h+=qs.length?qs.map((q,i)=>'<div style="border-top:1px solid var(--line);padding:8px 0"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0"><b style="font-size:13.5px">'+(i+1)+'. '+esc(q.question)+' <span class="pill mut" style="font-size:10px">'+(q.qtype==='tf'?'T/F':'Multiple choice')+'</span></b><div class="small mut" style="margin-top:3px">'+(q.options||[]).map((o,oi)=>(oi===q.correct?'✅ ':'• ')+esc(o)).join('   ')+'</div></div><button class="btn" style="padding:2px 7px" onclick="qzMoveQ(\''+q.id+'\',-1)" '+(i===0?'disabled':'')+'>↑</button><button class="btn" style="padding:2px 7px" onclick="qzMoveQ(\''+q.id+'\',1)" '+(i===qs.length-1?'disabled':'')+'>↓</button><button class="btn" style="padding:2px 7px;color:#b4232a" onclick="qzDelQ(\''+q.id+'\')">✕</button></div></div>').join(''):'<div class="small mut" style="padding:6px 0;border-top:1px solid var(--line)">No questions yet.</div>';
+  h+='<div style="margin-top:12px;padding:12px;border:1px dashed var(--line2);border-radius:10px"><b class="small">Add multiple-choice question</b><input class="field" id="qz_mc_q_'+qid+'" placeholder="Question" style="margin-top:8px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input class="field" id="qz_mc_o0_'+qid+'" placeholder="Option 1"><input class="field" id="qz_mc_o1_'+qid+'" placeholder="Option 2"><input class="field" id="qz_mc_o2_'+qid+'" placeholder="Option 3 (optional)"><input class="field" id="qz_mc_o3_'+qid+'" placeholder="Option 4 (optional)"></div><div style="display:flex;align-items:center;gap:8px;margin-top:8px"><label class="small">Correct: <select class="field" id="qz_mc_c_'+qid+'" style="width:auto"><option value="0">Option 1</option><option value="1">Option 2</option><option value="2">Option 3</option><option value="3">Option 4</option></select></label><button class="btn primary" onclick="qzAddMC(\''+qid+'\')">＋ Add</button></div></div>';
+  h+='<div style="margin-top:10px;padding:12px;border:1px dashed var(--line2);border-radius:10px"><b class="small">Add true/false question</b><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><input class="field" id="qz_tf_q_'+qid+'" placeholder="Statement" style="flex:1;min-width:160px"><select class="field" id="qz_tf_c_'+qid+'" style="width:auto"><option>True</option><option>False</option></select><button class="btn primary" onclick="qzAddTF(\''+qid+'\')">＋ Add</button></div></div>';
+  return h+'</div>';
+}
+async function qzCreate(mid){const r=await sb.from('quizzes').insert({module_id:mid,program_key:window._cmProg,title:'Module quiz'}).select().single();if(r.error){toast('Failed: '+r.error.message);return;}toast('Quiz added');loadContentAdmin();loadContent();}
+async function qzDelQuiz(id){if(!confirm('Delete this quiz and all its questions?'))return;await sb.from('quizzes').delete().eq('id',id);toast('Quiz deleted');loadContentAdmin();loadContent();}
+async function qzSet(id,field,val){const o={};o[field]=val;const r=await sb.from('quizzes').update(o).eq('id',id);if(r.error){toast('Failed: '+r.error.message);return;}toast('Saved');loadContent();}
+async function qzNextSort(qid){const d=(await sb.from('quiz_questions').select('sort').eq('quiz_id',qid).order('sort',{ascending:false}).limit(1)).data;return ((d&&d[0]?d[0].sort:0)+10);}
+async function qzAddMC(qid){const q=(val2('qz_mc_q_'+qid)||'').trim();const opts=[val2('qz_mc_o0_'+qid),val2('qz_mc_o1_'+qid),val2('qz_mc_o2_'+qid),val2('qz_mc_o3_'+qid)].map(x=>(x||'').trim()).filter(Boolean);if(!q||opts.length<2){toast('Enter a question and at least 2 options');return;}let correct=parseInt(val2('qz_mc_c_'+qid)||'0',10)||0;if(correct>opts.length-1)correct=0;const s=await qzNextSort(qid);const r=await sb.from('quiz_questions').insert({quiz_id:qid,qtype:'mc',question:q,options:opts,correct:correct,sort:s});if(r.error){toast('Failed: '+r.error.message);return;}toast('Question added');loadContentAdmin();loadContent();}
+async function qzAddTF(qid){const q=(val2('qz_tf_q_'+qid)||'').trim();if(!q){toast('Enter a statement');return;}const correct=(val2('qz_tf_c_'+qid)==='False')?1:0;const s=await qzNextSort(qid);const r=await sb.from('quiz_questions').insert({quiz_id:qid,qtype:'tf',question:q,options:['True','False'],correct:correct,sort:s});if(r.error){toast('Failed: '+r.error.message);return;}toast('Question added');loadContentAdmin();loadContent();}
+async function qzDelQ(id){await sb.from('quiz_questions').delete().eq('id',id);toast('Removed');loadContentAdmin();loadContent();}
+async function qzMoveQ(id,dir){const cur=(await sb.from('quiz_questions').select('quiz_id').eq('id',id).single()).data;if(!cur)return;const arr=(await sb.from('quiz_questions').select('id,sort').eq('quiz_id',cur.quiz_id).order('sort',{ascending:true})).data||[];const i=arr.findIndex(x=>x.id===id);const j=i+dir;if(i<0||j<0||j>=arr.length)return;await sb.from('quiz_questions').update({sort:arr[j].sort}).eq('id',arr[i].id);await sb.from('quiz_questions').update({sort:arr[i].sort}).eq('id',arr[j].id);loadContentAdmin();loadContent();}
+/* ---- client quiz (end of module) + gating ---- */
+function qzGateBlock(progKey,moduleId){
+  const C=window._content||{};const mods=(C.modules&&C.modules[progKey])||[];
+  const tops=mods.filter(m=>!m.parent_id).slice().sort((a,b)=>a.sort-b.sort);
+  const idx=tops.findIndex(m=>m.id===moduleId);if(idx<=0)return null;
+  for(let k=0;k<idx;k++){const pm=tops[k];const qz=(C.quizzes||{})[pm.id];if(qz&&qz.enabled&&qz.gating==='unlock'){const passed=window._quizPassed&&window._quizPassed[qz.id];const hasQs=((C.quizQ||{})[qz.id]||[]).length>0;if(hasQs&&!passed)return 'Pass the quiz in “'+esc(pm.title)+'” to unlock this module.';}}
+  return null;
+}
+function qzClientHtml(moduleId){
+  const C=window._content||{};const qz=(C.quizzes||{})[moduleId];if(!qz||!qz.enabled)return '';
+  const qs=(C.quizQ||{})[qz.id]||[];if(!qs.length)return '';
+  const passed=window._quizPassed&&window._quizPassed[qz.id];
+  let h='<div class="card pad" style="margin-top:14px;border:1px solid #F4E2B6;background:#FFFCF5"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><b style="font-size:15px">📝 '+esc(qz.title||'Module quiz')+'</b>'+(passed?'<span class="pill green">Passed</span>':'')+'</div><div class="small mut" style="margin-bottom:10px">Pass mark '+(qz.pass_pct||70)+'%'+(qz.gating==='unlock'?' · unlocks the next module':(qz.gating==='complete'?' · completes this module':''))+'</div>';
+  h+=qs.map((q,i)=>'<div style="margin-bottom:12px"><div style="font-weight:600;font-size:13.5px;margin-bottom:6px">'+(i+1)+'. '+esc(q.question)+'</div>'+(q.options||[]).map((o,oi)=>'<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13.5px;cursor:pointer"><input type="radio" name="qzc_'+q.id+'" value="'+oi+'"> '+esc(o)+'</label>').join('')+'</div>').join('');
+  h+='<button class="btn primary" onclick="qzSubmit(\''+qz.id+'\',\''+moduleId+'\')">Submit quiz</button><div id="qzRes_'+qz.id+'" style="margin-top:10px"></div></div>';
+  return h;
+}
+async function qzSubmit(quizId,moduleId){
+  const C=window._content||{};const qz=(C.quizzes||{})[moduleId];const qs=(C.quizQ||{})[quizId]||[];if(!qs.length)return;
+  let correct=0,unanswered=0;const answers={};
+  qs.forEach(q=>{const sel=document.querySelector('input[name="qzc_'+q.id+'"]:checked');if(!sel){unanswered++;return;}const v=parseInt(sel.value,10);answers[q.id]=v;if(v===q.correct)correct++;});
+  if(unanswered){toast('Answer all questions — '+unanswered+' left');return;}
+  const pct=Math.round(correct/qs.length*100);const pass=pct>=((qz&&qz.pass_pct)||70);
+  try{const uid=await myUid();await sb.from('quiz_attempts').insert({user_id:uid,quiz_id:quizId,module_id:moduleId,score_pct:pct,passed:pass,answers:answers});}catch(e){}
+  if(pass){window._quizPassed=window._quizPassed||{};window._quizPassed[quizId]=true;}
+  const res=document.getElementById('qzRes_'+quizId);if(res)res.innerHTML='<div class="card pad" style="background:'+(pass?'#E8F6EE':'#FDECEC')+'"><b>'+(pass?'✅ Passed':'❌ Not yet')+' — '+pct+'%</b><div class="small mut" style="margin-top:4px">'+correct+' of '+qs.length+' correct.'+(pass?'':' Pass mark '+((qz&&qz.pass_pct)||70)+'%. Review and try again.')+'</div></div>';
+  toast(pass?'Quiz passed!':'Score '+pct+'%');
+  if(pass){try{await loadContent();}catch(e){}try{loadJourney();}catch(e){}}
+}
+
 function cmRenderPanel(host,type){
   const D=window._cmData;const crumb=[{t:'Programs',fn:'cmToPrograms()'},{t:cmProgName(D.prog),fn:'cmHome()'},{t:type==='resources'?'Resources':(type==='faq'?'Common Questions':'Videos')}];
   let h=cmHead()+cmCrumb(crumb);
@@ -1562,6 +1629,8 @@ async function loadJourney(){
 function openModule(progKey,moduleId){
   if(window._journeyLocked){toast('Locked — your access is pending approval.');goScreen('journey');return;}
   const mods=window._content.modules[progKey]||[];const m=mods.find(x=>x.id===moduleId);if(!m)return;
+  const gate=qzGateBlock(progKey,moduleId);
+  if(gate){const setT=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};setT('stTag','Module');setT('stName',m.title);const sm2=document.getElementById('sModules');if(sm2)sm2.innerHTML='<div class="card pad" style="border:1px solid #F4E2B6;background:#FFFCF5"><b>🔒 Locked</b><div class="small mut" style="margin-top:6px">'+gate+'</div></div>';const r2=document.getElementById('sRes');if(r2){r2.innerHTML='';r2.style.display='none';}const f2=document.getElementById('sFaq');if(f2){f2.innerHTML='';f2.style.display='none';}if(sm2)sm2.style.display='block';document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.screen==='journey'));show('stage');return;}
   const lessOf=mid=>(window._content.lessonsByModule[mid]||[]).slice().sort((a,b)=>a.sort-b.sort);
   const setTxt=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   setTxt('stTag','Module');setTxt('stName',m.title);setTxt('stSub','');setTxt('stProgTxt','');
@@ -1571,7 +1640,7 @@ function openModule(progKey,moduleId){
   let h='';const less=lessOf(moduleId);
   if(less.length)h+='<div class="card pad">'+less.map(l=>({t:l.title,dur:l.duration||'',pct:0,id:l.id,url:l.video_url,bm:true,prog:progKey})).map(lessrow).join('')+'</div>';
   mods.filter(x=>x.parent_id===moduleId).slice().sort((a,b)=>a.sort-b.sort).forEach(sm=>{h+='<div style="margin:12px 0 6px"><span style="font-weight:700;font-size:13.5px;color:var(--mut2)">↳ '+esc(sm.title)+'</span></div>';const sl=lessOf(sm.id);if(sl.length)h+='<div class="card pad" style="margin-bottom:10px">'+sl.map(l=>({t:l.title,dur:l.duration||'',pct:0,id:l.id,url:l.video_url,bm:true,prog:progKey})).map(lessrow).join('')+'</div>';});
-  document.getElementById('sModules').innerHTML=h||'<div class="card pad small mut">No lessons in this module yet.</div>';
+  document.getElementById('sModules').innerHTML=(h||'<div class="card pad small mut">No lessons in this module yet.</div>')+qzClientHtml(moduleId);
   const C=window._content;const dbR=(C.resources[progKey]||[]);const dbF=(C.faqs[progKey]||[]);
   document.getElementById('sRes').innerHTML=dbR.length?('<div class="grid" style="grid-template-columns:repeat(2,1fr)">'+dbR.map(r=>`<div class="res" style="position:relative${r.url?';cursor:pointer':''}" ${r.url?`data-url="${esc(r.url)}" onclick="openRes(this)"`:''}><div class="ricon">${resIcon(r.kind)}</div><div style="flex:1;min-width:0"><b style="font-size:13.5px">${esc(r.title)}</b><div class="small mut">${esc(r.meta||resKindLabel(r.kind))}</div></div>${bmStarHtml('resource',r.id,r.title,r.url,progKey)}</div>`).join('')+'</div>'):'<div class="card pad small mut">No resources yet.</div>';
   document.getElementById('sFaq').innerHTML=dbF.length?dbF.map(f=>`<div class="faq"><div class="q" onclick="this.parentElement.classList.toggle('open')"><span>${esc(f.question)}</span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="a"><div class="inner">${esc(f.answer)}</div></div></div>`).join(''):'<div class="card pad small mut">No questions yet.</div>';
@@ -2040,8 +2109,37 @@ function tickCountdown(){const target=new Date(liveEvents[0].start).getTime();le
 function deviceInfo(){const ua=navigator.userAgent||'';const mobile=/Mobi|Android|iPhone|iPad/i.test(ua);let b='Browser';if(/Edg/i.test(ua))b='Edge';else if(/Chrome/i.test(ua))b='Chrome';else if(/Firefox/i.test(ua))b='Firefox';else if(/Safari/i.test(ua))b='Safari';return {device:mobile?'mobile':'desktop',browser:b};}
 async function logEvent(kind,label){try{if(!sb)return;const {data:{user}}=await sb.auth.getUser();if(!user)return;const d=deviceInfo();await sb.from('client_events').insert({client_id:user.id,kind:kind,label:label||null,device:d.device,browser:d.browser});}catch(e){}}
 let _lastLogin=0;
-function logLogin(){const now=Date.now();if(now-_lastLogin<60000)return;_lastLogin=now;logEvent('login',null);}
+function logLogin(){const now=Date.now();if(now-_lastLogin<60000)return;_lastLogin=now;logEvent('login',null).then(function(){try{checkFeedback();}catch(e){}});}
 function logView(label){logEvent('view',label);}
+/* ---- client feedback every 5 logins (2 ratings + 1 mandatory comment) ---- */
+async function checkFeedback(){
+  try{
+    if(typeof isStaff==='function'&&isStaff())return;
+    const {data:{user}}=await sb.auth.getUser();if(!user)return;
+    const r=await sb.from('client_events').select('id',{count:'exact',head:true}).eq('client_id',user.id).eq('kind','login');
+    const n=r.count||0;if(n<1||n%5!==0)return;
+    if(window._fbShownFor===n)return;
+    const ex=(await sb.from('client_feedback').select('id').eq('user_id',user.id).eq('login_count',n).limit(1)).data;
+    if(ex&&ex.length)return;
+    window._fbShownFor=n;showFeedbackModal(n);
+  }catch(e){}
+}
+function fbSetRating(which,val){window._fb=window._fb||{};window._fb[which]=val;const wrap=document.getElementById('fb_'+which);if(wrap)Array.prototype.forEach.call(wrap.children,function(b,i){const on=i<val;b.style.background=on?'#F2B33D':'#fff';b.style.color=on?'#0e1726':'var(--mut2)';b.style.borderColor=on?'#F2B33D':'var(--line)';});}
+function showFeedbackModal(n){
+  window._fb={r1:0,r2:0,n:n};
+  let m=document.getElementById('fbModal');if(m)m.remove();
+  m=document.createElement('div');m.id='fbModal';m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10050;display:flex;align-items:center;justify-content:center;padding:20px';
+  const bar=function(which,label){return '<div style="margin-bottom:14px"><div style="font-weight:600;font-size:14px;margin-bottom:8px">'+label+'</div><div id="fb_'+which+'" style="display:flex;gap:8px">'+[1,2,3,4,5].map(function(v){return '<button onclick="fbSetRating(\''+which+'\','+v+')" style="flex:1;padding:10px 0;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--mut2);font-weight:700;cursor:pointer">'+v+'</button>';}).join('')+'</div></div>';};
+  m.innerHTML='<div class="card pad" style="max-width:460px;width:100%;background:#fff;max-height:90vh;overflow:auto"><div class="h-eyebrow" style="color:#9A6B0E">Quick check-in</div><h2 style="font-size:18px;margin-bottom:4px">How’s it going?</h2><p class="small mut" style="margin-bottom:16px">A few quick questions help us improve the program for you — takes 20 seconds.</p>'+bar('r1','1. How would you rate your progress so far? (1–5)')+bar('r2','2. How has your experience been with the program so far? (1–5)')+'<div style="margin-bottom:6px"><div style="font-weight:600;font-size:14px;margin-bottom:4px">3. What feedback do you have?</div><div class="small mut" style="margin-bottom:6px">Improvements, things you like, etc.</div><textarea class="field" id="fb_comment" rows="4" placeholder="Your feedback…"></textarea></div><button class="btn primary" style="width:100%;justify-content:center;margin-top:8px" onclick="fbSubmit()">Submit</button></div>';
+  document.body.appendChild(m);
+}
+async function fbSubmit(){
+  const f=window._fb||{};const ce=document.getElementById('fb_comment');const c=ce?ce.value:'';
+  if(!f.r1||!f.r2){toast('Please rate both questions');return;}
+  if(!c.trim()){toast('Please add your feedback');return;}
+  try{const uid=await myUid();const r=await sb.from('client_feedback').insert({user_id:uid,rating1:f.r1,rating2:f.r2,comment:c.trim(),login_count:f.n});if(r.error){toast('Could not save: '+r.error.message);return;}}catch(e){toast('Could not save');return;}
+  const m=document.getElementById('fbModal');if(m)m.remove();toast('Thanks for the feedback!');
+}
 function fmtDateShort(iso){const d=new Date(iso);if(isNaN(d))return '—';return d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});}
 function fmtAgoShort(iso){if(!iso)return 'Never';const t=new Date(iso).getTime();if(!t)return 'Never';const mn=Math.floor((Date.now()-t)/60000);if(mn<1)return 'Just now';if(mn<60)return mn+'m ago';const h=Math.floor(mn/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
 function val2(id){const el=document.getElementById(id);return el?el.value.trim():'';}
