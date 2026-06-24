@@ -1283,7 +1283,7 @@ function renderDashboard(){
   Array.prototype.forEach.call(sec.children,function(c){if(c.id==='adminHome')return;c.style.display=admin?'none':'';});
   if(admin)loadAdminHome();else loadMyPath();
 }
-function openClientById(id){window._openClientId=id;goScreen('clients');}
+function openClientById(id){try{if(typeof openClient==='function'){openClient(id);return;}}catch(e){}goScreen('clients');}
 async function loadAdminHome(){
   const host=document.getElementById('adminHome');if(!host||!sb)return;
   host.innerHTML='<div class="card pad mut small">Loading client delivery…</div>';
