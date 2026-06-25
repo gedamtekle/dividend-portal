@@ -396,6 +396,8 @@
     <div class="nav admin-only" style="display:none" data-screen="admin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Admin Console <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="bugs" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2l1.88 1.88M16 2l-1.88 1.88M9 7.13V6a3 3 0 1 1 6 0v1.13M12 20a6 6 0 0 0 6-6v-3a6 6 0 0 0-12 0v3a6 6 0 0 0 6 6zM3 13h3M18 13h3M4 6l3 2M20 6l-3 2M3 19l3-1M21 19l-3-1"/></svg>Bug reports <span id="bugsNavBadge" class="pill" style="margin-left:auto;padding:1px 7px;font-size:10px;background:#FDECEC;color:#b4232a;border-color:#FAD9D9;display:none">0</span></div>
     <div class="nav admin-only" style="display:none" data-screen="feedback" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>Feedback &amp; Quizzes <span class="badge-admin" style="margin-left:auto">Admin</span></div>
+    <div class="nav admin-only" style="display:none" data-screen="support" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg>Support <span id="supBadge" style="display:none;margin-left:6px;min-width:8px;height:8px;border-radius:50%;background:#e8462c"></span><span class="badge-admin" style="margin-left:auto">Admin</span></div>
+    <div class="nav admin-only" style="display:none" data-screen="intakeadmin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Intake Review <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="team" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="adminsettings" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V12a1.65 1.65 0 0 0 1.51 1z"/></svg>Settings <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="helpdesk" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>Helpdesk <span class="badge-admin" style="margin-left:auto">Admin</span></div>
@@ -675,6 +677,8 @@
       <section class="screen" id="bugs"><div id="bugsInner"></div></section>
       <section class="screen" id="bookmarks"><div id="bookmarksInner"></div></section>
       <section class="screen" id="reachout"><div id="reachoutInner"></div></section>
+      <section class="screen" id="support"><div id="supportInner"></div></section>
+      <section class="screen" id="intakeadmin"><div id="intakeAdminInner"></div></section>
       <section class="screen" id="feedback"><div id="feedbackInner"></div></section>
       <section class="screen" id="helpdesk"><div id="helpdeskInner"></div></section>
       <section class="screen" id="adminsettings"><div id="adminSettingsInner"></div></section>
@@ -1319,6 +1323,8 @@ async function loadAdminHome(){
     profiles=(await sb.from('profiles').select('id,full_name,email,role,status,program,created_at')).data||[];
     tasks=(await sb.from('client_tasks').select('client_id,done')).data||[];
   }catch(e){host.innerHTML='<div class="card pad">Failed to load: '+esc(String(e))+'</div>';return;}
+  let fbWeek=[];
+  try{ const since=new Date(Date.now()-7*864e5).toISOString(); fbWeek=(await sb.from('client_feedback').select('rating1,rating2,comment,user_id,created_at').gte('created_at',since).order('created_at',{ascending:false})).data||[]; }catch(e){}
   const clients=profiles.filter(p=>p.role!=='admin'&&p.role!=='team');
   const active=clients.filter(p=>p.status==='active');
   const pending=clients.filter(p=>p.status==='pending');
@@ -1331,6 +1337,11 @@ async function loadAdminHome(){
   const statusPill=s=>{const m={active:['#E8F6EE','#1b7f4b','Active'],pending:['#FFF3D9','#9A6B0E','Pending'],suspended:['#FDECEC','#b4232a','Suspended']};const x=m[s]||['#eef','#555',s||'—'];return `<span class="pill" style="background:${x[0]};color:${x[1]};border:0">${x[2]}</span>`;};
   let h=`<div style="background:#0e1726;color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#F2B33D;font-weight:700">Admin Dashboard</div><div style="font-size:22px;font-weight:700">Client Delivery</div></div>`;
   h+=`<div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">${stat(active.length,'Active clients')}${stat(pending.length,'Pending approval',pending.length?'#9A6B0E':'#0e1726')}${stat(new7,'New (7 days)')}${stat(suspended.length,'Suspended',suspended.length?'#b4232a':'#0e1726')}</div>`;
+  const fbNm=id=>{const p=profiles.find(x=>x.id===id);return p?(p.full_name||p.email):'Client';};
+  const fr1=fbWeek.filter(f=>f.rating1).map(f=>f.rating1),fr2=fbWeek.filter(f=>f.rating2).map(f=>f.rating2);
+  const favg=a=>a.length?(Math.round(a.reduce((s,x)=>s+x,0)/a.length*10)/10):'—';
+  const flow=fbWeek.filter(f=>(f.rating1&&f.rating1<=2)||(f.rating2&&f.rating2<=2));
+  h+=`<div class="card" style="margin-bottom:20px"><div class="pad" style="padding-bottom:6px;display:flex;align-items:center;gap:8px"><b style="font-size:15px">🗣️ Client feedback — this week</b>${flow.length?`<span class="pill" style="background:#FDECEC;color:#b4232a;border:0">${flow.length} at-risk</span>`:''}<a onclick="goScreen('feedback')" style="margin-left:auto;color:var(--blue);cursor:pointer;font-size:12px">View all →</a></div><div class="pad" style="padding-top:0"><div class="grid" style="grid-template-columns:repeat(4,1fr)">${stat(fbWeek.length,'Responses (7d)')}${stat(favg(fr1),'Avg progress')}${stat(favg(fr2),'Avg experience')}${stat(flow.length,'At-risk (≤2)',flow.length?'#b4232a':'#0e1726')}</div>${flow.length?('<div style="margin-top:10px">'+flow.slice(0,4).map(f=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><div style="display:flex;gap:8px;align-items:center"><b style="font-size:13px">${esc(fbNm(f.user_id))}</b><span class="small mut">P ${f.rating1||'—'}/5 · E ${f.rating2||'—'}/5</span></div>${f.comment?`<div class="small mut" style="margin-top:3px">${esc(String(f.comment).slice(0,140))}</div>`:''}</div>`).join('')+'</div>'):'<div class="small mut" style="margin-top:8px">No feedback in the last 7 days.</div>'}</div></div>`;
   h+=`<div class="card" style="margin-bottom:20px"><div class="pad" style="padding-bottom:6px;display:flex;align-items:center;gap:8px"><b style="font-size:15px">⏳ Pending approvals &amp; new signups</b>${pending.length?`<span class="pill" style="background:#FFF3D9;color:#9A6B0E;border:0">${pending.length} waiting</span>`:''}</div><div class="pad" style="padding-top:0">`;
   h+=pending.length?pending.map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line);flex-wrap:wrap"><div style="flex:1;min-width:160px"><b style="font-size:13.5px">${esc(p.full_name||p.email)}</b><div class="small mut">${esc(p.email)}${p.program?(' · '+esc(p.program)):''}</div></div><button class="btn primary" style="padding:6px 13px" onclick="approveClient('${p.id}')">Approve</button><button class="btn" style="padding:6px 11px" onclick="suspendClient('${p.id}')">Deny</button></div>`).join(''):'<div class="small mut" style="padding:6px 0">No one waiting — all caught up. 🎉</div>';
   h+=`</div></div>`;
@@ -1571,7 +1582,7 @@ function cmRenderHome(host){
 function cmLessonList(mid){
   const D=window._cmData;const ls=D.lessons.filter(l=>l.module_id===mid).slice().sort((a,b)=>a.sort-b.sort);
   const rows=ls.length?ls.map((it,idx)=>'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)"><span style="flex:1;min-width:0;font-size:13.5px">🎬 '+esc(it.title)+'<span class="small mut">'+(it.duration?(' · '+esc(it.duration)):'')+'</span>'+(it.video_url?'':' <span style="color:#b4232a;font-size:11px">· no video</span>')+'</span><button class="btn" style="padding:2px 7px" onclick="cmMove(\'lessons\',\''+it.id+'\',-1)" '+(idx===0?'disabled':'')+'>↑</button><button class="btn" style="padding:2px 7px" onclick="cmMove(\'lessons\',\''+it.id+'\',1)" '+(idx===ls.length-1?'disabled':'')+'>↓</button><button class="btn" style="padding:2px 7px;color:#b4232a" onclick="cmDel(\'lessons\',\''+it.id+'\')">✕</button></div>').join(''):'<div class="small mut" style="padding:6px 0">No lessons yet.</div>';
-  return rows+'<div style="display:flex;gap:6px;margin-top:10px"><input class="field" id="ql_t_'+mid+'" placeholder="Lesson title" style="flex:2;padding:7px 10px"><input class="field" id="ql_v_'+mid+'" placeholder="Video URL / Bunny embed" style="flex:2;padding:7px 10px"><button class="btn primary" style="padding:6px 12px" onclick="cmQuickAddLesson(\''+mid+'\')">＋ Add</button></div>';
+  return rows+'<div style="display:flex;gap:6px;margin-top:10px"><input class="field" id="ql_t_'+mid+'" placeholder="Lesson title" style="flex:2;padding:7px 10px"><input class="field" id="ql_v_'+mid+'" placeholder="Video URL / Bunny embed" style="flex:2;padding:7px 10px"><button class="btn" style="padding:6px 10px" onclick="cmPickBunny(\'ql_v_'+mid+'\')" title="Pick an uploaded Bunny video">📹</button><button class="btn primary" style="padding:6px 12px" onclick="cmQuickAddLesson(\''+mid+'\')">＋ Add</button></div>';
 }
 function cmRenderModuleDetail(host){
   const D=window._cmData;const m=D.mods.find(x=>x.id===window._cmNav.mod);
@@ -1687,6 +1698,19 @@ async function cmBunnyUpload(input){const f=input.files&&input.files[0];if(!f)re
 function cmUseVideo(){const e=window._cmVidEmbed||'';if(!e){toast('No video yet');return;}try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(e).then(function(){toast('Embed link copied — open a module and paste it into a lesson’s Video field');},function(){prompt('Copy this embed link, then paste into a lesson:',e);});}else{prompt('Copy this embed link, then paste into a lesson:',e);}}catch(x){prompt('Copy this embed link, then paste into a lesson:',e);}}
 async function cmLoadVideos(){const host=document.getElementById('cm_videos_list');if(!host||!sb)return;try{const r=await sb.functions.invoke('bunny-upload',{body:{action:'list'}});const items=(r.data&&r.data.items)||[];if(!items.length){host.innerHTML='No videos yet.';return;}host.innerHTML=items.map(v=>{const ready=v.status===4;const mins=v.seconds?(Math.floor(v.seconds/60)+':'+String(v.seconds%60).padStart(2,'0')):'';return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)"><div style="flex:1;min-width:0"><b style="font-size:13.5px">${esc(v.title||'Untitled')}</b><div class="small mut">${ready?'Ready':'Encoding…'}${mins?(' · '+mins):''}</div></div><button class="btn" style="padding:4px 10px;color:#b4232a;border-color:#FAD9D9" onclick="cmDeleteVideo('${esc(v.id)}',this)" data-title="${esc(v.title||'this video')}">Delete</button></div>`;}).join('');}catch(e){host.innerHTML='Could not load videos.';}}
 function cmDeleteVideo(id,btn){const title=(btn&&btn.getAttribute('data-title'))||'this video';confirmRemoval(title,'Delete video',async function(){const r=await sb.functions.invoke('bunny-upload',{body:{action:'delete',videoId:id}});if(r.error||(r.data&&r.data.error)){toast('Delete failed: '+((r.error&&r.error.message)||r.data.error));return;}toast('Video deleted');cmLoadVideos();},{word:'delete',btnLabel:'Delete video',message:'This permanently deletes <b>'+esc(title)+'</b> from Bunny. Type <b>delete</b> to confirm.'});}
+/* Pick an already-uploaded Bunny video to drop into a lesson's video field */
+async function cmPickBunny(targetId){
+  window._bunnyPickTarget=targetId;
+  let m=document.getElementById('bunnyPickModal');if(m)m.remove();
+  m=document.createElement('div');m.id='bunnyPickModal';m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML='<div class="card pad" style="max-width:520px;width:100%;background:#fff;max-height:84vh;overflow:auto"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:16px">📹 Pick an uploaded video</b><span style="cursor:pointer;font-size:20px" onclick="document.getElementById(\'bunnyPickModal\').remove()">×</span></div><div id="bunnyPickList" class="small mut">Loading uploaded videos…</div></div>';
+  document.body.appendChild(m);
+  const vids=await bunnyVideos();
+  const host=document.getElementById('bunnyPickList');if(!host)return;
+  if(!vids.length){host.innerHTML='No uploaded videos yet. Upload one in Content → Videos.';return;}
+  host.innerHTML=vids.map(v=>`<div onclick="cmPickBunnyChoose('${esc(v.embed)}')" style="display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line);cursor:pointer"><div style="width:74px;height:44px;border-radius:8px;overflow:hidden;background:#0f1830;flex:0 0 74px;position:relative"><img src="${esc(v.thumbnail)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"></div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${esc(v.title||'Untitled')}</div><div class="small mut">${v.ready?'Ready':'Encoding…'} · ${fmtDur(v.seconds)}</div></div><span class="btn" style="padding:4px 10px">Use</span></div>`).join('');
+}
+function cmPickBunnyChoose(embed){const t=window._bunnyPickTarget;const el=t&&document.getElementById(t);if(el){el.value=embed;try{el.dispatchEvent(new Event('input'));}catch(e){}}const m=document.getElementById('bunnyPickModal');if(m)m.remove();toast('Video selected');}
 
 /* ============ Client journey (program-driven) ============ */
 function contentPrograms(){return [{key:'default',name:'Default journey (pending / unassigned)',tier:null}].concat(cmPrograms());}
@@ -2057,7 +2081,7 @@ function goScreen(id){document.querySelectorAll('.nav').forEach(n=>n.classList.t
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');window.scrollTo({top:0,behavior:'smooth'});
   document.querySelectorAll('.botnav button').forEach(b=>b.classList.toggle('on',b.dataset.screen===id));
   const sd=document.querySelector('.side');if(sd)sd.classList.remove('open');const sc=document.getElementById('scrim');if(sc)sc.classList.remove('show');
-  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')renderDashboard();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();if(id==='journey')loadJourney();if(id==='builder')loadIntake('website');if(id==='intake')loadIntake('location');if(id==='bookmarks')loadBookmarks();if(id==='feedback')loadFeedbackAdmin();if(id==='reachout')loadReachout();}
+  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')renderDashboard();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();if(id==='journey')loadJourney();if(id==='builder')loadIntake('website');if(id==='intake')loadIntake('location');if(id==='bookmarks')loadBookmarks();if(id==='feedback')loadFeedbackAdmin();if(id==='reachout')loadReachout();if(id==='support')loadSupportAdmin();if(id==='intakeadmin')loadIntakeAdmin();}
 function toggleSide(){document.querySelector('.side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
 function botGo(b){goScreen(b.dataset.screen);}
 function ensureBanner(){let b=document.getElementById('previewBanner');if(!b){b=document.createElement('div');b.id='previewBanner';b.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0e1726;color:#fff;padding:9px 14px;border-radius:999px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:9999;display:none;align-items:center;gap:12px;font-size:13px';b.innerHTML='👁 Previewing as a client <button onclick="setView(\'admin\')" style="background:#F2B33D;color:#0e1726;border:0;border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer">Exit preview</button>';document.body.appendChild(b);}return b;}
@@ -2267,6 +2291,86 @@ async function loadFeedbackAdmin(){
   if(att.length){h+='<div class="small mut" style="margin-top:12px;font-weight:600">Recent attempts</div>'+att.slice(0,15).map(a=>`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)"><span style="flex:1;font-size:13px">${esc(nameOf(a.user_id))} · ${esc(qzTitle(a.quiz_id))}</span><span class="pill ${a.passed?'green':''}" style="${a.passed?'':'background:#FDECEC;color:#b4232a;border:0'}">${a.score_pct}%${a.passed?' ✓':''}</span></div>`).join('');}
   h+='</div></div>';
   host.innerHTML=h;
+}
+/* ============ Intake Review (admin) ============ */
+async function loadIntakeAdmin(){
+  const host=document.getElementById('intakeAdminInner');if(!host||!sb)return;
+  if(!isStaff()){host.innerHTML='<div class="card pad mut small">Admins and team only.</div>';return;}
+  host.innerHTML='<div class="card pad mut small">Loading…</div>';
+  let subs=[],profs=[];
+  try{
+    subs=(await sb.from('intake_submissions').select('*').in('form_key',['website','location']).order('updated_at',{ascending:false})).data||[];
+    profs=(await sb.from('profiles').select('id,full_name,email')).data||[];
+  }catch(e){host.innerHTML='<div class="card pad">Failed to load: '+esc(String(e))+'</div>';return;}
+  const nameOf=id=>{const p=profs.find(x=>x.id===id);return p?(p.full_name||p.email):'Client';};
+  const labelFor=k=>k==='website'?'Website intake':(k==='location'?'Location intake':k);
+  function dataRows(d){
+    if(!d||typeof d!=='object')return '';
+    return Object.keys(d).filter(k=>k!=='ack').map(k=>{let v=d[k];if(v&&typeof v==='object')v=JSON.stringify(v);return `<div style="display:flex;gap:10px;padding:4px 0;border-top:1px solid var(--line)"><span class="small mut" style="flex:0 0 38%;text-transform:capitalize">${esc(k.replace(/_/g,' '))}</span><span class="small" style="flex:1;white-space:pre-wrap">${esc(String(v==null?'':v))}</span></div>`;}).join('');
+  }
+  let h='<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Intake Review</h1><p class="mut small" style="margin-bottom:16px">Website &amp; Location intake submissions from clients.</p>';
+  if(!subs.length){h+='<div class="card pad mut small">No intake submissions yet.</div>';host.innerHTML=h;return;}
+  h+=subs.map(s=>`<div class="card" style="margin-bottom:14px"><div class="pad" style="padding-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:14.5px">${esc(nameOf(s.client_id))}</b><span class="pill" style="background:#eef;color:#3852a4;border:0">${labelFor(s.form_key)}</span><span class="small mut" style="margin-left:auto">${s.updated_at?new Date(s.updated_at).toLocaleString():''}</span></div><div class="pad" style="padding-top:0">${dataRows(s.data)||'<div class="small mut">No fields.</div>'}</div></div>`).join('');
+  host.innerHTML=h;
+}
+
+/* ============ Admin Support (tickets + team history) ============ */
+const TK_STATUS={open:['#FFF3D9','#9A6B0E','Open'],in_progress:['#E8F0FF','#2F6BFF','In progress'],resolved:['#E8F6EE','#1b7f4b','Resolved']};
+function tkPill(s){const x=TK_STATUS[s]||['#eef','#555',s||'—'];return `<span class="pill" style="background:${x[0]};color:${x[1]};border:0">${x[2]}</span>`;}
+async function loadSupportAdmin(){
+  const host=document.getElementById('supportInner');if(!host||!sb)return;
+  if(!isStaff()){host.innerHTML='<div class="card pad mut small">Admins and team only.</div>';return;}
+  host.innerHTML='<div class="card pad mut small">Loading…</div>';
+  let tk=[],profs=[],act=[];
+  try{
+    tk=(await sb.from('tickets').select('*').order('created_at',{ascending:false})).data||[];
+    profs=(await sb.from('profiles').select('id,full_name,email')).data||[];
+    act=(await sb.from('ticket_activity').select('ticket_id,kind,actor_name,created_at')).data||[];
+  }catch(e){host.innerHTML='<div class="card pad">Failed to load: '+esc(String(e))+'</div>';return;}
+  window._supProfs=profs;
+  const nameOf=id=>{const p=profs.find(x=>x.id===id);return p?(p.full_name||p.email):'Client';};
+  const open=tk.filter(t=>t.status!=='resolved').length;
+  const actBy={};act.forEach(a=>{(actBy[a.ticket_id]=actBy[a.ticket_id]||{v:new Set(),c:0});if(a.kind==='comment')actBy[a.ticket_id].c++;else actBy[a.ticket_id].v.add(a.actor_name||'?');});
+  let h='<div class="h-eyebrow" style="color:#9A6B0E">Operate</div><h1 style="font-size:24px;margin-bottom:4px">Support</h1><p class="mut small" style="margin-bottom:16px">Client requests from the portal. Conversations happen in each client’s Slack channel; track status &amp; team history here.</p>';
+  const stat=(n,l,c)=>`<div class="card pad" style="text-align:center"><div style="font-size:24px;font-weight:800;color:${c||'#0e1726'}">${n}</div><div class="small mut">${l}</div></div>`;
+  h+='<div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px">'+stat(tk.length,'Total requests')+stat(open,'Open',open?'#9A6B0E':'#0e1726')+stat(tk.filter(t=>t.priority&&['High','Urgent'].includes(t.priority)&&t.status!=='resolved').length,'High/Urgent open','#b4232a')+'</div>';
+  if(!tk.length){h+='<div class="card pad mut small">No requests yet.</div>';host.innerHTML=h;return;}
+  h+='<div class="card"><div class="pad" style="padding-top:0">'+tk.map(t=>{const a=actBy[t.id]||{v:new Set(),c:0};const meta=`${[...a.v].length} viewer${[...a.v].length===1?'':'s'} · ${a.c} comment${a.c===1?'':'s'}`;const pr=(t.priority&&['High','Urgent'].includes(t.priority))?`<span class="pill" style="background:#FDECEC;color:#b4232a;border:0">${esc(t.priority)}</span>`:'';return `<div style="padding:11px 0;border-top:1px solid var(--line);cursor:pointer" onclick="openTicketAdmin('${t.id}')"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13.5px">${esc(t.subject||'(no subject)')}</b>${tkPill(t.status)}${pr}<span class="small mut" style="margin-left:auto">${t.created_at?fmtAgoShort(t.created_at):''}</span></div><div class="small mut" style="margin-top:3px">${esc(nameOf(t.client_id))} · ${esc(t.category||'')} · ${meta}</div></div>`;}).join('')+'</div></div>';
+  host.innerHTML=h;
+  const b=document.getElementById('supBadge');if(b)b.style.display=open?'inline-block':'none';
+}
+async function openTicketAdmin(id){
+  const host=document.getElementById('supportInner');if(!host)return;
+  host.innerHTML='<div class="card pad mut small">Loading…</div>';
+  const t=(await sb.from('tickets').select('*').eq('id',id).single()).data;
+  if(!t){host.innerHTML='<div class="card pad">Not found. <a onclick="loadSupportAdmin()" style="color:var(--blue);cursor:pointer">Back</a></div>';return;}
+  // log a view
+  try{const uid=await myUid();await sb.from('ticket_activity').insert({ticket_id:id,actor_id:uid,actor_name:(_me&&(_me.full_name||_me.email))||'Team',kind:'view'});}catch(e){}
+  const profs=window._supProfs||((await sb.from('profiles').select('id,full_name,email')).data||[]);
+  const nameOf=x=>{const p=profs.find(y=>y.id===x);return p?(p.full_name||p.email):'Client';};
+  const act=(await sb.from('ticket_activity').select('*').eq('ticket_id',id).order('created_at',{ascending:true})).data||[];
+  const viewers={};act.filter(a=>a.kind==='view').forEach(a=>{viewers[a.actor_name||'?']=a.created_at;});
+  const comments=act.filter(a=>a.kind==='comment');
+  let h=`<div style="margin-bottom:12px"><a onclick="loadSupportAdmin()" style="color:var(--blue);cursor:pointer;font-size:13px">← All requests</a></div>`;
+  h+=`<div class="card pad" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><b style="font-size:17px">${esc(t.subject||'(no subject)')}</b>${tkPill(t.status)}</div><div class="small mut" style="margin-bottom:10px">${esc(nameOf(t.client_id))} · ${esc(t.category||'')} · ${esc(t.priority||'')} priority · ${t.created_at?new Date(t.created_at).toLocaleString():''}</div><div style="white-space:pre-wrap;font-size:14px">${esc(t.body||'')}</div><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">${t.status!=='resolved'?`<button class="btn primary" onclick="supSetStatus('${id}','resolved')">Mark resolved</button>`:`<button class="btn" onclick="supSetStatus('${id}','open')">Reopen</button>`}${t.status==='open'?`<button class="btn" onclick="supSetStatus('${id}','in_progress')">Mark in progress</button>`:''}<span class="small mut" style="margin-left:auto;align-self:center">Reply to the client in their Slack channel</span></div></div>`;
+  h+=`<div class="card pad" style="margin-bottom:14px"><b style="font-size:14px">Viewed by</b><div style="margin-top:6px">${Object.keys(viewers).length?Object.keys(viewers).map(n=>`<span class="pill" style="background:#f1f5ff;color:#3852a4;border:0;margin:0 6px 6px 0">${esc(n)} · ${fmtAgoShort(viewers[n])}</span>`).join(''):'<span class="small mut">No views logged yet.</span>'}</div></div>`;
+  h+=`<div class="card pad"><b style="font-size:14px">Internal team notes</b><div class="small mut" style="margin-bottom:8px">Visible to your team only — not sent to the client.</div><div id="tkComments">${comments.length?comments.map(c=>`<div style="padding:9px 0;border-top:1px solid var(--line)"><div style="display:flex;gap:8px;align-items:center"><b style="font-size:13px">${esc(c.actor_name||'Team')}</b><span class="small mut" style="margin-left:auto">${c.created_at?fmtAgoShort(c.created_at):''}</span></div><div class="small" style="margin-top:3px;white-space:pre-wrap">${esc(c.body||'')}</div></div>`).join(''):'<div class="small mut">No notes yet.</div>'}</div><div style="display:flex;gap:8px;margin-top:10px"><input class="field" id="tkCommentInput" placeholder="Add an internal note…" style="flex:1" onkeydown="if(event.key==='Enter')supComment('${id}')"><button class="btn primary" onclick="supComment('${id}')">Post</button></div></div>`;
+  host.innerHTML=h;
+}
+async function supComment(id){
+  const inp=document.getElementById('tkCommentInput');const body=(inp&&inp.value||'').trim();if(!body)return;
+  const uid=await myUid();
+  const r=await sb.from('ticket_activity').insert({ticket_id:id,actor_id:uid,actor_name:(_me&&(_me.full_name||_me.email))||'Team',kind:'comment',body});
+  if(r.error){toast('Could not post: '+r.error.message);return;}
+  openTicketAdmin(id);
+}
+async function supSetStatus(id,status){
+  const r=await sb.from('tickets').update({status,updated_at:new Date().toISOString()}).eq('id',id);
+  if(r.error){toast('Could not update: '+r.error.message);return;}
+  toast('Status: '+status.replace('_',' '));openTicketAdmin(id);
+}
+async function supBadgeCheck(){
+  try{ if(!isStaff())return; const d=(await sb.from('tickets').select('id',{count:'exact',head:true}).neq('status','resolved')); const b=document.getElementById('supBadge'); if(b)b.style.display=(d&&d.count)?'inline-block':'none'; }catch(e){}
 }
 function fmtDateShort(iso){const d=new Date(iso);if(isNaN(d))return '—';return d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});}
 function fmtAgoShort(iso){if(!iso)return 'Never';const t=new Date(iso).getTime();if(!t)return 'Never';const mn=Math.floor((Date.now()-t)/60000);if(mn<1)return 'Just now';if(mn<60)return mn+'m ago';const h=Math.floor(mn/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
@@ -2583,7 +2687,7 @@ async function gateAndEnter(){
   document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin?'':'none';});
   enterApp();
   try{ logLogin(); }catch(e){}
-  try{ if(!isAdmin) roBadgeCheck(); }catch(e){}
+  try{ if(!isAdmin) roBadgeCheck(); else supBadgeCheck(); }catch(e){}
   try{ ensureUserMenu(); }catch(e){}
   try{ await loadContent(); }catch(e){}
   try{ refreshBugBadge(); }catch(e){}
