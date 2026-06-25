@@ -396,7 +396,6 @@
     <div class="nav admin-only" style="display:none" data-screen="admin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Admin Console <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="bugs" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2l1.88 1.88M16 2l-1.88 1.88M9 7.13V6a3 3 0 1 1 6 0v1.13M12 20a6 6 0 0 0 6-6v-3a6 6 0 0 0-12 0v3a6 6 0 0 0 6 6zM3 13h3M18 13h3M4 6l3 2M20 6l-3 2M3 19l3-1M21 19l-3-1"/></svg>Bug reports <span id="bugsNavBadge" class="pill" style="margin-left:auto;padding:1px 7px;font-size:10px;background:#FDECEC;color:#b4232a;border-color:#FAD9D9;display:none">0</span></div>
     <div class="nav admin-only" style="display:none" data-screen="feedback" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>Feedback &amp; Quizzes <span class="badge-admin" style="margin-left:auto">Admin</span></div>
-    <div class="nav admin-only" style="display:none" data-screen="support" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg>Support <span id="supBadge" style="display:none;margin-left:6px;min-width:8px;height:8px;border-radius:50%;background:#e8462c"></span><span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="intakeadmin" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Intake Review <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="team" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="adminsettings" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V12a1.65 1.65 0 0 0 1.51 1z"/></svg>Settings <span class="badge-admin" style="margin-left:auto">Admin</span></div>
@@ -677,7 +676,6 @@
       <section class="screen" id="bugs"><div id="bugsInner"></div></section>
       <section class="screen" id="bookmarks"><div id="bookmarksInner"></div></section>
       <section class="screen" id="reachout"><div id="reachoutInner"></div></section>
-      <section class="screen" id="support"><div id="supportInner"></div></section>
       <section class="screen" id="intakeadmin"><div id="intakeAdminInner"></div></section>
       <section class="screen" id="feedback"><div id="feedbackInner"></div></section>
       <section class="screen" id="helpdesk"><div id="helpdeskInner"></div></section>
@@ -2042,13 +2040,23 @@ function openSmsModal(phone){
   let m=document.getElementById('smsModal');if(m)m.remove();
   m=document.createElement('div');m.id='smsModal';m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
   const opts=(phone?`<option value="${esc(phone)}">${esc(phone)} (on file)</option>`:'')+`<option value="__new">+ New number</option>`;
-  m.innerHTML=`<div class="card pad" style="max-width:430px;width:100%;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:16px">Send SMS</b><span style="cursor:pointer;font-size:20px;line-height:1" onclick="document.getElementById('smsModal').remove()">×</span></div>
+  m.innerHTML=`<div class="card pad" style="max-width:440px;width:100%;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:16px">💬 Messages</b><span style="cursor:pointer;font-size:20px;line-height:1" onclick="document.getElementById('smsModal').remove()">×</span></div>
+    <div id="smsLog" style="max-height:250px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px;background:#fafbfc"><div class="small mut">Loading…</div></div>
     <label class="small mut">Recipient</label>
     <select class="field" id="smsPick" onchange="document.getElementById('smsNewWrap').style.display=this.value==='__new'?'block':'none'">${opts}</select>
     <div id="smsNewWrap" style="display:${phone?'none':'block'};margin-top:10px"><label class="small mut">Number</label><div style="display:flex;gap:8px"><input class="field" id="smsCc" value="+1" readonly style="width:64px;text-align:center;background:#f4f6fb" title="Other country codes require owner approval"><input class="field" id="smsNum" placeholder="555 123 4567" style="flex:1"></div><div class="small mut" style="margin-top:4px">Only +1 is enabled — other country codes require owner approval.</div></div>
     <label class="small mut" style="margin-top:10px;display:block">Message</label><textarea class="field" id="smsBody" rows="3" placeholder="Your message"></textarea>
-    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn primary" onclick="sendSmsModal()">Send</button><button class="btn" onclick="document.getElementById('smsModal').remove()">Cancel</button></div></div>`;
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn primary" onclick="sendSmsModal()">Send</button><button class="btn" onclick="document.getElementById('smsModal').remove()">Close</button></div></div>`;
   document.body.appendChild(m);
+  try{loadSmsThread(phone);}catch(e){}
+}
+async function loadSmsThread(phone){
+  const host=document.getElementById('smsLog'); if(!host)return;
+  if(!phone){host.innerHTML='<div class="small mut">No number on file — pick “+ New number” to start a thread.</div>';return;}
+  let rows=[]; try{ rows=(await sb.from('sms_log').select('*').eq('counterparty',phone).order('created_at',{ascending:true})).data||[]; }catch(e){}
+  if(!rows.length){host.innerHTML='<div class="small mut">No messages logged yet with '+esc(phone)+'.</div>';return;}
+  host.innerHTML=rows.map(r=>{const out=r.direction==='out';return `<div style="display:flex;justify-content:${out?'flex-end':'flex-start'};margin-bottom:6px"><div style="max-width:80%;padding:7px 11px;border-radius:12px;font-size:13px;${out?'background:#2F6BFF;color:#fff':'background:#eef1f6;color:#0e1726'}"><div style="white-space:pre-wrap">${esc(r.body||'')}</div><div style="font-size:10px;opacity:.75;margin-top:2px">${out?'Dividend Shift':'Client'} · ${r.created_at?fmtAgoShort(r.created_at):''}</div></div></div>`;}).join('');
+  host.scrollTop=host.scrollHeight;
 }
 function sendSmsModal(){
   const pick=document.getElementById('smsPick').value;
@@ -2057,8 +2065,9 @@ function sendSmsModal(){
   else{const cc=(document.getElementById('smsCc')||{value:'+1'}).value||'+1';if(cc.replace(/\s/g,'')!=='+1'){toast('Only +1 numbers allowed without owner approval');return;}let num=((document.getElementById('smsNum')||{}).value||'').replace(/[^0-9]/g,'');if(num.length<10){toast('Enter a valid 10-digit number');return;}to='+1'+num.slice(-10);}
   const body=((document.getElementById('smsBody')||{}).value||'').trim();
   if(!body){toast('Enter a message');return;}
-  const mm=document.getElementById('smsModal');if(mm)mm.remove();
+  const ta=document.getElementById('smsBody'); if(ta)ta.value='';
   if(typeof sendSms==='function'){sendSms(to,body);toast('Sending SMS…');}else{toast('SMS goes live once Twilio is approved');}
+  setTimeout(function(){try{loadSmsThread(to);}catch(e){}},1800);
 }
 
 /* ============ top-right user menu ============ */
@@ -2081,7 +2090,7 @@ function goScreen(id){document.querySelectorAll('.nav').forEach(n=>n.classList.t
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');window.scrollTo({top:0,behavior:'smooth'});
   document.querySelectorAll('.botnav button').forEach(b=>b.classList.toggle('on',b.dataset.screen===id));
   const sd=document.querySelector('.side');if(sd)sd.classList.remove('open');const sc=document.getElementById('scrim');if(sc)sc.classList.remove('show');
-  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')renderDashboard();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();if(id==='journey')loadJourney();if(id==='builder')loadIntake('website');if(id==='intake')loadIntake('location');if(id==='bookmarks')loadBookmarks();if(id==='feedback')loadFeedbackAdmin();if(id==='reachout')loadReachout();if(id==='support')loadSupportAdmin();if(id==='intakeadmin')loadIntakeAdmin();}
+  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')renderDashboard();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();if(id==='journey')loadJourney();if(id==='builder')loadIntake('website');if(id==='intake')loadIntake('location');if(id==='bookmarks')loadBookmarks();if(id==='feedback')loadFeedbackAdmin();if(id==='reachout')loadReachout();if(id==='intakeadmin')loadIntakeAdmin();}
 function toggleSide(){document.querySelector('.side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
 function botGo(b){goScreen(b.dataset.screen);}
 function ensureBanner(){let b=document.getElementById('previewBanner');if(!b){b=document.createElement('div');b.id='previewBanner';b.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0e1726;color:#fff;padding:9px 14px;border-radius:999px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:9999;display:none;align-items:center;gap:12px;font-size:13px';b.innerHTML='👁 Previewing as a client <button onclick="setView(\'admin\')" style="background:#F2B33D;color:#0e1726;border:0;border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer">Exit preview</button>';document.body.appendChild(b);}return b;}
@@ -2687,7 +2696,7 @@ async function gateAndEnter(){
   document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin?'':'none';});
   enterApp();
   try{ logLogin(); }catch(e){}
-  try{ if(!isAdmin) roBadgeCheck(); else supBadgeCheck(); }catch(e){}
+  try{ if(!isAdmin) roBadgeCheck(); }catch(e){}
   try{ ensureUserMenu(); }catch(e){}
   try{ await loadContent(); }catch(e){}
   try{ refreshBugBadge(); }catch(e){}
