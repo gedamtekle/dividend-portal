@@ -253,7 +253,10 @@
       <label class="small mut" style="font-weight:600">Create a password</label>
       <input id="suPass" class="field" type="password" style="margin:6px 0 12px" placeholder="At least 8 characters">
       <label class="small mut" style="font-weight:600">Mobile number <span style="font-weight:400">(for sign-in codes &amp; reminders)</span></label>
-      <input id="suPhone" class="field" type="tel" style="margin:6px 0 12px" placeholder="(555) 123-4567">
+      <div style="display:flex;gap:8px;margin:6px 0 12px">
+        <div style="flex:none;display:flex;align-items:center;gap:5px;padding:0 13px;border:1px solid var(--line2);border-radius:10px;background:#f3f5f8;font-weight:600;color:var(--mut)">🇺🇸 +1</div>
+        <input id="suPhone" class="field" type="tel" inputmode="numeric" maxlength="14" style="flex:1;margin:0" placeholder="(555) 123-4567" oninput="formatUSPhone(this)">
+      </div>
       <label style="display:flex;gap:8px;align-items:flex-start;margin:2px 0 16px;cursor:pointer">
         <input id="suSms" type="checkbox" style="margin-top:3px;flex:none">
         <span class="small mut" style="line-height:1.45">I agree to receive account and reminder text messages (including one-time sign-in codes) from Dividend Shift at the number above. Msg &amp; data rates may apply; message frequency varies. Reply STOP to opt out, HELP for help. See our <a href="https://dividendshift.com/privacy-policy" target="_blank" style="color:var(--blue)">Privacy Policy</a> &amp; <a href="https://dividendshift.com/terms-of-service" target="_blank" style="color:var(--blue)">Terms</a>.</span>
@@ -2550,7 +2553,10 @@ async function finishSignup(){
   if(!sb)return authMsg('Auth is still loading.');
   if(!window._avatarData)return authMsg('Please add a profile photo to continue.');
   const email=val('suEmail'),pass=val('suPass'),first=val('suFirst'),last=val('suLast');
-  const phone=val('suPhone');const smsConsent=!!(document.getElementById('suSms')&&document.getElementById('suSms').checked);
+  const smsConsent=!!(document.getElementById('suSms')&&document.getElementById('suSms').checked);
+  const phoneDigits=usDigits(val('suPhone'));
+  if((phoneDigits||smsConsent)&&phoneDigits.length!==10)return authMsg('Enter a valid 10-digit US mobile number.');
+  const phone=phoneDigits?('+1'+phoneDigits):'';
   busy('finishBtn',true);
   const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin,data:{first_name:first,last_name:last,full_name:(first+' '+last).trim(),avatar_url:window._avatarData,phone:phone,sms_consent:smsConsent,sms_consent_at:smsConsent?new Date().toISOString():null}}});
   busy('finishBtn',false);
@@ -2569,6 +2575,8 @@ async function doMagic(){
   authMsg('Login link sent — check your email.',true);
 }
 /* ---- Phone (SMS) sign-in: dormant until the Supabase Phone provider is enabled ---- */
+function formatUSPhone(el){let d=(el.value||'').replace(/\D/g,'');if(d.length&&d[0]==='1')d=d.slice(1);if(d.length>10)d=d.slice(0,10);let out='';if(d.length>6)out='('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6);else if(d.length>3)out='('+d.slice(0,3)+') '+d.slice(3);else if(d.length>0)out='('+d;el.value=out;}
+function usDigits(raw){let d=(raw||'').replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);return d;}
 function normalizePhone(raw){
   let p=(raw||'').trim().replace(/[^\d+]/g,'');
   if(!p)return '';
