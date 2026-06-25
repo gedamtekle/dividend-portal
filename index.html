@@ -252,7 +252,7 @@
       <input id="suEmail" class="field" style="margin:6px 0 12px" placeholder="you@email.com" type="email">
       <label class="small mut" style="font-weight:600">Create a password</label>
       <input id="suPass" class="field" type="password" style="margin:6px 0 12px" placeholder="At least 8 characters">
-      <label class="small mut" style="font-weight:600">Mobile number <span style="font-weight:400">(for sign-in codes &amp; reminders)</span></label>
+      <label class="small mut" style="font-weight:600">Mobile number <span style="font-weight:400">(required — we'll text a code to verify)</span></label>
       <div style="display:flex;gap:8px;margin:6px 0 12px">
         <div style="flex:none;display:flex;align-items:center;gap:5px;padding:0 13px;border:1px solid var(--line2);border-radius:10px;background:#f3f5f8;font-weight:600;color:var(--mut)">🇺🇸 +1</div>
         <input id="suPhone" class="field" type="tel" inputmode="numeric" maxlength="14" style="flex:1;margin:0" placeholder="(555) 123-4567" oninput="formatUSPhone(this)">
@@ -329,6 +329,26 @@
         <button class="btn" style="width:100%;justify-content:center" onclick="signOut()">Sign out</button>
         <p class="small mut" style="margin-top:12px">Questions? <a href="mailto:support@dividendshift.com" style="color:var(--blue);font-weight:600">support@dividendshift.com</a></p>
       </div>
+    </div>
+
+    <div class="authpanel" id="apVerifyPhone" style="display:none">
+      <h2 style="font-size:18px;margin-bottom:4px">Verify your mobile number</h2>
+      <p class="small mut" style="margin-bottom:14px">We text your sign-in codes, reminders, and password resets here. Confirm your number to continue.</p>
+      <div id="vpStep1">
+        <label class="small mut" style="font-weight:600">Mobile number</label>
+        <div style="display:flex;gap:8px;margin:6px 0 14px">
+          <div style="flex:none;display:flex;align-items:center;gap:5px;padding:0 13px;border:1px solid var(--line2);border-radius:10px;background:#f3f5f8;font-weight:600;color:var(--mut)">🇺🇸 +1</div>
+          <input id="vpNumber" class="field" type="tel" inputmode="numeric" maxlength="14" style="flex:1;margin:0" placeholder="(555) 123-4567" oninput="formatUSPhone(this)" onkeydown="if(event.key==='Enter')vpSend()">
+        </div>
+        <button class="btn primary" id="vpSendBtn" style="width:100%;justify-content:center" onclick="vpSend()">Text me a code</button>
+      </div>
+      <div id="vpStep2" style="display:none">
+        <label class="small mut" style="font-weight:600">Enter the 6-digit code</label>
+        <input id="vpCode" class="field" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="margin:6px 0 14px;letter-spacing:4px;font-size:18px" onkeydown="if(event.key==='Enter')vpVerify()">
+        <button class="btn primary" id="vpVerifyBtn" style="width:100%;justify-content:center" onclick="vpVerify()">Verify &amp; continue</button>
+        <div class="small mut" style="text-align:center;margin-top:10px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="vpRestart()">← Use a different number</a></div>
+      </div>
+      <div class="small mut" style="text-align:center;margin-top:14px"><a style="color:var(--blue);font-weight:600;cursor:pointer" onclick="signOut()">Sign out</a></div>
     </div>
 
     <div class="authpanel" id="apNewpw" style="display:none">
@@ -2464,8 +2484,9 @@ async function gateAndEnter(){
   let me=null;
   try{
     const {data:{user}}=await sb.auth.getUser();
+    window._authUser=user||null;
     if(user){
-      const {data}=await sb.from('profiles').select('role,status,email,full_name,avatar_url,program').eq('id',user.id).single();
+      const {data}=await sb.from('profiles').select('role,status,email,full_name,avatar_url,program,phone').eq('id',user.id).single();
       me=data||{role:'client',status:'active',email:(user.email||'')};
       if(!me.email)me.email=user.email||'';
     }
@@ -2482,6 +2503,10 @@ async function gateAndEnter(){
   }
   const isPending=(status!=='active');
   const isAdmin=(!isPending)&&(_me.role==='admin'||_me.role==='team');
+  if(!isAdmin){
+    const u=window._authUser;
+    if(!(u&&u.phone&&u.phone_confirmed_at)){ showPhoneGate(); return; }
+  }
   document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin?'':'none';});
   enterApp();
   try{ logLogin(); }catch(e){}
@@ -2562,8 +2587,8 @@ async function finishSignup(){
   const email=val('suEmail'),pass=val('suPass'),first=val('suFirst'),last=val('suLast');
   const smsConsent=!!(document.getElementById('suSms')&&document.getElementById('suSms').checked);
   const phoneDigits=usDigits(val('suPhone'));
-  if((phoneDigits||smsConsent)&&phoneDigits.length!==10)return authMsg('Enter a valid 10-digit US mobile number.');
-  const phone=phoneDigits?('+1'+phoneDigits):'';
+  if(phoneDigits.length!==10)return authMsg('Enter your 10-digit US mobile number — we text a code to verify it next.');
+  const phone='+1'+phoneDigits;
   busy('finishBtn',true);
   const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin,data:{first_name:first,last_name:last,full_name:(first+' '+last).trim(),avatar_url:window._avatarData,phone:phone,sms_consent:smsConsent,sms_consent_at:smsConsent?new Date().toISOString():null}}});
   busy('finishBtn',false);
@@ -2621,6 +2646,49 @@ async function doPhoneVerify(){
   busy('phVerifyBtn',false);
   if(error)return authMsg(error.message);
   await routeAfterLogin();
+}
+/* ---- Mandatory phone verification (clients) ---- */
+function showPhoneGate(){
+  const s1=document.getElementById('vpStep1'),s2=document.getElementById('vpStep2');
+  if(s1)s1.style.display=''; if(s2)s2.style.display='none';
+  const c=document.getElementById('vpCode'); if(c)c.value='';
+  const n=document.getElementById('vpNumber');
+  if(n&&!n.value){ const pre=usDigits((_me&&_me.phone)||((window._authUser&&window._authUser.phone)||'')); if(pre.length===10){n.value='('+pre.slice(0,3)+') '+pre.slice(3,6)+'-'+pre.slice(6);} }
+  document.getElementById('authScreen').classList.remove('hide');
+  showPanel('apVerifyPhone');
+}
+async function vpSend(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const digits=usDigits(val('vpNumber'));
+  if(digits.length!==10)return authMsg('Enter a valid 10-digit US mobile number.');
+  const phone='+1'+digits;
+  busy('vpSendBtn',true);
+  const {error}=await sb.auth.updateUser({phone});
+  busy('vpSendBtn',false);
+  if(error)return authMsg(error.message);
+  window._vpPhone=phone;
+  document.getElementById('vpStep1').style.display='none';
+  document.getElementById('vpStep2').style.display='';
+  setTimeout(function(){const c=document.getElementById('vpCode');if(c)c.focus();},50);
+  authMsg('Code sent — check your texts.',true);
+}
+async function vpVerify(){
+  if(!sb)return authMsg('Auth is still loading.');
+  const code=val('vpCode').trim();
+  if(code.length<4)return authMsg('Enter the code from your text message.');
+  busy('vpVerifyBtn',true);
+  const {error}=await sb.auth.verifyOtp({phone:window._vpPhone,token:code,type:'phone_change'});
+  if(error){busy('vpVerifyBtn',false);return authMsg(error.message);}
+  try{const {data:{user}}=await sb.auth.getUser(); if(user){await sb.from('profiles').update({phone:window._vpPhone,phone_verified:true}).eq('id',user.id);}}catch(e){}
+  busy('vpVerifyBtn',false);
+  authMsg('Number verified ✓',true);
+  await gateAndEnter();
+}
+function vpRestart(){
+  const s1=document.getElementById('vpStep1'),s2=document.getElementById('vpStep2');
+  if(s2)s2.style.display='none'; if(s1)s1.style.display='';
+  const c=document.getElementById('vpCode'); if(c)c.value='';
+  const n=document.getElementById('vpNumber'); if(n)n.focus();
 }
 async function doReset(){
   if(!sb)return authMsg('Auth is still loading.');
