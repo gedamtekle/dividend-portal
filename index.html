@@ -389,6 +389,7 @@
     <div class="nav cli-nav" data-screen="builder" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></svg>Website Intake</div>
     <div class="nav cli-nav" data-screen="intake" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Location Intake</div>
     <div class="nav cli-nav" data-screen="bookmarks" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Bookmarks</div>
+    <div class="nav cli-nav" data-screen="reachout" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4.2A8.4 8.4 0 1 1 21 11.5z"/></svg>Reach Out <span id="roBadge" style="margin-left:auto;display:none;min-width:8px;height:8px;border-radius:50%;background:#e8462c"></span></div>
     <div class="navlbl admin-only" style="display:none">Operate</div>
     <div class="nav admin-only" style="display:none" data-screen="clients" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clients <span class="badge-admin" style="margin-left:auto">Admin</span></div>
     <div class="nav admin-only" style="display:none" data-screen="content" onclick="go(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Content <span class="badge-admin" style="margin-left:auto">Admin</span></div>
@@ -673,6 +674,7 @@
       <section class="screen" id="content"><div id="contentInner"></div></section>
       <section class="screen" id="bugs"><div id="bugsInner"></div></section>
       <section class="screen" id="bookmarks"><div id="bookmarksInner"></div></section>
+      <section class="screen" id="reachout"><div id="reachoutInner"></div></section>
       <section class="screen" id="feedback"><div id="feedbackInner"></div></section>
       <section class="screen" id="helpdesk"><div id="helpdeskInner"></div></section>
       <section class="screen" id="adminsettings"><div id="adminSettingsInner"></div></section>
@@ -1385,6 +1387,77 @@ async function toggleBookmark(kind,refId,title,url,prog,el){if(!sb){toast('Sign 
 function bmIcon(kind){if(kind==='lesson')return '🎬';if(kind==='resource')return '📄';if(kind==='module')return '📁';return '🔗';}
 function openBookmark(id){const b=(window._bookmarks||[]).find(x=>String(x.id)===String(id));if(!b)return;if(b.url){window.open(b.url,'_blank','noopener');return;}goScreen('journey');}
 async function removeBookmark(id){if(!sb)return;const r=await sb.from('bookmarks').delete().eq('id',id);if(r.error){toast('Could not remove');return;}window._bookmarks=(window._bookmarks||[]).filter(b=>String(b.id)!==String(id));toast('Removed bookmark');loadBookmarks();}
+
+/* ============ Client Reach-Out (Slack-bridged tickets) ============ */
+const RO_CATS=['Billing','Technical','Coaching','Scheduling','Other'];
+const RO_PRIOS=['Low','Normal','High','Urgent'];
+async function loadReachout(){
+  const box=document.getElementById('reachoutInner'); if(!box)return;
+  box.innerHTML='<div class="small mut" style="padding:20px">Loading…</div>';
+  let tickets=[];
+  try{ tickets=(await sb.from('tickets').select('*').order('created_at',{ascending:false})).data||[]; }catch(e){}
+  const catOpts=RO_CATS.map(c=>`<option>${c}</option>`).join('');
+  const prioOpts=RO_PRIOS.map(p=>`<option${p==='Normal'?' selected':''}>${p}</option>`).join('');
+  const list=tickets.length?tickets.map(roRow).join(''):'<div class="small mut">No requests yet. Send your first one above — it goes straight to your team.</div>';
+  box.innerHTML=`
+    <div class="card pad" style="margin-bottom:14px">
+      <div style="font-size:18px;font-weight:700;margin-bottom:2px">Reach out to your team</div>
+      <div class="small mut" style="margin-bottom:14px">Send a request and we'll reply in your Slack channel. A dot appears here when there's a new reply.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="flex:1;min-width:140px"><label class="small mut">Category</label><select class="field" id="ro_cat">${catOpts}</select></div>
+        <div style="flex:1;min-width:140px"><label class="small mut">Priority</label><select class="field" id="ro_prio">${prioOpts}</select></div>
+      </div>
+      <label class="small mut">Subject</label><input class="field" id="ro_subj" placeholder="Short summary" style="margin-bottom:10px">
+      <label class="small mut">Message</label><textarea class="field" id="ro_body" rows="4" placeholder="What do you need help with?" style="margin-bottom:12px;resize:vertical"></textarea>
+      <button class="btn primary" id="ro_btn" onclick="roSubmit()">Send request</button>
+    </div>
+    <div class="card pad">
+      <div style="font-weight:700;margin-bottom:10px">Your requests</div>
+      ${list}
+    </div>`;
+  try{ sb.functions.invoke('ticket-relay',{body:{action:'seen'}}); }catch(e){}
+  const b=document.getElementById('roBadge'); if(b)b.style.display='none';
+}
+function roRow(t){
+  const st=(t.status||'open');
+  const stColor=st==='resolved'?'#1f9d57':'#c47d12', stBg=st==='resolved'?'#e7f7ee':'#fdf3e0';
+  const resolve=st==='resolved'?'':`<a style="color:var(--blue);font-weight:600;cursor:pointer;font-size:12px" onclick="roResolve('${t.id}')">Mark resolved</a>`;
+  return `<div style="border:1px solid var(--line2);border-radius:12px;padding:12px;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <b style="font-size:14px">${esc(t.subject||'(no subject)')}</b>
+      <span style="font-size:11px;font-weight:700;color:${stColor};background:${stBg};padding:2px 9px;border-radius:999px;text-transform:capitalize">${esc(st)}</span>
+    </div>
+    <div class="small mut" style="margin:3px 0 6px">${esc(t.category||'')} · ${esc(t.priority||'')} priority · ${fmtAgoShort(t.created_at)}</div>
+    <div style="font-size:13px;white-space:pre-wrap;margin-bottom:6px">${esc(t.body||'')}</div>
+    ${resolve}
+  </div>`;
+}
+async function roSubmit(){
+  const subject=val2('ro_subj'), body=val2('ro_body');
+  const category=val2('ro_cat')||'Other', priority=val2('ro_prio')||'Normal';
+  if(!subject||!body){toast('Add a subject and message');return;}
+  const btn=document.getElementById('ro_btn'); if(btn){btn.disabled=true;btn.textContent='Sending…';}
+  try{
+    const {data,error}=await sb.functions.invoke('ticket-relay',{body:{action:'submit',category,priority,subject,body}});
+    if(error){let m=error.message||'failed';try{const j=await error.context.json();if(j&&j.error)m=j.error;}catch(e){}throw new Error(m);}
+    if(data&&data.error)throw new Error(data.error);
+    toast(data&&data.posted?'Sent to your team ✓':(data&&data.channel_linked===false?'Saved — team will link your channel':'Request saved ✓'));
+    loadReachout();
+  }catch(e){toast('Failed: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Send request';}}
+}
+async function roResolve(id){
+  const r=await sb.from('tickets').update({status:'resolved',updated_at:new Date().toISOString()}).eq('id',id);
+  if(r.error){toast('Could not update');return;}
+  toast('Marked resolved'); loadReachout();
+}
+async function roBadgeCheck(){
+  try{
+    if(isStaff()&&!window._impersonate)return;
+    const {data}=await sb.functions.invoke('ticket-relay',{body:{action:'unread'}});
+    const b=document.getElementById('roBadge'); if(b)b.style.display=(data&&data.unread)?'inline-block':'none';
+  }catch(e){}
+}
 async function loadBookmarks(){const host=document.getElementById('bookmarksInner');if(!host)return;host.innerHTML='<div class="card pad mut small">Loading…</div>';await loadBookmarksData();const list=window._bookmarks||[];let h='<div class="h-eyebrow">Your space</div><h1 style="font-size:25px;margin-bottom:6px">Bookmarks</h1><p class="mut" style="margin-bottom:18px">Lessons, resources, and links you saved. Tap the ☆ anywhere in the program to add or remove.</p>';if(!list.length){h+='<div class="card pad mut small">No bookmarks yet. Open a module and tap the star on any lesson or resource to save it here.</div>';host.innerHTML=h;return;}h+='<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">'+list.map(b=>`<div class="card pad" style="display:flex;gap:11px;align-items:flex-start"><div style="font-size:20px">${bmIcon(b.kind)}</div><div style="flex:1;min-width:0"><b style="font-size:14px;display:block">${esc(b.title)}</b><div class="small mut" style="text-transform:capitalize">${esc(b.kind)}${b.url?' · opens link':''}</div><div style="margin-top:8px;display:flex;gap:8px"><button class="btn" style="padding:5px 11px" onclick="openBookmark('${esc(b.id)}')">Open</button><button class="btn" style="padding:5px 11px;color:#b4232a;border:0;background:none" onclick="removeBookmark('${esc(b.id)}')">Remove</button></div></div></div>`).join('')+'</div>';host.innerHTML=h;}
 window._content={lessons:{},resources:{},faqs:{},modules:{},lessonsByModule:{}};
 window._programs=window._programs||[];
@@ -1984,7 +2057,7 @@ function goScreen(id){document.querySelectorAll('.nav').forEach(n=>n.classList.t
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');window.scrollTo({top:0,behavior:'smooth'});
   document.querySelectorAll('.botnav button').forEach(b=>b.classList.toggle('on',b.dataset.screen===id));
   const sd=document.querySelector('.side');if(sd)sd.classList.remove('open');const sc=document.getElementById('scrim');if(sc)sc.classList.remove('show');
-  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')renderDashboard();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();if(id==='journey')loadJourney();if(id==='builder')loadIntake('website');if(id==='intake')loadIntake('location');if(id==='bookmarks')loadBookmarks();if(id==='feedback')loadFeedbackAdmin();}
+  if(id==='live'){loadReplays();loadLiveFromDB();}if(id==='player')loadPrograms();if(id==='admin')loadAdmin();if(id==='clients')loadClients();if(id==='adminsettings')loadAdminSettings();if(id==='dashboard')renderDashboard();if(id==='content')loadContentAdmin();if(id==='bugs')loadBugs();if(id==='helpdesk')loadHelpdesk();if(id==='journey')loadJourney();if(id==='builder')loadIntake('website');if(id==='intake')loadIntake('location');if(id==='bookmarks')loadBookmarks();if(id==='feedback')loadFeedbackAdmin();if(id==='reachout')loadReachout();}
 function toggleSide(){document.querySelector('.side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
 function botGo(b){goScreen(b.dataset.screen);}
 function ensureBanner(){let b=document.getElementById('previewBanner');if(!b){b=document.createElement('div');b.id='previewBanner';b.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0e1726;color:#fff;padding:9px 14px;border-radius:999px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:9999;display:none;align-items:center;gap:12px;font-size:13px';b.innerHTML='👁 Previewing as a client <button onclick="setView(\'admin\')" style="background:#F2B33D;color:#0e1726;border:0;border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer">Exit preview</button>';document.body.appendChild(b);}return b;}
@@ -2255,13 +2328,13 @@ async function openClient(id){
       ${c.status==='active'?`<button class="btn" style="color:#b4232a" onclick="suspendClient('${id}');goScreen('clients')">Suspend</button>`:`<button class="btn primary" onclick="approveClient('${id}');goScreen('clients')">Activate</button>`}
     </div>
     ${briefSection('Progress checklist',true,`<div class="bar" style="margin-bottom:12px"><i style="width:${pct}%"></i></div><div id="taskList">${tasks.length?tasks.map(taskRow).join(''):'<div class="small mut">No tasks yet.</div>'}</div><div style="display:flex;gap:8px;margin-top:10px"><input class="field" id="newTask" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTask()"><button class="btn primary" onclick="addTask()">Add</button></div>`)}
-    ${briefSection('Profile &amp; details',false,`<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">${avatar}<label class="btn" style="cursor:pointer">Upload photo<input type="file" accept="image/*" style="display:none" onchange="uploadAvatar('${id}',this)"></label></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="small mut">Full name</label><input class="field" id="pf_name" value="${esc(c.full_name||'')}"></div><div><label class="small mut">Program</label>${progSelectClient}</div><div><label class="small mut">Phone</label><input class="field" id="pf_phone" value="${esc(c.phone||'')}"></div><div><label class="small mut">Birthday</label><input class="field" id="pf_birthday" type="date" value="${esc(c.birthday||'')}"></div><div style="grid-column:1/-1"><label class="small mut">Address</label><input class="field" id="pf_address" value="${esc(c.address||'')}"></div><div style="grid-column:1/-1"><label class="small mut">Current stage</label>${stageSelect}</div></div><button class="btn primary" style="margin-top:12px" onclick="saveProfile('${id}')">Save profile</button>`)}
+    ${briefSection('Profile &amp; details',false,`<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">${avatar}<label class="btn" style="cursor:pointer">Upload photo<input type="file" accept="image/*" style="display:none" onchange="uploadAvatar('${id}',this)"></label></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="small mut">Full name</label><input class="field" id="pf_name" value="${esc(c.full_name||'')}"></div><div><label class="small mut">Program</label>${progSelectClient}</div><div><label class="small mut">Phone</label><input class="field" id="pf_phone" value="${esc(c.phone||'')}"></div><div><label class="small mut">Birthday</label><input class="field" id="pf_birthday" type="date" value="${esc(c.birthday||'')}"></div><div style="grid-column:1/-1"><label class="small mut">Address</label><input class="field" id="pf_address" value="${esc(c.address||'')}"></div><div style="grid-column:1/-1"><label class="small mut">Slack channel ID <span style="font-weight:400">(their channel in dsclient.slack.com — links Reach Out)</span></label><input class="field" id="pf_slack" value="${esc(c.slack_channel_id||'')}" placeholder="C0XXXXXXXXX"></div><div style="grid-column:1/-1"><label class="small mut">Current stage</label>${stageSelect}</div></div><button class="btn primary" style="margin-top:12px" onclick="saveProfile('${id}')">Save profile</button>`)}
     ${briefSection('Logins &amp; devices',false,loginRows)}
     ${briefSection('Content viewed',false,seenRows)}
     ${briefSection('Intake forms',false,intakeRows)}
   `;
 }
-async function saveProfile(id){const p={full_name:val2('pf_name'),program:val2('pf_program'),phone:val2('pf_phone'),birthday:val2('pf_birthday')||null,address:val2('pf_address'),stage:val2('pf_stage')};const res=await sb.from('profiles').update(p).eq('id',id);if(res.error){toast('Save failed: '+res.error.message);return;}toast('Profile saved');openClient(id);}
+async function saveProfile(id){const p={full_name:val2('pf_name'),program:val2('pf_program'),phone:val2('pf_phone'),birthday:val2('pf_birthday')||null,address:val2('pf_address'),stage:val2('pf_stage'),slack_channel_id:(val2('pf_slack')||'').trim()};const res=await sb.from('profiles').update(p).eq('id',id);if(res.error){toast('Save failed: '+res.error.message);return;}toast('Profile saved');openClient(id);}
 async function uploadAvatar(id,input){const f=input.files&&input.files[0];if(!f)return;const ext=(f.name.split('.').pop()||'jpg').toLowerCase();const key=id+'.'+ext;toast('Uploading photo…');const up=await sb.storage.from('avatars').upload(key,f,{upsert:true,cacheControl:'3600'});if(up.error){toast('Upload failed: '+up.error.message);return;}const pub=sb.storage.from('avatars').getPublicUrl(key);const url=pub.data.publicUrl+'?t='+Date.now();await sb.from('profiles').update({avatar_url:url}).eq('id',id);toast('Photo updated');openClient(id);}
 async function resetClientLogin(id,email){if(!email){toast('No email on file');return;}const res=await sb.auth.resetPasswordForEmail(email);if(res.error){toast('Failed: '+res.error.message);return;}toast('Password reset email sent to '+email);}
 async function textResetLink(id,btn){const orig=btn?btn.textContent:'';if(btn){btn.disabled=true;btn.textContent='Texting…';}
@@ -2510,6 +2583,7 @@ async function gateAndEnter(){
   document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin?'':'none';});
   enterApp();
   try{ logLogin(); }catch(e){}
+  try{ if(!isAdmin) roBadgeCheck(); }catch(e){}
   try{ ensureUserMenu(); }catch(e){}
   try{ await loadContent(); }catch(e){}
   try{ refreshBugBadge(); }catch(e){}
