@@ -181,9 +181,18 @@ def build_vtt(segments):
 
 # ---------- per-video processing ----------
 def has_en_caption(detail):
+    # A real English caption must actually have cue content. An empty "shell"
+    # caption (e.g. a placeholder created when a call is placed in the program)
+    # must NOT count as done, or transcription + the suggested title never run.
+    guid = detail.get("guid")
     for c in (detail.get("captions") or []):
         if (c.get("srclang") or "").lower() == "en":
-            return True
+            try:
+                _s, body = http("GET", f"https://{CDN}/{guid}/captions/en.vtt")
+                text = body.decode("utf-8", "ignore") if isinstance(body, (bytes, bytearray)) else str(body or "")
+            except Exception:
+                text = ""
+            return ("-->" in text) and (len(text.strip()) > 40)
     return False
 
 def process(video):
