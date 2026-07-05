@@ -84,6 +84,20 @@
     if (so) so.addEventListener('click', function (e) { e.preventDefault(); signOutHard(); });
   }
 
+  /* ---- blank hardcoded demo transcript + resources on lessons ---- */
+  var DS_PLACEHOLDER_RES = ['Merchant Targeting Worksheet', 'Done-For-You Onboarding Link', 'First-Call Script Template'];
+  function blankPlaceholders() {
+    var tx = document.querySelectorAll(".transcript");
+    tx.forEach(function (el) {
+      if (el.getAttribute("data-ds-tx")) return;
+      el.setAttribute("data-ds-tx", "1");
+      el.innerHTML = '<div class="mut" style="font-size:13px;padding:8px 2px">No transcript available for this video yet.</div>';
+    });
+    document.querySelectorAll(".res").forEach(function (r) {
+      var t = (r.textContent || "").replace(/\s+/g, " ").trim();
+      if (DS_PLACEHOLDER_RES.some(function (p) { return t.indexOf(p) >= 0; })) r.remove();
+    });
+  }
   function watchPending() {
     var el = document.getElementById('apPending');
     if (el) paintPending(el);
@@ -91,6 +105,7 @@
     var mo = new MutationObserver(function () {
       var p = document.getElementById('apPending');
       if (p) paintPending(p);
+      blankPlaceholders();
     });
     mo.observe(document.documentElement, { childList: true, subtree: true });
   }
@@ -211,6 +226,7 @@
    * ------------------------------------------------------------------ */
   function init() {
     watchPending();
+    blankPlaceholders();
     if (wantsStart() && !isStandalone()) {
       setTimeout(launchWizard, 300);
     }
