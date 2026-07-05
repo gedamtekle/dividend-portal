@@ -42,7 +42,7 @@
   function pendingHTML() {
     var cards = [
       lockedCard('Program Foundations', 'Unlocks after approval'),
-      lockedCard('Your Coaching Calls', 'Unlocks after approval'),
+      lockedCard('Your Mastermind Calls', 'Unlocks after approval'),
       lockedCard('Lessons &amp; Resources', 'Unlocks after approval'),
       lockedCard('Progress &amp; Milestones', 'Unlocks after approval')
     ].join('');
