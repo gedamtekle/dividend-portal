@@ -702,3 +702,61 @@
 
   (async function init(){ try{ if(await isAdmin()) addLauncher(); else window.__dsGuide=false; }catch(e){ window.__dsGuide=false; } })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 6) PROVIDER-NAME SANITIZER (all users)
+ *    Rewrites client-facing UI text that names an underlying provider
+ *    (Bunny Stream, StreamYard) into neutral wording — e.g. "Join on
+ *    StreamYard" -> "Join live", "Auto-updated from Bunny Stream" ->
+ *    "Updated automatically". Links keep working (only visible text
+ *    changes). Skips <script>/<style> and the admin-only Video Library
+ *    and Admin Guide modals so internal wording stays intact.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsClean) return; window.__dsClean = true;
+  var MAP = [
+    [/Auto-updated from Bunny\s?Stream/gi, 'Updated automatically'],
+    [/Bunny\s?Stream\s*[·|-]\s*1080p/gi, 'HD · 1080p'],
+    [/Use Bunny\s?Stream for video hosting/gi, 'Use built-in video hosting'],
+    [/Powered by Bunny\s?Stream/gi, ''],
+    [/Bunny\s?Stream/gi, 'HD video'],
+    [/BunnyCDN/gi, 'our CDN'],
+    [/\bBunny\b/gi, ''],
+    [/Join on StreamYard/gi, 'Join live'],
+    [/Watch on StreamYard/gi, 'Watch live'],
+    [/on StreamYard/gi, 'live'],
+    [/StreamYard/gi, 'live stream']
+  ];
+  var SKIP = { SCRIPT:1, STYLE:1, TEXTAREA:1, NOSCRIPT:1 };
+  function inTool(n){ return !!(n && n.closest && n.closest('#ds-guide,#ds-lib,#ds-guide-btn,#ds-lib-btn')); }
+  function fixText(node){
+    var v = node.nodeValue; if (!v) return;
+    var nv;
+    if (/https?:\/\/[^\s]*streamyard\.com[^\s]*/i.test(v) && v.trim().length < 90 && /^\s*https?:\/\//.test(v)) {
+      nv = 'Open live stream';
+    } else {
+      nv = v;
+      for (var i = 0; i < MAP.length; i++) nv = nv.replace(MAP[i][0], MAP[i][1]);
+    }
+    if (nv !== v) node.nodeValue = nv;
+  }
+  function run(root){
+    try{
+      var w = document.createTreeWalker(root || document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode: function (n) {
+          var p = n.parentNode; if (!p) return NodeFilter.FILTER_REJECT;
+          if (SKIP[p.nodeName]) return NodeFilter.FILTER_REJECT;
+          if (inTool(p)) return NodeFilter.FILTER_REJECT;
+          return /bunny|streamyard/i.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+      });
+      var arr = [], n; while (n = w.nextNode()) arr.push(n); arr.forEach(fixText);
+    }catch(e){}
+  }
+  var t;
+  function schedule(){ clearTimeout(t); t = setTimeout(function(){ run(document.body); }, 120); }
+  function boot(){ run(document.body); var mo = new MutationObserver(schedule); mo.observe(document.documentElement, { childList:true, subtree:true, characterData:true }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
