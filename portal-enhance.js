@@ -235,3 +235,84 @@
     document.addEventListener('DOMContentLoaded', init);
   } else { init(); }
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 3) REAL TRANSCRIPT LOADER
+ *    When a real lesson video plays, the app injects a Bunny embed
+ *    iframe into #playerFrame. We read the video GUID from that iframe,
+ *    fetch its caption track (WEBVTT) from the Bunny CDN, and render a
+ *    timestamped transcript into the .transcript panel. If the video has
+ *    no captions we show a blank "no transcript yet" note. Demo/
+ *    placeholder lessons have no iframe GUID, so they stay blank.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsTx) return;
+  window.__dsTx = true;
+  var CDN = ['video.dividendshift.com', 'vz-27c13ac3-eef.b-cdn.net'];
+  var GRE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
+  var last = null, busy = false;
+  function box() { return document.querySelector('#tTrans .transcript') || document.querySelector('.transcript'); }
+  function guid() {
+    var fr = document.querySelector('#playerFrame iframe');
+    if (!fr) return null;
+    var m = (fr.getAttribute('src') || '').match(GRE);
+    return m ? m[0] : null;
+  }
+  function esc(s) { return s.replace(/[&<>]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]; }); }
+  function blank(msg) { var b = box(); if (b) b.innerHTML = '<div class="mut" style="font-size:13px;padding:8px 2px">' + msg + '</div>'; }
+  function parse(t) {
+    var L = t.replace(/\r/g, '').split('\n'), cues = [], i = 0;
+    while (i < L.length && L[i].indexOf('-->') < 0) i++;
+    for (; i < L.length; i++) {
+      if (L[i].indexOf('-->') >= 0) {
+        var ts = L[i].split('-->')[0].trim().replace(/\.\d+$/, '').replace(/^00:/, '');
+        var tx = []; i++;
+        while (i < L.length && L[i].trim() !== '') { tx.push(L[i].trim()); i++; }
+        var s = tx.join(' ').replace(/<[^>]+>/g, '').trim();
+        if (s) cues.push([ts, s]);
+      }
+    }
+    return cues;
+  }
+  function render(cues) {
+    var b = box(); if (!b) return;
+    if (!cues.length) { blank('No transcript available for this video yet.'); return; }
+    b.style.maxHeight = '340px'; b.style.overflow = 'auto';
+    b.innerHTML = cues.map(function (c) {
+      return '<div class="t" style="display:flex;gap:12px;padding:6px 2px;align-items:baseline">' +
+        '<span style="color:#8A8A93;font-variant-numeric:tabular-nums;flex:0 0 46px;font-size:12px">' + c[0] + '</span>' +
+        '<span style="font-size:13px;line-height:1.5">' + esc(c[1]) + '</span></div>';
+    }).join('');
+  }
+  function fetchVtt(g) {
+    var hosts = CDN.slice();
+    return (function next() {
+      if (!hosts.length) return Promise.resolve('');
+      var h = hosts.shift();
+      return fetch('https://' + h + '/' + g + '/captions/en.vtt', { mode: 'cors' })
+        .then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (t) { return (t && t.indexOf('-->') >= 0) ? t : next(); })
+        .catch(function () { return next(); });
+    })();
+  }
+  function sync() {
+    if (busy) return;
+    var g = guid();
+    if (!g) { if (last) { last = null; blank('No transcript available for this video yet.'); } return; }
+    if (g === last) return;
+    busy = true; last = g; blank('Loading transcript\u2026');
+    fetchVtt(g).then(function (v) { if (guid() === g) render(parse(v)); })
+               .catch(function () {})
+               .then(function () { busy = false; });
+  }
+  function boot() {
+    var mo = new MutationObserver(function () { sync(); });
+    mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    setInterval(sync, 1500);
+    sync();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
