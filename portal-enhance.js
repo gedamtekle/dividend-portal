@@ -552,3 +552,153 @@
     try{ var ok=await checkAdmin(); if(!ok){ window.__dsLib=false; return; } await loadAll(); addLauncher(); }catch(e){ window.__dsLib=false; }
   })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 5) ADMIN GUIDE (admin/team only)
+ *    In-app operations handbook. Adds a "Admin Guide" launcher that
+ *    opens a searchable modal with step-by-step instructions:
+ *    uploading/attaching videos, approving & suspending clients,
+ *    resetting logins, pulling payment-dispute evidence, and more.
+ *    Static content; gated to admin/team via the signed-in session.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsGuide) return; window.__dsGuide = true;
+  var GOLD='#B9891F', NAVY='#0E1A2B', INK='#14161D', LINE='#E7E7EC', MUT='#6B7280', BG='#FAFAFB';
+  var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+
+  function b(t){return '<strong>'+t+'</strong>';}
+  function lead(t){return '<p style="color:'+MUT+';font-style:italic;margin:0 0 12px;line-height:1.55">'+t+'</p>';}
+  function h3(t){return '<div style="font-weight:800;color:'+GOLD+';font-size:14px;margin:16px 0 7px">'+t+'</div>';}
+  function note(t){return '<div style="border-left:3px solid '+GOLD+';background:#FFFBF2;padding:9px 12px;border-radius:0 8px 8px 0;color:'+INK+';font-size:13px;margin:10px 0;line-height:1.5">'+t+'</div>';}
+  function ul(items){return '<ul style="margin:0 0 6px;padding-left:20px;line-height:1.6">'+items.map(function(i){return '<li style="margin:4px 0;font-size:13.5px">'+i+'</li>';}).join('')+'</ul>';}
+  function ol(items){return '<ol style="margin:0 0 6px;padding-left:20px;line-height:1.6">'+items.map(function(i){return '<li style="margin:4px 0;font-size:13.5px">'+i+'</li>';}).join('')+'</ol>';}
+  function tbl(head, rows){
+    return '<table style="border-collapse:collapse;width:100%;margin:6px 0 8px;font-size:13px"><thead><tr>'+
+      head.map(function(x){return '<th style="text-align:left;background:'+NAVY+';color:#fff;padding:8px 10px;border:1px solid '+NAVY+';font-weight:700">'+x+'</th>';}).join('')+
+      '</tr></thead><tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td style="padding:8px 10px;border:1px solid '+LINE+';vertical-align:top">'+c+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table>';
+  }
+
+  var SECTIONS=[
+    { id:'start', n:'1', t:'Before you start', h:
+      ul([
+        b('Sign in')+' at portal.dividendshift.com with your admin or team account — the same address clients use. The portal detects your role automatically.',
+        b('Admin View vs. Preview as client')+' (top right): Admin View is where you manage everything; Preview as client shows exactly what a client sees.',
+        b('Where things live:')+' the admin areas are Clients, Content, Team, Intake Review, Feedback &amp; Quizzes, Bug Reports, Helpdesk, and Settings.',
+        b('Video Library:')+' the \u{1F3AC} button at the bottom-left. It only appears for admin and team accounts.',
+        b('No passwords:')+' clients sign in with a one-time email link or a texted code, so there are never passwords to reset — you just resend a fresh link (see §5).'
+      ]) },
+    { id:'video', n:'2', t:'Upload a video &amp; attach it to a lesson', h:
+      lead('Upload each recording once, then attach it wherever it belongs. Captions and the transcript generate automatically, so the same video can go on many lessons with no extra work and no repeat transcription.')+
+      h3('Upload a video')+
+      ol(['Click '+b('\u{1F3AC} Video Library')+' at the bottom-left.','Click '+b('Upload video')+', choose the file, confirm the title.','It uploads to your video host and shows '+b('Processing')+', then '+b('Ready')+' (a few minutes for long recordings). Captions + transcript generate automatically after processing.'])+
+      h3('Attach a video to an existing lesson')+
+      ol(['Videos are on the left; the program tree (programs → modules → lessons) is on the right.',b('Drag')+' the video card onto the target lesson — it attaches instantly (the lesson’s video &amp; duration update).','On a phone or tablet, '+b('tap')+' the video, then '+b('tap')+' the lesson.'])+
+      h3('Create a new lesson straight from a video')+
+      ol(['Drag a video onto a '+b('module')+' (the “drop to add lesson” row) and enter a title — the lesson is created with the video already attached.'])+
+      h3('Replace or remove')+
+      ul([b('Replace:')+' drag a different video onto the lesson.',b('Remove:')+' click Remove on that lesson.'])+
+      h3('Good to know')+
+      ul([b('Shared Curriculum')+' (highlighted, top) holds the modules that appear across all programs — usually where core lessons live.','The transcript appears automatically once captioning finishes. If a video has no captions yet, the lesson simply shows no transcript — never a fake placeholder.']) },
+    { id:'approve', n:'3', t:'Approve a new client', h:
+      lead('New sign-ups start as Pending and see a locked “Pending approval” screen instead of the program.')+
+      ol([b('Admin View → Clients')+'.','Open the client.','Click '+b('Approve')+'. They get full access immediately (Pending → Active).'])+
+      note('Tip: use “View as this client” to confirm what they’ll see after approval.') },
+    { id:'remove', n:'4', t:'Remove or suspend a client’s access', h:
+      lead('Suspending cuts off access but keeps all of the client’s history — which you need if a payment dispute comes up (see §6).')+
+      ol([b('Admin View → Clients →')+' open the client.','Click '+b('Suspend')+'. They can no longer view program content — they’ll see the locked screen.','To restore access later, '+b('Approve / reactivate')+' them.'])+
+      note('Permanent deletion is rare and irreversible — it erases the client’s entire history. Avoid it if you might ever need dispute evidence. If you truly must, remove the user from the Supabase Auth dashboard.') },
+    { id:'reset', n:'5', t:'Reset a client’s login', h:
+      lead('Clients sign in passwordless, so you never reset a password — you resend a fresh sign-in link.')+
+      ol([b('Admin View → Clients →')+' open the client.','Use '+b('Reset login (email)')+' to send a one-time magic link, or the '+b('text a code')+' option to send it by SMS.','If they aren’t receiving it, check the email and phone under '+b('Profile &amp; details')+'.']) },
+    { id:'dispute', n:'6', t:'Pull data for a payment dispute / chargeback', h:
+      lead('Show the customer signed up, received access, and used the program. Gather these from the client’s record (Admin View → Clients → open the client), then submit with your payment processor’s dispute form.')+
+      tbl(['Evidence','Where to find it in the portal'],[
+        ['Account &amp; enrollment','Profile &amp; details — name, email, phone, signup / enrollment date, program &amp; plan'],
+        ['Proof they could log in','Logins &amp; devices / session log — sign-in dates, device &amp; IP'],
+        ['Proof they used it','Content viewed / watch tracking — lessons &amp; videos watched, dates, % completed'],
+        ['Communications','Messages / SMS history and any support Tickets'],
+        ['Onboarding','Intake forms they submitted (website / location intake)'],
+        ['Engagement','Quizzes attempted, feedback / check-ins, milestones &amp; tasks completed'],
+        ['The charge &amp; terms','Your payment processor (e.g., Stripe) — the charge, receipt, and Terms acceptance at signup']
+      ])+
+      h3('How to submit')+
+      ol(['Capture a screenshot (or note dates/details) of each item above for that client.','Add the '+b('charge record and Terms acceptance')+' from your payment processor.','Paste a short '+b('timeline')+' into the dispute response: signed up → first login → content watched → communications.'])+
+      note('Important: do not delete (or suspend-then-delete) the client before the dispute is resolved — you need the record intact.') },
+    { id:'content', n:'7', t:'Manage program content', h:
+      ol([b('Admin View → Content →')+' choose a program.','Add '+b('modules')+' and submodules, add '+b('lessons')+', attach '+b('videos')+' (via the Video Library), and add '+b('resources')+' and '+b('FAQs')+'.'])+
+      ul([b('Shared Curriculum')+' content appears across every program; program-specific content shows only under that program.']) },
+    { id:'sms', n:'8', t:'Message a client (SMS)', h:
+      ul(['From the client’s record, use '+b('Message')+' to text them — it’s two-way; replies come back into the thread.','SMS is US-only and rate-limited for safety.']) },
+    { id:'live', n:'9', t:'Live training &amp; replays', h:
+      ul([b('Admin View')+' → schedule live sessions (StreamYard link + calendar invites; clients get a reminder before each session).','Replays update automatically from your video library.']) },
+    { id:'team', n:'10', t:'Team &amp; access levels', h:
+      ol([b('Admin View → Team')+': invite members and set each person’s role.'])+
+      ul([b('Admin')+' — full control. '+b('Team')+' — day-to-day support. '+b('Client')+' — learner. Grant Admin sparingly.']) },
+    { id:'support', n:'11', t:'Support inbox', h:
+      ul([b('Helpdesk / Tickets')+' — client support requests.',b('Bug Reports')+' — issues clients submit from the app.',b('Feedback &amp; Quizzes')+' — check-in feedback and quiz results.']) },
+    { id:'quick', n:'★', t:'Quick reference', h:
+      tbl(['I need to…','Go to','Do this'],[
+        ['Add a video','\u{1F3AC} Video Library','Upload video → pick file'],
+        ['Put a video on a lesson','\u{1F3AC} Video Library','Drag video onto the lesson'],
+        ['Approve a new client','Clients → client','Approve'],
+        ['Cut off access','Clients → client','Suspend'],
+        ['Resend a login link','Clients → client','Reset login (email)'],
+        ['Text a client','Clients → client','Message'],
+        ['Gather dispute evidence','Clients → client','See §6 + Stripe'],
+        ['Edit curriculum','Content → program','Add module / lesson'],
+        ['Add a teammate','Team','Invite member + role']
+      ]) },
+    { id:'trouble', n:'⚑', t:'Troubleshooting', h:
+      ul([b('Client can’t see the program')+' → confirm they’re Approved (Active), not Pending.',b('Video won’t play or no transcript')+' → confirm it shows Ready in the Video Library and is attached; transcripts appear a few minutes after upload once captioning finishes.',b('Client didn’t get their login link')+' → Reset login again and verify the email/phone on file.',b('You don’t see the Video Library button')+' → you’re on a non-admin account, or in Preview as client — switch to Admin View.']) }
+  ];
+
+  async function isAdmin(){
+    try{
+      var sb=window.__dsSB;
+      if(!sb){ var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0'); sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true}}); window.__dsSB=sb; }
+      var u=(await sb.auth.getUser()).data; var uid=u&&u.user&&u.user.id; if(!uid) return false;
+      var me=(await sb.from('profiles').select('role').eq('id',uid).single()).data;
+      return me&&(me.role==='admin'||me.role==='team');
+    }catch(e){ return false; }
+  }
+
+  function openGuide(){
+    if(document.getElementById('ds-guide')) return;
+    var o=document.createElement('div'); o.id='ds-guide';
+    o.style.cssText='position:fixed;inset:0;z-index:2147483210;background:rgba(6,12,20,.72);backdrop-filter:blur(3px);display:flex;padding:22px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif';
+    var nav=SECTIONS.map(function(s){return '<a href="#" data-go="'+s.id+'" style="display:block;padding:7px 11px;border-radius:8px;color:'+INK+';text-decoration:none;font-size:13px;font-weight:600">'+s.n+'&nbsp;&nbsp;'+s.t+'</a>';}).join('');
+    var body=SECTIONS.map(function(s){return '<section id="dsg-'+s.id+'" style="margin-bottom:26px;scroll-margin-top:8px"><h2 style="font-size:18px;color:'+NAVY+';margin:0 0 8px;border-bottom:2px solid '+LINE+';padding-bottom:6px">'+s.n+'. '+s.t+'</h2>'+s.h+'</section>';}).join('');
+    o.innerHTML=
+      '<div style="max-width:1040px;width:100%;height:100%;margin:auto;background:#fff;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5)">'+
+        '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid '+LINE+'">'+
+          '<span style="font-size:18px">\u{1F4D8}</span><b style="font-size:16px;color:'+INK+'">Admin Guide</b>'+
+          '<span style="color:'+MUT+';font-size:12px">Dividend Shift operations</span>'+
+          '<button id="dsg-close" style="margin-left:auto;background:#fff;border:1px solid '+LINE+';border-radius:10px;padding:8px 13px;font-weight:700;font-size:13px;cursor:pointer">Close</button>'+
+        '</div>'+
+        '<div style="display:flex;flex:1 1 auto;min-height:0">'+
+          '<nav id="dsg-nav" style="flex:0 0 250px;border-right:1px solid '+LINE+';overflow:auto;padding:12px 8px;background:'+BG+'">'+nav+'</nav>'+
+          '<div id="dsg-body" style="flex:1 1 auto;overflow:auto;padding:20px 26px;color:'+INK+'">'+body+'</div>'+
+        '</div>'+
+      '</div>';
+    document.body.appendChild(o);
+    o.addEventListener('mousedown',function(e){ if(e.target===o) o.remove(); });
+    o.querySelector('#dsg-close').onclick=function(){ o.remove(); };
+    o.querySelectorAll('[data-go]').forEach(function(a){ a.addEventListener('click',function(e){ e.preventDefault(); var el=document.getElementById('dsg-'+a.getAttribute('data-go')); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }); });
+  }
+  window.__dsGuideOpen=openGuide;
+
+  function addLauncher(){
+    if(document.getElementById('ds-guide-btn')) return;
+    var b2=document.createElement('button'); b2.id='ds-guide-btn'; b2.type='button'; b2.innerHTML='❓ Admin Guide';
+    b2.style.cssText='position:fixed;left:16px;bottom:60px;z-index:2147483100;background:#fff;color:'+NAVY+';border:1px solid '+NAVY+';border-radius:12px;padding:9px 14px;font:800 13px -apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.22)';
+    b2.onclick=openGuide;
+    document.body.appendChild(b2);
+    var mo=new MutationObserver(function(){ if(!document.getElementById('ds-guide-btn')) document.body.appendChild(b2); });
+    mo.observe(document.documentElement,{childList:true,subtree:true});
+  }
+
+  (async function init(){ try{ if(await isAdmin()) addLauncher(); else window.__dsGuide=false; }catch(e){ window.__dsGuide=false; } })();
+})();
