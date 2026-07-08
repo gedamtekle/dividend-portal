@@ -820,3 +820,47 @@
   function run(){ if(!ME) return; if(!notifCard()) return; try{ enhanceProfile(); }catch(e){} try{ enhanceNotifs(); }catch(e){} try{ cleanResend(); }catch(e){} }
   (async function init(){ await loadMe(); var mo=new MutationObserver(function(){ try{run();}catch(e){} }); mo.observe(document.documentElement,{childList:true,subtree:true}); run(); })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 8) REGISTRATION LINK + DASHBOARD GREETING
+ *    - portal.dividendshift.com/?register opens the self-registration
+ *      form directly (same panel as the app's "Create an account").
+ *      New sign-ups land as pending for admin approval.
+ *    - Personalizes the dashboard greeting to the signed-in client's
+ *      real first name instead of the sample "Marcus".
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsReg) return; window.__dsReg = true;
+  var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  function wantsRegister(){ try{ var qs=new URLSearchParams(location.search); if(qs.has('register')||qs.get('signup')==='1') return true; }catch(e){} return /[?#&]register\b/.test(location.href); }
+  function openSignup(n){ n=n||0; if(typeof window.showPanel==='function' && document.getElementById('apSignup')){ try{ window.showPanel('apSignup'); }catch(e){} return; } if(n<80) setTimeout(function(){ openSignup(n+1); }, 250); }
+  var first=null;
+  async function loadFirst(){
+    try{
+      var sb=window.__dsSB;
+      if(!sb){ var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0'); sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true}}); window.__dsSB=sb; }
+      var u=(await sb.auth.getUser()).data; var uid=u&&u.user&&u.user.id; if(!uid) return;
+      var p=(await sb.from('profiles').select('first_name,full_name').eq('id',uid).single()).data;
+      first=(p && (p.first_name || (p.full_name||'').trim().split(/\s+/)[0])) || null;
+    }catch(e){}
+  }
+  function fixGreeting(){
+    if(!first) return;
+    [].slice.call(document.querySelectorAll('*')).forEach(function(e){
+      if(e.children.length) return;
+      var t=(e.textContent||'');
+      if(/welcome back,\s*\S+/i.test(t) && !new RegExp('welcome back,\\s*'+first,'i').test(t)){
+        e.textContent = t.replace(/(welcome back,\s*)([^\n!.,]+)/i, '$1'+first);
+      }
+    });
+  }
+  var deb; function schedule(){ clearTimeout(deb); deb=setTimeout(fixGreeting, 120); }
+  function boot(){
+    if(wantsRegister()) setTimeout(function(){ openSignup(0); }, 400);
+    loadFirst().then(function(){ fixGreeting(); var mo=new MutationObserver(schedule); mo.observe(document.documentElement,{childList:true,subtree:true,characterData:true}); });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
