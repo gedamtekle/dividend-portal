@@ -1,3 +1,33 @@
+/* ------------------------------------------------------------------ *
+ * 0) PERFORMANCE SHIM (must stay at the top)
+ *    Coalesces every MutationObserver callback to at most one run per
+ *    animation frame. The enhancers below observe the whole document;
+ *    without this, SPA re-renders and the per-second countdown trigger
+ *    them on every micro-mutation, causing input/click lag.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsMOWrapped) return; window.__dsMOWrapped = true;
+  var Native = window.MutationObserver || window.WebKitMutationObserver;
+  if (!Native) return;
+  var raf = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
+  function Wrapped(cb) {
+    var queue = [], scheduled = false, obs;
+    obs = new Native(function (records) {
+      for (var i = 0; i < records.length; i++) queue.push(records[i]);
+      if (scheduled) return;
+      scheduled = true;
+      raf(function () {
+        var r = queue; queue = []; scheduled = false;
+        try { cb(r, obs); } catch (e) {}
+      });
+    });
+    return obs;
+  }
+  Wrapped.prototype = Native.prototype;
+  try { window.MutationObserver = Wrapped; } catch (e) {}
+})();
+
 /* Dividend Shift — portal enhancements
  * Add ONE line to index.html (right after the /pwa.js line is fine):
  *     <script src="/portal-enhance.js" defer></script>
