@@ -760,3 +760,63 @@
   function boot(){ run(document.body); var mo = new MutationObserver(schedule); mo.observe(document.documentElement, { childList:true, subtree:true, characterData:true }); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 7) SETTINGS PAGE ENHANCER (signed-in user)
+ *    On the account Settings & Notifications page:
+ *    - Shows the REAL signed-in user's name + email (read-only),
+ *      replacing the "Marcus Bell" sample.
+ *    - Notification toggles become save-gated: a "Save changes" button
+ *      persists them to profiles.notif_prefs and reloads them on return
+ *      (previously the toggles applied instantly and saved nothing).
+ *    - Neutralizes email-provider ("Resend") mentions on the page.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsSettings) return; window.__dsSettings = true;
+  var GOLD='#B9891F', NAVY='#0E1A2B', LINE='#E7E7EC', MUT='#6B7280', GREEN='#1E7F4F';
+  var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var NOTIF_MAP = [
+    ['Team replied','team_replied'], ['New module','new_module'], ['Weekly progress','weekly_recap'],
+    ['Live training reminders','live_reminders'], ['Inactivity nudges','inactivity'], ['Product announcements','announcements']
+  ];
+  var sb=null, ME=null;
+  async function ensureSb(){ if(sb) return sb; if(window.__dsSB){ sb=window.__dsSB; return sb; } var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0'); sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true}}); window.__dsSB=sb; return sb; }
+  async function loadMe(){ await ensureSb(); var u=(await sb.auth.getUser()).data; var uid=u&&u.user&&u.user.id; if(!uid) return null; var p=(await sb.from('profiles').select('id,full_name,first_name,last_name,email,notif_prefs').eq('id',uid).single()).data; if(p && !p.email && u.user.email) p.email=u.user.email; ME=p; return p; }
+  function toast(msg){ var t=document.createElement('div'); t.textContent=msg; t.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:2147483600;background:'+GREEN+';color:#fff;padding:11px 18px;border-radius:10px;font:600 14px -apple-system,Segoe UI,Roboto,sans-serif;box-shadow:0 8px 26px rgba(0,0,0,.3)'; document.body.appendChild(t); setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .4s';setTimeout(function(){t.remove();},400);},1800); }
+  function labelledInput(labelText){ var lbls=[].slice.call(document.querySelectorAll('*')).filter(function(e){ return !e.children.length && new RegExp('^'+labelText+'$','i').test((e.textContent||'').trim()); }); for(var i=0;i<lbls.length;i++){ var nx=lbls[i].nextElementSibling; if(nx && nx.tagName==='INPUT' && !/search/i.test(nx.placeholder||'')) return nx; var qi=nx && nx.querySelector && nx.querySelector('input'); if(qi && !/search/i.test(qi.placeholder||'')) return qi; } return null; }
+  function realName(){ return (ME && (ME.full_name || ((ME.first_name||'')+' '+(ME.last_name||'')).trim())) || ''; }
+  function enhanceProfile(){
+    var nameInp=labelledInput('Full name'), emailInp=labelledInput('Email address'), real=realName();
+    if(nameInp && real){ if(nameInp.value!==real) nameInp.value=real; nameInp.readOnly=true; nameInp.style.opacity='0.85'; }
+    if(emailInp && ME && ME.email){ if(emailInp.value!==ME.email) emailInp.value=ME.email; emailInp.readOnly=true; emailInp.style.opacity='0.85'; }
+    var initials=(real||'').split(/\s+/).map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
+    [].slice.call(document.querySelectorAll('*')).forEach(function(e){ if(!e.children.length){ var t=(e.textContent||'').trim(); if(t==='Marcus Bell'&&real) e.textContent=real; if(t==='marcus.bell@gmail.com'&&ME&&ME.email) e.textContent=ME.email; if(t==='MB'&&initials&&e.parentElement) e.textContent=initials; } });
+  }
+  function notifCard(){ var h=[].slice.call(document.querySelectorAll('*')).find(function(e){ return !e.children.length && /^Email notifications$/i.test((e.textContent||'').trim()); }); if(!h) return null; var c=h; for(var i=0;i<6 && c;i++){ if(c.querySelectorAll('.toggle').length>=3) return c; c=c.parentElement; } return null; }
+  function tOn(t){ return /(^|\s)on(\s|$)/.test(t.className); }
+  function rowKey(t){ var row=t.closest('div'); for(var i=0;i<5 && row;i++){ var txt=row.textContent||''; var hit=NOTIF_MAP.find(function(m){return new RegExp(m[0],'i').test(txt);}); if(hit) return hit[1]; row=row.parentElement; } return null; }
+  var savedNotif={};
+  function curNotif(card){ var o={}; card.querySelectorAll('.toggle').forEach(function(t){ var k=rowKey(t); if(k) o[k]=tOn(t); }); return o; }
+  function dirty(card){ var c=curNotif(card); return Object.keys(c).some(function(k){ return c[k]!==savedNotif[k]; }); }
+  function refreshBar(card){ var btn=document.getElementById('ds-notif-btn'), hint=document.getElementById('ds-notif-hint'); if(!btn) return; var d=dirty(card); btn.style.opacity=d?'1':'.5'; btn.style.pointerEvents=d?'auto':'none'; if(hint) hint.textContent=d?'Unsaved changes':''; }
+  function enhanceNotifs(){
+    var card=notifCard(); if(!card) return;
+    var prefs=(ME && ME.notif_prefs && ME.notif_prefs.notifications)||null;
+    if(prefs && !card.__dsLoaded){ card.querySelectorAll('.toggle').forEach(function(t){ var k=rowKey(t); if(k && typeof prefs[k]==='boolean') t.classList.toggle('on', prefs[k]); }); }
+    card.__dsLoaded=true; savedNotif=curNotif(card);
+    if(!document.getElementById('ds-notif-save')){
+      var bar=document.createElement('div'); bar.id='ds-notif-save'; bar.style.cssText='display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid '+LINE;
+      bar.innerHTML='<span id="ds-notif-hint" style="color:'+MUT+';font-size:12px;margin-right:auto"></span><button id="ds-notif-btn" type="button" style="background:'+GOLD+';color:#111;border:0;border-radius:10px;padding:9px 16px;font-weight:800;font-size:13px;cursor:pointer;opacity:.5;pointer-events:none">Save changes</button>';
+      card.appendChild(bar);
+      document.getElementById('ds-notif-btn').onclick=async function(){ var cur=curNotif(card); var merged=Object.assign({},(ME.notif_prefs||{}),{notifications:cur}); var r=await sb.from('profiles').update({notif_prefs:merged}).eq('id',ME.id).select('id'); if(r.error){toast('Save failed');return;} ME.notif_prefs=merged; savedNotif=cur; refreshBar(card); toast('Notification settings saved'); };
+    }
+    if(!card.__dsBound){ card.__dsBound=true; card.addEventListener('click',function(){ setTimeout(function(){refreshBar(card);},30); }); }
+    refreshBar(card);
+  }
+  function cleanResend(){ var w=document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode:function(n){ var p=n.parentNode; if(!p||p.nodeName==='SCRIPT'||p.nodeName==='STYLE') return NodeFilter.FILTER_REJECT; return /resend/i.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT; }}); var arr=[],n; while(n=w.nextNode()) arr.push(n); arr.forEach(function(node){ var v=node.nodeValue, nv=v.replace(/delivered by\s+Resend/gi,'delivered by email').replace(/\(via Resend\)/gi,'').replace(/\bResend\b\s+powers every system email/gi,'Our email service powers every system email').replace(/^\s*Resend\s*$/,'Email'); if(nv!==v) node.nodeValue=nv; }); }
+  function run(){ if(!ME) return; if(!notifCard()) return; try{ enhanceProfile(); }catch(e){} try{ enhanceNotifs(); }catch(e){} try{ cleanResend(); }catch(e){} }
+  (async function init(){ await loadMe(); var mo=new MutationObserver(function(){ try{run();}catch(e){} }); mo.observe(document.documentElement,{childList:true,subtree:true}); run(); })();
+})();
