@@ -1,26 +1,24 @@
 /* ------------------------------------------------------------------ *
  * 0) PERFORMANCE SHIM (must stay at the top)
- *    Coalesces every MutationObserver callback to at most one run per
- *    animation frame. The enhancers below observe the whole document;
- *    without this, SPA re-renders and the per-second countdown trigger
- *    them on every micro-mutation, causing input/click lag.
+ *    Throttles every MutationObserver callback to at most once per
+ *    ~250ms. The enhancers below observe the whole document; without
+ *    this, SPA re-renders and the per-second countdown trigger repeated
+ *    full-document scans, causing input/click lag.
  * ------------------------------------------------------------------ */
 (function () {
   'use strict';
   if (window.__dsMOWrapped) return; window.__dsMOWrapped = true;
   var Native = window.MutationObserver || window.WebKitMutationObserver;
   if (!Native) return;
-  var raf = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
+  var GAP = 250;
   function Wrapped(cb) {
-    var queue = [], scheduled = false, obs;
+    var queue = [], last = 0, timer = null, obs;
+    function flush() { last = Date.now(); timer = null; var r = queue; queue = []; try { cb(r, obs); } catch (e) {} }
     obs = new Native(function (records) {
       for (var i = 0; i < records.length; i++) queue.push(records[i]);
-      if (scheduled) return;
-      scheduled = true;
-      raf(function () {
-        var r = queue; queue = []; scheduled = false;
-        try { cb(r, obs); } catch (e) {}
-      });
+      if (timer) return;
+      var wait = GAP - (Date.now() - last);
+      if (wait <= 0) flush(); else timer = setTimeout(flush, wait);
     });
     return obs;
   }
