@@ -864,3 +864,81 @@
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 9) REGISTRATION FORM HARDENING (the /?register signup form)
+ *    - Password must be at least 8 characters; Continue is blocked
+ *      until it is (with live feedback).
+ *    - Adds a "Confirm password" field that must match.
+ *    - Adds a Show/Hide toggle on each password field.
+ *    - Makes the SMS-consent checkbox required (needed for sign-in
+ *      codes) and blocks Continue until it is checked.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsRegForm) return; window.__dsRegForm = true;
+  var RED='#B4232A', GREEN='#1E7F4F', NAVY='#0E1A2B', MUT='#6B7280', MINLEN=8;
+  function q(id){ return document.getElementById(id); }
+  function panel(){ return q('apSignup'); }
+  function contBtn(sp){ return [].slice.call(sp.querySelectorAll('button')).find(function(b){ return /continue/i.test(b.textContent||''); }); }
+  function addEye(input){
+    if(!input || input.__dsEye) return; input.__dsEye=true;
+    var wrap=document.createElement('div'); wrap.style.cssText='position:relative;display:block;width:100%';
+    input.parentElement.insertBefore(wrap, input); wrap.appendChild(input);
+    input.style.paddingRight='62px';
+    var b=document.createElement('button'); b.type='button'; b.textContent='Show';
+    b.style.cssText='position:absolute;top:50%;right:10px;transform:translateY(-50%);background:transparent;border:0;color:'+NAVY+';font:700 12px -apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer;padding:4px 6px;z-index:2';
+    b.addEventListener('click', function(){ var showing=input.getAttribute('type')==='password'; input.setAttribute('type', showing?'text':'password'); b.textContent=showing?'Hide':'Show'; });
+    wrap.appendChild(b);
+  }
+  function ensureConfirm(pass){
+    if(q('dsPass2')) return q('dsPass2');
+    var c=document.createElement('input'); c.id='dsPass2'; c.setAttribute('type','password'); c.placeholder='Re-enter password'; c.autocomplete='new-password';
+    c.className=pass.className; c.style.marginTop='8px';
+    var host=pass.__dsEye ? pass.parentElement : pass;
+    (host.parentElement||pass.parentElement).insertBefore(c, host.nextSibling);
+    return c;
+  }
+  function hintEl(afterNode){
+    var h=q('ds-pw-hint');
+    if(!h){ h=document.createElement('div'); h.id='ds-pw-hint'; h.style.cssText='font-size:12px;margin-top:6px;line-height:1.4'; (afterNode.parentElement||afterNode).appendChild(h); }
+    return h;
+  }
+  function evalPw(){
+    var p=q('suPass'), c=q('dsPass2'); if(!p||!c) return {ok:false};
+    var pv=p.value||'', cv=c.value||'';
+    var okLen=pv.length>=MINLEN, okMatch=cv.length>0 && pv===cv;
+    var h=q('ds-pw-hint');
+    if(h){
+      if(!okLen){ h.style.color=RED; h.textContent='Password must be at least '+MINLEN+' characters.'; }
+      else if(!okMatch){ h.style.color=cv.length?RED:MUT; h.textContent= cv.length? 'Passwords do not match.' : 'Re-enter your password to confirm.'; }
+      else { h.style.color=GREEN; h.textContent='Passwords match ✓'; }
+    }
+    return {ok: okLen && okMatch, okLen:okLen, okMatch:okMatch};
+  }
+  function ensure(){
+    var sp=panel(); if(!sp) return;
+    var pass=q('suPass'), sms=q('suSms'), btn=contBtn(sp); if(!pass||!btn) return;
+    addEye(pass);
+    var conf=ensureConfirm(pass); addEye(conf);
+    hintEl(conf.__dsEye?conf.parentElement:conf);
+    if(sms && !sms.__dsMark){ sms.__dsMark=true; var lab=sms.closest('label'); if(lab && !/\*/.test(lab.textContent)){ var s=document.createElement('span'); s.textContent=' *'; s.style.color=RED; lab.appendChild(s); } }
+    if(!pass.__dsIn){ pass.__dsIn=true; pass.addEventListener('input', evalPw); }
+    if(!conf.__dsIn){ conf.__dsIn=true; conf.addEventListener('input', evalPw); }
+    evalPw();
+    if(!btn.__dsBound){ btn.__dsBound=true;
+      btn.addEventListener('click', function(e){
+        var st=evalPw(); var smsOk = !q('suSms') || q('suSms').checked;
+        if(!st.ok || !smsOk){
+          e.preventDefault(); e.stopImmediatePropagation();
+          if(!st.ok){ try{ (st.okLen?q('dsPass2'):q('suPass')).focus(); }catch(_e){} }
+          else if(!smsOk){ var m=q('ds-sms-req'); if(!m){ m=document.createElement('div'); m.id='ds-sms-req'; m.style.cssText='color:'+RED+';font-size:12px;margin-top:6px'; var host=q('suSms').closest('label')||q('suSms').parentElement; (host.parentElement||host).appendChild(m);} m.textContent='Please agree to receive text messages (including your sign-in codes) to continue.'; }
+        }
+      }, true);
+    }
+    if(sms && !sms.__dsCh){ sms.__dsCh=true; sms.addEventListener('change', function(){ var m=q('ds-sms-req'); if(m&&sms.checked) m.textContent=''; }); }
+  }
+  var mo=new MutationObserver(function(){ ensure(); }); mo.observe(document.documentElement,{childList:true,subtree:true});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', ensure); else ensure();
+})();
