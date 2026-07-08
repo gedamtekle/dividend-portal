@@ -942,3 +942,37 @@
   var mo=new MutationObserver(function(){ ensure(); }); mo.observe(document.documentElement,{childList:true,subtree:true});
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', ensure); else ensure();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 10) /register CLEAN ROUTE + bottom "Create an account" link
+ *     - Visiting portal.dividendshift.com/register opens the signup
+ *       form (needs the /register rewrite in vercel.json).
+ *     - The login screen's "Create an account" link now routes to
+ *       /register instead of just swapping panels, so the URL reflects
+ *       it and the hardened register form (feature 9) applies.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsRegRoute) return; window.__dsRegRoute = true;
+  function onRegPath(){ return /^\/register\/?$/i.test(location.pathname); }
+  function openSignup(n){ n=n||0; if(typeof window.showPanel==='function' && document.getElementById('apSignup')){ try{ window.showPanel('apSignup'); }catch(e){} return; } if(n<80) setTimeout(function(){ openSignup(n+1); }, 250); }
+  function goRegister(){ try{ if(location.pathname!=='/register') history.pushState({}, '', '/register'); }catch(_e){} openSignup(0); }
+  function rewriteLinks(){
+    [].slice.call(document.querySelectorAll('a,button,[onclick]')).forEach(function(el){
+      if(el.__dsRegLink) return;
+      var t=(el.textContent||'').replace(/\s+/g,' ').trim();
+      if(t.length<40 && (/create an account/i.test(t) || /^register$/i.test(t))){
+        el.__dsRegLink=true;
+        el.addEventListener('click', function(e){ e.preventDefault(); e.stopImmediatePropagation(); goRegister(); }, true);
+        if(el.tagName==='A'){ el.setAttribute('href','/register'); }
+      }
+    });
+  }
+  function boot(){
+    if(onRegPath()) setTimeout(function(){ openSignup(0); }, 400);
+    rewriteLinks();
+    var mo=new MutationObserver(rewriteLinks); mo.observe(document.documentElement,{childList:true,subtree:true});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
