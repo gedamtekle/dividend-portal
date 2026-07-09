@@ -1033,4 +1033,27 @@ if (!/[?&]noenhance\b/.test(location.search)) {
 })();
 
 
+
+/* ------------------------------------------------------------------ *
+ * 11) COMPOSITOR PERF: drop backdrop-filter on the pinned bars.
+ *     .top (sticky) and .botnav (fixed) used backdrop-filter: blur(10px),
+ *     forcing the GPU to re-blur the strip behind them on every scroll
+ *     and repaint. That is compositor-bound lag (no long tasks), worst
+ *     in Safari. .botnav was already 97% opaque and .top 85% over a white
+ *     body, so a solid background is visually near-identical.
+ *     #askOverlay keeps its blur (only painted while the overlay is open).
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsPerfCss) return; window.__dsPerfCss = true;
+  var css = '.top{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:#fff!important;}'
+          + '.botnav{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:#fff!important;}';
+  function add(){
+    if (document.getElementById('ds-perf-css')) return;
+    var s = document.createElement('style'); s.id = 'ds-perf-css'; s.textContent = css;
+    (document.head || document.documentElement).appendChild(s);
+  }
+  if (document.head) add(); else document.addEventListener('DOMContentLoaded', add);
+})();
+
 } /* end ?noenhance kill-switch */
