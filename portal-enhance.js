@@ -942,17 +942,35 @@ if (!/[?&]noenhance\b/.test(location.search)) {
     if(!h){ h=document.createElement('div'); h.id='ds-pw-hint'; h.style.cssText='font-size:12px;margin-top:6px;line-height:1.4'; (afterNode.parentElement||afterNode).appendChild(h); }
     return h;
   }
+  var WEAK=['password','passw0rd','12345678','123456789','1234567890','qwertyui','qwerty123','letmein1','iloveyou','admin123','welcome1','abc12345','football','baseball','sunshine','dividend','dividendshift'];
+  function pwWeak(pv){
+    var low=pv.toLowerCase();
+    for(var i=0;i<WEAK.length;i++){ if(low===WEAK[i]) return 'That password is too common — pick something less guessable.'; }
+    if(/^(.)\1+$/.test(pv)) return 'Password can\u2019t be one repeated character.';
+    if(/^(?:0123456789|1234567890|12345678|abcdefgh|qwertyui)/i.test(pv)) return 'Password can\u2019t be a simple sequence.';
+    var classes=0;
+    if(/[a-z]/.test(pv)) classes++;
+    if(/[A-Z]/.test(pv)) classes++;
+    if(/[0-9]/.test(pv)) classes++;
+    if(/[^A-Za-z0-9]/.test(pv)) classes++;
+    if(classes<3) return 'Too weak \u2014 use at least 3 of: lowercase, uppercase, number, symbol.';
+    return null;
+  }
   function evalPw(){
     var p=q('suPass'), c=q('dsPass2'); if(!p||!c) return {ok:false};
     var pv=p.value||'', cv=c.value||'';
-    var okLen=pv.length>=MINLEN, okMatch=cv.length>0 && pv===cv;
+    var okLen=pv.length>=MINLEN;
+    var weak = okLen ? pwWeak(pv) : null;
+    var okStrong = okLen && !weak;
+    var okMatch = okStrong && cv.length>0 && pv===cv;
     var h=q('ds-pw-hint');
     if(h){
       if(!okLen){ h.style.color=RED; h.textContent='Password must be at least '+MINLEN+' characters.'; }
-      else if(!okMatch){ h.style.color=cv.length?RED:MUT; h.textContent= cv.length? 'Passwords do not match.' : 'Re-enter your password to confirm.'; }
-      else { h.style.color=GREEN; h.textContent='Passwords match ✓'; }
+      else if(weak){ h.style.color=RED; h.textContent=weak; }
+      else if(!okMatch){ h.style.color=cv.length?RED:MUT; h.textContent= cv.length? 'Passwords do not match.' : 'Strong password \u2713 \u2014 re-enter it to confirm.'; }
+      else { h.style.color=GREEN; h.textContent='Strong password, and they match \u2713'; }
     }
-    return {ok: okLen && okMatch, okLen:okLen, okMatch:okMatch};
+    return {ok: okStrong && okMatch, okLen:okLen, okStrong:okStrong, okMatch:okMatch};
   }
   function ensure(){
     var sp=panel(); if(!sp) return;
@@ -969,7 +987,7 @@ if (!/[?&]noenhance\b/.test(location.search)) {
         var st=evalPw(); var smsOk = !q('suSms') || q('suSms').checked;
         if(!st.ok || !smsOk){
           e.preventDefault(); e.stopImmediatePropagation();
-          if(!st.ok){ try{ (st.okLen?q('dsPass2'):q('suPass')).focus(); }catch(_e){} }
+          if(!st.ok){ try{ (st.okStrong?q('dsPass2'):q('suPass')).focus(); }catch(_e){} }
           else if(!smsOk){ var m=q('ds-sms-req'); if(!m){ m=document.createElement('div'); m.id='ds-sms-req'; m.style.cssText='color:'+RED+';font-size:12px;margin-top:6px'; var host=q('suSms').closest('label')||q('suSms').parentElement; (host.parentElement||host).appendChild(m);} m.textContent='Please agree to receive text messages (including your sign-in codes) to continue.'; }
         }
       }, true);
