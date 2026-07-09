@@ -1,13 +1,4 @@
 /* ------------------------------------------------------------------ *
- * A/B KILL-SWITCH (diagnostic)
- *   Append ?noenhance to any portal URL to load the app with every
- *   enhancement in this file disabled. Used to isolate whether page
- *   lag comes from these enhancements or from the base app.
- *   e.g. https://portal.dividendshift.com/?noenhance
- * ------------------------------------------------------------------ */
-if (!/[?&]noenhance\b/.test(location.search)) {
-
-/* ------------------------------------------------------------------ *
  * 0) PERFORMANCE SHIM (must stay at the top)
  *    Throttles every MutationObserver callback to at most once per
  *    ~250ms. The enhancers below observe the whole document; without
@@ -1055,5 +1046,3 @@ if (!/[?&]noenhance\b/.test(location.search)) {
   }
   if (document.head) add(); else document.addEventListener('DOMContentLoaded', add);
 })();
-
-} /* end ?noenhance kill-switch */
