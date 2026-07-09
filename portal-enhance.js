@@ -1046,3 +1046,202 @@
   }
   if (document.head) add(); else document.addEventListener('DOMContentLoaded', add);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 12) TEAM SCREEN: real data instead of the mockup array.
+ *
+ *     index.html ships a hardcoded `teamMembers` array (Gedam, Nik,
+ *     Miles, Zack, Elona). renderTeam() iterated it; the screen never
+ *     touched the database. removeTeamMember(i) spliced that in-memory
+ *     array and suspended the matching profile, so rows "came back" on
+ *     reload and the wrong thing happened in the DB.
+ *
+ *     Here we keep the static access-ladder UI, rehydrate the Members
+ *     table from public.profiles (role in 'admin','team'), make Remove
+ *     demote to role='client' (profiles has no DELETE policy, and
+ *     revoking staff access should not nuke a login), make the role
+ *     <select> write role + access_tier, and wire Invite to the real
+ *     invite-client edge function.
+ *
+ *     Tiers are labels. RLS enforces admin-vs-not; it does not yet
+ *     distinguish Manager from CES.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsTeam) return; window.__dsTeam = true;
+
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var TIERS = ['Owner', 'Admin', 'Manager', 'CES'];
+  var sb = null, ME = null;
+
+  async function ensureSb() {
+    if (sb) return sb;
+    if (window.__dsSB) { sb = window.__dsSB; return sb; }
+    var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+    sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } });
+    window.__dsSB = sb; return sb;
+  }
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
+  function toast(m) { try { if (typeof window.toast === 'function') window.toast(m); } catch (e) {} }
+  function initials(n, e) {
+    n = (n || '').trim();
+    if (n) { var p = n.split(/\s+/); return (((p[0] || '')[0] || '') + ((p[1] || '')[0] || '')).toUpperCase(); }
+    return ((e || '?')[0] || '?').toUpperCase();
+  }
+  function tierOf(p) { return p.access_tier || (p.role === 'admin' ? 'Admin' : 'Manager'); }
+  function roleForTier(t) { return (t === 'Owner' || t === 'Admin') ? 'admin' : 'team'; }
+
+  async function fetchTeam() {
+    var s = await ensureSb();
+    try { var u = await s.auth.getUser(); ME = (u && u.data && u.data.user) ? u.data.user.id : null; } catch (e) { ME = null; }
+    var r = await s.from('profiles')
+      .select('id,full_name,email,role,status,access_tier')
+      .in('role', ['admin', 'team'])
+      .order('created_at', { ascending: true });
+    if (r.error) throw r.error;
+    return r.data || [];
+  }
+
+  function rowHtml(p) {
+    var t = tierOf(p);
+    var isMe = (p.id === ME);
+    var isOwner = (t === 'Owner');
+    var locked = isMe || isOwner;
+    var opts = TIERS.map(function (x) { return '<option value="' + x + '"' + (x === t ? ' selected' : '') + '>' + x + '</option>'; }).join('');
+    var last = locked
+      ? '<span class="small mut">—</span>'
+      : '<a class="small" href="#" data-rm="' + esc(p.id) + '" style="color:#c0392b">Remove</a>';
+    return '<tr data-uid="' + esc(p.id) + '">'
+      + '<td><div style="display:flex;align-items:center;gap:10px">'
+      + '<div class="avatar">' + esc(initials(p.full_name, p.email)) + '</div>'
+      + '<div><b>' + esc(p.full_name || '—') + '</b>'
+      + '<div class="small mut">' + esc(p.email || '') + '</div></div>'
+      + '</div></td>'
+      + '<td><select class="field" data-tier="' + esc(p.id) + '"' + (isOwner ? ' disabled' : '') + '>' + opts + '</select></td>'
+      + '<td>' + last + '</td>'
+      + '</tr>';
+  }
+
+  function setCount(tb, n) {
+    var card = tb.closest ? tb.closest('.card') : null;
+    if (!card) return;
+    var table = tb.closest('table');
+    var nodes = [].slice.call(card.querySelectorAll('*'));
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (el.children.length) continue;
+      if (table && table.contains(el)) continue;
+      if (/^\d+$/.test((el.textContent || '').trim())) { el.textContent = String(n); return; }
+    }
+  }
+
+  async function hydrate() {
+    var inner = document.getElementById('teamInner'); if (!inner) return;
+    var tb = inner.querySelector('table tbody'); if (!tb) return;
+    var rows;
+    try { rows = await fetchTeam(); }
+    catch (e) {
+      tb.innerHTML = '<tr><td colspan="3" class="small mut">Couldn’t load the team list.</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.length
+      ? rows.map(rowHtml).join('')
+      : '<tr><td colspan="3" class="small mut">No team members yet.</td></tr>';
+    setCount(tb, rows.length);
+    wire(tb);
+  }
+
+  function wire(tb) {
+    if (tb.__dsWired) return; tb.__dsWired = true;
+
+    tb.addEventListener('change', async function (e) {
+      var sel = e.target && e.target.closest ? e.target.closest('select[data-tier]') : null;
+      if (!sel) return;
+      var id = sel.getAttribute('data-tier'), tier = sel.value;
+      var s = await ensureSb();
+      var r = await s.from('profiles')
+        .update({ role: roleForTier(tier), access_tier: tier })
+        .eq('id', id).select('id');
+      if (r.error || !r.data || !r.data.length) { toast('Couldn’t change that role'); hydrate(); return; }
+      toast('Role updated');
+    });
+
+    tb.addEventListener('click', async function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[data-rm]') : null;
+      if (!a) return;
+      e.preventDefault();
+      var tr = a.closest('tr');
+      var nameEl = tr ? tr.querySelector('b') : null;
+      var name = nameEl ? nameEl.textContent : 'this member';
+      if (!window.confirm('Remove ' + name + ' from the team?\n\nThey keep their login but lose all staff access and become a regular client. Their account is not deleted.')) return;
+      var s = await ensureSb();
+      var r = await s.from('profiles')
+        .update({ role: 'client', access_tier: null })
+        .eq('id', a.getAttribute('data-rm')).select('id');
+      if (r.error || !r.data || !r.data.length) { toast('Couldn’t remove — admin access required'); return; }
+      toast('Staff access removed');
+      hydrate();
+    });
+  }
+
+  async function inviteMemberReal() {
+    var emailEl = document.getElementById('inviteEmail');
+    var roleEl = document.getElementById('inviteRole');
+    var email = ((emailEl && emailEl.value) || '').trim().toLowerCase();
+    var tier = (roleEl && roleEl.value) || 'Manager';
+    if (!email || email.indexOf('@') < 0) { toast('Enter an email'); if (emailEl) emailEl.focus(); return; }
+
+    var s = await ensureSb();
+    var sess = await s.auth.getSession();
+    var tok = (sess && sess.data && sess.data.session) ? sess.data.session.access_token : null;
+    if (!tok) { toast('Sign in again'); return; }
+
+    var res, body;
+    try {
+      res = await fetch(URL_ + '/functions/v1/invite-client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + tok },
+        body: JSON.stringify({ email: email, full_name: '', send_email: true, send_sms: false })
+      });
+      body = await res.json();
+    } catch (e) { toast('Invite failed'); return; }
+    if (!res.ok || !body || !body.ok) { toast('Invite failed'); return; }
+
+    var up = await s.from('profiles')
+      .update({ role: roleForTier(tier), access_tier: tier, status: 'active' })
+      .eq('id', body.userId).select('id');
+    if (up.error || !up.data || !up.data.length) toast('Invited, but couldn’t set the role — set it in the table');
+    else toast('Invitation sent to ' + email);
+    if (emailEl) emailEl.value = '';
+    hydrate();
+  }
+
+  function install() {
+    var orig = window.renderTeam;
+    if (typeof orig !== 'function') return false;
+
+    window.renderTeam = function () {
+      var out;
+      try { out = orig.apply(this, arguments); } catch (e) {}
+      setTimeout(hydrate, 0);
+      return out;
+    };
+
+    window.removeTeamMember = function () { toast('Use the Remove link in the members table.'); };
+    window.inviteMember = function () { inviteMemberReal(); };
+
+    var inner = document.getElementById('teamInner');
+    if (inner && inner.querySelector('table tbody')) setTimeout(hydrate, 0);
+    return true;
+  }
+
+  var tries = 0;
+  (function wait() {
+    if (install()) return;
+    if (++tries > 80) return;
+    setTimeout(wait, 250);
+  })();
+})();
