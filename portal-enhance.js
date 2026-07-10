@@ -1245,3 +1245,254 @@
     setTimeout(wait, 250);
   })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 13) OWNER-ONLY CLIENT DELETION + "Deleted Clients" archive.
+ *
+ *     Deleting a client is permanent. There is deliberately no undelete
+ *     anywhere in this file.
+ *
+ *     Deleting the auth user cascades through profiles and destroys
+ *     tickets, sessions, client_events, milestones and quiz_attempts.
+ *     The delete-client edge function archives all of it into
+ *     public.deleted_clients first, so dispute evidence survives.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsDel) return; window.__dsDel = true;
+
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var sb = null, IS_OWNER = null;
+
+  async function ensureSb() {
+    if (sb) return sb;
+    if (window.__dsSB) { sb = window.__dsSB; return sb; }
+    var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+    sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } });
+    window.__dsSB = sb; return sb;
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
+  function toast(m) { try { if (typeof window.toast === 'function') window.toast(m); } catch (e) {} }
+  function fmt(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) { return '—'; } }
+
+  async function isOwner() {
+    if (IS_OWNER !== null) return IS_OWNER;
+    var s = await ensureSb();
+    var u = await s.auth.getUser();
+    var id = u && u.data && u.data.user ? u.data.user.id : null;
+    if (!id) { IS_OWNER = false; return false; }
+    var r = await s.from('profiles').select('role,access_tier').eq('id', id).single();
+    IS_OWNER = !!(r.data && r.data.role === 'admin' && r.data.access_tier === 'Owner');
+    return IS_OWNER;
+  }
+
+  function closeModal() { var m = document.getElementById('ds-del-modal'); if (m) m.remove(); }
+
+  function openModal(client) {
+    closeModal();
+    var w = document.createElement('div');
+    w.id = 'ds-del-modal';
+    w.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(14,26,43,.55);display:flex;align-items:center;justify-content:center;padding:18px;';
+    w.innerHTML =
+      '<div style="background:#fff;border-radius:14px;max-width:460px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+      + '<div style="font-size:18px;font-weight:700;color:#0E1A2B;margin-bottom:6px">Delete this client permanently?</div>'
+      + '<div style="font-size:14px;color:#48566b;line-height:1.5;margin-bottom:14px">'
+      + '<b>' + esc(client.name || '—') + '</b><br><span style="color:#8A8A93">' + esc(client.email || '') + '</span>'
+      + '</div>'
+      + '<div style="background:#fff5f5;border:1px solid #f3c9c9;border-radius:10px;padding:12px;font-size:13px;color:#8a2b2b;line-height:1.55;margin-bottom:14px">'
+      + 'This erases their login and all live records — tickets, sessions, activity, milestones and quiz attempts.<br><br>'
+      + 'A read-only summary is kept in <b>Deleted Clients</b>. <b>This cannot be undone.</b>'
+      + '</div>'
+      + '<label style="display:block;font-size:13px;color:#48566b;margin-bottom:6px">Reason (optional)</label>'
+      + '<input id="ds-del-reason" class="field" style="width:100%;margin-bottom:12px" placeholder="e.g. refunded and offboarded">'
+      + '<label style="display:block;font-size:13px;color:#48566b;margin-bottom:6px">Type <b>DELETE</b> to confirm</label>'
+      + '<input id="ds-del-confirm" class="field" style="width:100%;margin-bottom:16px" autocomplete="off" spellcheck="false" placeholder="DELETE">'
+      + '<div style="display:flex;gap:10px;justify-content:flex-end">'
+      + '<button id="ds-del-cancel" class="btn" style="background:#eef1f6;color:#0E1A2B">Cancel</button>'
+      + '<button id="ds-del-go" class="btn" disabled style="background:#c0392b;color:#fff;opacity:.45;cursor:not-allowed">Delete permanently</button>'
+      + '</div></div>';
+    document.body.appendChild(w);
+
+    var inp = w.querySelector('#ds-del-confirm');
+    var go = w.querySelector('#ds-del-go');
+    inp.focus();
+    inp.addEventListener('input', function () {
+      var ok = inp.value === 'DELETE';
+      go.disabled = !ok;
+      go.style.opacity = ok ? '1' : '.45';
+      go.style.cursor = ok ? 'pointer' : 'not-allowed';
+    });
+    w.querySelector('#ds-del-cancel').addEventListener('click', closeModal);
+    w.addEventListener('click', function (e) { if (e.target === w) closeModal(); });
+    document.addEventListener('keydown', function onEsc(e) {
+      if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onEsc); }
+    });
+
+    go.addEventListener('click', async function () {
+      if (inp.value !== 'DELETE') return;
+      go.disabled = true; go.textContent = 'Deleting…';
+      var reason = (w.querySelector('#ds-del-reason').value || '').trim();
+      var res = await doDelete(client.id, reason);
+      if (!res.ok) { toast(res.error || 'Delete failed'); go.disabled = false; go.textContent = 'Delete permanently'; return; }
+      closeModal();
+      toast('Client deleted');
+      try { if (typeof window.loadClients === 'function') await window.loadClients(); } catch (e) {}
+      renderDeleted(true);
+    });
+  }
+
+  async function doDelete(userId, reason) {
+    var s = await ensureSb();
+    var sess = await s.auth.getSession();
+    var tok = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
+    if (!tok) return { ok: false, error: 'Sign in again' };
+    try {
+      var r = await fetch(URL_ + '/functions/v1/delete-client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + tok },
+        body: JSON.stringify({ user_id: userId, confirm: 'DELETE', reason: reason })
+      });
+      var b = await r.json();
+      if (!r.ok || !b.ok) return { ok: false, error: b.error || ('HTTP ' + r.status) };
+      return { ok: true, body: b };
+    } catch (e) { return { ok: false, error: String(e) }; }
+  }
+
+  async function decorateRows() {
+    if (!(await isOwner())) return;
+    var inner = document.getElementById('clientsInner'); if (!inner) return;
+    var table = inner.querySelector('table'); if (!table) return;
+
+    var head = table.querySelector('tr');
+    if (head && !head.querySelector('[data-ds-delhead]')) {
+      var th = document.createElement(head.children[0] ? head.children[0].tagName : 'TH');
+      th.setAttribute('data-ds-delhead', '1');
+      th.textContent = '';
+      head.appendChild(th);
+    }
+
+    var trs = [].slice.call(table.querySelectorAll('tr[onclick^="openClient("]'));
+    trs.forEach(function (tr) {
+      if (tr.querySelector('[data-ds-del]')) return;
+      var m = (tr.getAttribute('onclick') || '').match(/openClient\('([^']+)'\)/);
+      if (!m) return;
+      var id = m[1];
+      var nameEl = tr.children[0];
+      var txt = nameEl ? nameEl.innerText.split('\n').filter(Boolean) : [];
+      var td = document.createElement('td');
+      td.innerHTML = '<a href="#" data-ds-del="' + esc(id) + '" style="color:#c0392b;font-size:12.5px;font-weight:600">Delete</a>';
+      td.addEventListener('click', function (e) { e.stopPropagation(); });
+      tr.appendChild(td);
+      td.querySelector('a').addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        openModal({ id: id, name: (txt[0] || '').trim(), email: (txt[1] || '').trim() });
+      });
+    });
+  }
+
+  function downloadJson(name, obj) {
+    var blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = window.URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { window.URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  function chips(summary) {
+    var keys = Object.keys(summary || {}).filter(function (k) { return summary[k] > 0; });
+    if (!keys.length) return '<span class="small mut">no activity records</span>';
+    return keys.map(function (k) {
+      return '<span class="pill mut" style="margin-right:6px;font-size:11.5px">' + esc(k.replace(/_/g, ' ')) + ': ' + summary[k] + '</span>';
+    }).join('');
+  }
+
+  async function renderDeleted(force) {
+    if (!(await isOwner())) return;
+    var inner = document.getElementById('clientsInner'); if (!inner) return;
+
+    var card = document.getElementById('ds-deleted-card');
+    if (!card) {
+      card = document.createElement('div');
+      card.id = 'ds-deleted-card';
+      card.className = 'card pad';
+      card.style.marginTop = '18px';
+      inner.appendChild(card);
+    } else if (!force && card.getAttribute('data-loaded') === '1') {
+      return;
+    }
+
+    var head = '<div class="h-eyebrow">Owner only</div>'
+      + '<div style="font-size:16px;font-weight:700;color:#0E1A2B;margin:2px 0 4px">Deleted Clients</div>'
+      + '<div class="small mut" style="margin-bottom:12px">Permanently removed accounts. Kept for records and dispute response. These cannot be restored.</div>';
+
+    card.innerHTML = head + '<div class="small mut">Loading…</div>';
+
+    var s = await ensureSb();
+    var r = await s.from('deleted_clients')
+      .select('id,original_user_id,email,full_name,program,stage,status,signed_up_at,last_sign_in_at,deleted_at,deleted_by_email,reason,summary')
+      .order('deleted_at', { ascending: false });
+
+    if (r.error) { card.innerHTML = head + '<div class="small mut">Couldn’t load deleted clients.</div>'; return; }
+    var rows = r.data || [];
+    if (!rows.length) { card.innerHTML = head + '<div class="small mut">No clients have been deleted.</div>'; card.setAttribute('data-loaded', '1'); return; }
+
+    card.innerHTML = head + rows.map(function (d) {
+      return '<div style="border-top:1px solid #E7E7EC;padding:12px 0">'
+        + '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline">'
+        + '<div><b>' + esc(d.full_name || '—') + '</b> <span class="small mut">' + esc(d.email || '') + '</span></div>'
+        + '<div class="small mut">deleted ' + fmt(d.deleted_at) + ' by ' + esc(d.deleted_by_email || '—') + '</div>'
+        + '</div>'
+        + '<div class="small mut" style="margin:4px 0 8px">'
+        + (d.program ? 'Program: ' + esc(d.program) + ' · ' : '')
+        + 'Joined ' + fmt(d.signed_up_at) + ' · Last login ' + fmt(d.last_sign_in_at)
+        + (d.reason ? ' · Reason: ' + esc(d.reason) : '')
+        + '</div>'
+        + '<div style="margin-bottom:8px">' + chips(d.summary) + '</div>'
+        + '<a href="#" data-ds-export="' + esc(d.id) + '" class="small" style="font-weight:600">Export full record (JSON)</a>'
+        + '</div>';
+    }).join('');
+    card.setAttribute('data-loaded', '1');
+
+    if (!card.__dsWired) {
+      card.__dsWired = true;
+      card.addEventListener('click', async function (e) {
+        var a = e.target && e.target.closest ? e.target.closest('a[data-ds-export]') : null;
+        if (!a) return;
+        e.preventDefault();
+        var id = a.getAttribute('data-ds-export');
+        var s2 = await ensureSb();
+        var one = await s2.from('deleted_clients').select('*').eq('id', id).single();
+        if (one.error || !one.data) { toast('Couldn’t export'); return; }
+        downloadJson('deleted-client-' + (one.data.email || id) + '.json', one.data);
+      });
+    }
+  }
+
+  async function refresh() {
+    try { await decorateRows(); } catch (e) {}
+    try { await renderDeleted(false); } catch (e) {}
+  }
+
+  function install() {
+    if (typeof window.loadClients !== 'function') return false;
+    var orig = window.loadClients;
+    window.loadClients = async function () {
+      var out;
+      try { out = await orig.apply(this, arguments); } catch (e) {}
+      setTimeout(refresh, 60);
+      return out;
+    };
+    if (document.getElementById('clientsInner')) setTimeout(refresh, 60);
+    return true;
+  }
+
+  var tries = 0;
+  (function wait() {
+    if (install()) return;
+    if (++tries > 80) return;
+    setTimeout(wait, 250);
+  })();
+})();
