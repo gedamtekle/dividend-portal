@@ -1074,7 +1074,7 @@
   var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
   var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
   var TIERS = ['Owner', 'Admin', 'Manager', 'CES'];
-  var sb = null, ME = null;
+  var sb = null, ME = null, LAST = null;
 
   async function ensureSb() {
     if (sb) return sb;
@@ -1147,6 +1147,11 @@
       tb.innerHTML = '<tr><td colspan="3" class="small mut">Couldn’t load the team list.</td></tr>';
       return;
     }
+    LAST = rows;
+    paint(tb, rows);
+  }
+
+  function paint(tb, rows) {
     tb.innerHTML = rows.length
       ? rows.map(rowHtml).join('')
       : '<tr><td colspan="3" class="small mut">No team members yet.</td></tr>';
@@ -1223,9 +1228,20 @@
     var orig = window.renderTeam;
     if (typeof orig !== 'function') return false;
 
+    // orig paints the hardcoded mockup array. Overwrite it synchronously,
+    // before the browser gets a chance to paint, or the ghosts flash on screen
+    // every time setCurrentRole() re-renders this screen.
     window.renderTeam = function () {
       var out;
       try { out = orig.apply(this, arguments); } catch (e) {}
+      try {
+        var inner = document.getElementById('teamInner');
+        var tb = inner && inner.querySelector('table tbody');
+        if (tb) {
+          if (LAST) paint(tb, LAST);
+          else tb.innerHTML = '<tr><td colspan="3" class="small mut">Loading\u2026</td></tr>';
+        }
+      } catch (e) {}
       setTimeout(hydrate, 0);
       return out;
     };
