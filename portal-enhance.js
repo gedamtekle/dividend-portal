@@ -1097,6 +1097,9 @@
   async function fetchTeam() {
     var s = await ensureSb();
     try { var u = await s.auth.getUser(); ME = (u && u.data && u.data.user) ? u.data.user.id : null; } catch (e) { ME = null; }
+    // Signed out (or session not restored yet): RLS returns 0 rows with no error.
+    // Painting that would show an empty team and, worse, cache it.
+    if (!ME) return null;
     var r = await s.from('profiles')
       .select('id,full_name,email,role,status,access_tier')
       .in('role', ['admin', 'team'])
@@ -1145,6 +1148,10 @@
     try { rows = await fetchTeam(); }
     catch (e) {
       tb.innerHTML = '<tr><td colspan="3" class="small mut">Couldn’t load the team list.</td></tr>';
+      return;
+    }
+    if (rows === null) {
+      if (!LAST) tb.innerHTML = '<tr><td colspan="3" class="small mut">Loading\u2026</td></tr>';
       return;
     }
     LAST = rows;
@@ -1251,6 +1258,13 @@
 
     var inner = document.getElementById('teamInner');
     if (inner && inner.querySelector('table tbody')) setTimeout(hydrate, 0);
+
+    // Sign-in can land after the first hydrate. Drop the cache and refetch.
+    ensureSb().then(function (s) {
+      try {
+        s.auth.onAuthStateChange(function () { LAST = null; ME = null; hydrate(); });
+      } catch (e) {}
+    });
     return true;
   }
 
