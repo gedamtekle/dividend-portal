@@ -1526,3 +1526,205 @@
     setTimeout(wait, 250);
   })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 14) MERCHANT APPLICATION (client-facing) + BitFlow referral redirect.
+ *
+ *   - Adds a "Merchant Application" item to the client sidebar and a
+ *     screen with a DRAFT fillable form (fields to be finalized later).
+ *   - Admin sets each client's BitFlow referral ID on the client-detail
+ *     editor; it rides along on the existing saveProfile().
+ *   - On submit we save the application to public.merchant_applications
+ *     and redirect the client to BitFlow with their referral ID
+ *     appended. If no referral ID is set, we still save the app but do
+ *     NOT send them to a mis-attributed link -- we tell them the team
+ *     will follow up. (Attribution integrity.)
+ *
+ *   The native show() only knows built-in screens; this screen manages
+ *   its own active state and wraps show() so navigating to a built-in
+ *   screen hides it.
+ *
+ *   >>> CONFIRM BEFORE GO-LIVE: BitFlow base URL + referral param.
+ *   Default format is  https://www.bitflow.com/apply?ref=<id> .
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsMerchant) return; window.__dsMerchant = true;
+
+  // ---- CONFIRM THESE TWO LINES ----
+  var BITFLOW_URL = 'https://www.bitflow.com/apply';
+  var BITFLOW_PARAM = 'ref';
+  // ----------------------------------
+
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var sb = null;
+
+  async function ensureSb() {
+    if (sb) return sb;
+    if (window.__dsSB) { sb = window.__dsSB; return sb; }
+    var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+    sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } });
+    window.__dsSB = sb; return sb;
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
+
+  var FIELDS = [
+    { k: 'legal_name',    label: 'Business legal name',          type: 'text' },
+    { k: 'dba',           label: 'DBA / trade name',             type: 'text' },
+    { k: 'ein',           label: 'EIN / Tax ID',                 type: 'text' },
+    { k: 'entity_type',   label: 'Business type',                type: 'select', opts: ['Sole proprietor', 'LLC', 'S-Corp', 'C-Corp', 'Partnership', 'Non-profit'] },
+    { k: 'years',         label: 'Years in business',            type: 'text' },
+    { k: 'monthly_vol',   label: 'Estimated monthly volume ($)', type: 'text' },
+    { k: 'website',       label: 'Business website',             type: 'text' },
+    { k: 'address',       label: 'Business address',             type: 'text' },
+    { k: 'contact_name',  label: 'Primary contact name',         type: 'text' },
+    { k: 'contact_email', label: 'Contact email',                type: 'text' },
+    { k: 'contact_phone', label: 'Contact phone',                type: 'text' },
+    { k: 'description',   label: 'What does the business sell?',  type: 'textarea' }
+  ];
+
+  function fieldHtml(f) {
+    var id = 'ma_' + f.k, input;
+    if (f.type === 'select') {
+      input = '<select id="' + id + '" class="field" style="width:100%"><option value="">Select…</option>'
+        + f.opts.map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('') + '</select>';
+    } else if (f.type === 'textarea') {
+      input = '<textarea id="' + id + '" class="field" rows="3" style="width:100%"></textarea>';
+    } else {
+      input = '<input id="' + id + '" class="field" style="width:100%">';
+    }
+    return '<div style="margin-bottom:14px"><label style="display:block;font-size:13px;color:#48566b;margin-bottom:5px">'
+      + esc(f.label) + '</label>' + input + '</div>';
+  }
+
+  function screenHtml() {
+    return '<div class="wrap" style="max-width:720px">'
+      + '<div class="h-eyebrow">Merchant services</div>'
+      + '<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 6px">Merchant Application</h1>'
+      + '<p class="mut" style="margin-bottom:6px">Tell us about your business. When you submit, we’ll take you to BitFlow to finish setting up your merchant account.</p>'
+      + '<div class="small mut" style="margin-bottom:18px;font-style:italic">Draft form — fields will be finalized.</div>'
+      + '<div class="card pad">' + FIELDS.map(fieldHtml).join('')
+      + '<div id="ma-msg" class="small" style="min-height:18px;margin:2px 0 10px"></div>'
+      + '<button id="ma-submit" class="btn primary" style="width:100%;justify-content:center">Submit application</button>'
+      + '</div></div>';
+  }
+
+  var GLOBE_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+
+  function activate(nav, sec) {
+    [].forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.remove('active'); });
+    [].forEach.call(document.querySelectorAll('.nav'), function (n) { n.classList.remove('active'); });
+    sec.classList.add('active'); nav.classList.add('active');
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+
+  async function submit(sec) {
+    var msg = sec.querySelector('#ma-msg'), btn = sec.querySelector('#ma-submit');
+    msg.style.color = '#48566b'; msg.textContent = '';
+    var data = {};
+    FIELDS.forEach(function (f) { var el = sec.querySelector('#ma_' + f.k); if (el) data[f.k] = (el.value || '').trim(); });
+
+    var s = await ensureSb();
+    var u = await s.auth.getUser();
+    var uid = u && u.data && u.data.user ? u.data.user.id : null;
+    if (!uid) { msg.style.color = '#c0392b'; msg.textContent = 'Please sign in again.'; return; }
+
+    var pr = await s.from('profiles').select('bitflow_referral_id').eq('id', uid).single();
+    var ref = pr.data && pr.data.bitflow_referral_id ? String(pr.data.bitflow_referral_id).trim() : '';
+    var redirect = ref ? (BITFLOW_URL + (BITFLOW_URL.indexOf('?') > -1 ? '&' : '?') + BITFLOW_PARAM + '=' + encodeURIComponent(ref)) : null;
+
+    btn.disabled = true; btn.textContent = 'Submitting…';
+    var ins = await s.from('merchant_applications').insert({ client_id: uid, data: data, referral_id: ref || null, redirected_to: redirect }).select('id').single();
+    if (ins.error) {
+      btn.disabled = false; btn.textContent = 'Submit application';
+      msg.style.color = '#c0392b'; msg.textContent = 'Couldn’t submit — please try again.'; return;
+    }
+    if (redirect) {
+      msg.style.color = '#1a7f4b'; msg.textContent = 'Submitted. Taking you to BitFlow…';
+      setTimeout(function () { window.location.href = redirect; }, 900);
+    } else {
+      btn.textContent = 'Submitted'; msg.style.color = '#1a7f4b';
+      msg.textContent = 'Thanks — your application is in. Our team will send your BitFlow link shortly.';
+    }
+  }
+
+  function mount() {
+    var settingsNav = document.querySelector('.nav[data-screen="settings"]');
+    if (!settingsNav) return false;
+    if (document.querySelector('.nav[data-screen="merchant"]')) return true;
+    var side = settingsNav.parentElement;
+    var screenParent = (document.querySelector('section.screen') || {}).parentElement;
+    if (!side || !screenParent) return false;
+
+    var nav = document.createElement('div');
+    nav.className = 'nav'; nav.setAttribute('data-screen', 'merchant');
+    nav.innerHTML = GLOBE_SVG + 'Merchant Application';
+    side.insertBefore(nav, settingsNav);
+
+    var sec = document.createElement('section');
+    sec.className = 'screen'; sec.id = 'merchant'; sec.innerHTML = screenHtml();
+    screenParent.appendChild(sec);
+
+    nav.addEventListener('click', function () { activate(nav, sec); });
+    sec.querySelector('#ma-submit').addEventListener('click', function () { submit(sec); });
+
+    if (typeof window.show === 'function' && !window.show.__dsMerchantWrapped) {
+      var origShow = window.show;
+      var wrapped = function (screen) {
+        var out = origShow.apply(this, arguments);
+        if (screen !== 'merchant') { var el = document.getElementById('merchant'); if (el) el.classList.remove('active'); }
+        return out;
+      };
+      wrapped.__dsMerchantWrapped = true; window.show = wrapped;
+    }
+    return true;
+  }
+
+  var tries = 0;
+  (function wait() { if (mount()) return; if (++tries > 80) return; setTimeout(wait, 250); })();
+
+  /* ---- Admin: BitFlow Referral ID field on the client-detail editor ---- */
+  (function adminField() {
+    if (typeof window.openClient !== 'function') { setTimeout(adminField, 300); return; }
+    var origOpen = window.openClient;
+    window.openClient = function (id) {
+      var out = origOpen.apply(this, arguments);
+      setTimeout(function () { injectReferralField(id); }, 400);
+      return out;
+    };
+    if (typeof window.saveProfile === 'function') {
+      var origSave = window.saveProfile;
+      window.saveProfile = async function () {
+        var out = await origSave.apply(this, arguments);
+        try {
+          var el = document.getElementById('pf_bitflow');
+          if (el && el.getAttribute('data-uid')) {
+            var s = await ensureSb();
+            await s.from('profiles').update({ bitflow_referral_id: (el.value || '').trim() || null }).eq('id', el.getAttribute('data-uid'));
+          }
+        } catch (e) {}
+        return out;
+      };
+    }
+    async function injectReferralField(clientId) {
+      if (document.getElementById('pf_bitflow')) return;
+      var anchor = document.getElementById('pf_slack') || document.getElementById('pf_address') || document.getElementById('pf_program');
+      if (!anchor) return;
+      var wrap = document.createElement('div');
+      wrap.style.marginTop = '10px';
+      wrap.innerHTML = '<label style="display:block;font-size:12.5px;color:#48566b;margin-bottom:5px">BitFlow referral ID</label>'
+        + '<input id="pf_bitflow" class="field" placeholder="client’s unique BitFlow ref" style="width:100%">';
+      var host = anchor.closest ? (anchor.closest('.field-row') || anchor.parentElement) : anchor.parentElement;
+      (host && host.parentElement ? host.parentElement : host).appendChild(wrap);
+      var input = wrap.querySelector('#pf_bitflow');
+      input.setAttribute('data-uid', clientId);
+      try {
+        var s = await ensureSb();
+        var r = await s.from('profiles').select('bitflow_referral_id').eq('id', clientId).single();
+        if (!r.error && r.data && r.data.bitflow_referral_id) input.value = r.data.bitflow_referral_id;
+      } catch (e) {}
+    }
+  })();
+})();
