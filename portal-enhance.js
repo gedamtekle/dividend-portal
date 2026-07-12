@@ -1545,17 +1545,16 @@
  *   its own active state and wraps show() so navigating to a built-in
  *   screen hides it.
  *
- *   >>> CONFIRM BEFORE GO-LIVE: BitFlow base URL + referral param.
- *   Default format is  https://www.bitflow.com/apply?ref=<id> .
+ *   Redirect: https://merchant.getbitflow.com/sign-up?code=<client id>,
+ *   falling back to the house code NC-3B2087 when no personal id is set.
  * ------------------------------------------------------------------ */
 (function () {
   'use strict';
   if (window.__dsMerchant) return; window.__dsMerchant = true;
 
-  // ---- CONFIRM THESE TWO LINES ----
-  var BITFLOW_URL = 'https://www.bitflow.com/apply';
-  var BITFLOW_PARAM = 'ref';
-  // ----------------------------------
+  var BITFLOW_URL = 'https://merchant.getbitflow.com/sign-up';
+  var BITFLOW_PARAM = 'code';
+  var BITFLOW_DEFAULT_CODE = 'NC-3B2087'; // house code used when a client has no personal referral id
 
   var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
   var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
@@ -1633,7 +1632,8 @@
 
     var pr = await s.from('profiles').select('bitflow_referral_id').eq('id', uid).single();
     var ref = pr.data && pr.data.bitflow_referral_id ? String(pr.data.bitflow_referral_id).trim() : '';
-    var redirect = ref ? (BITFLOW_URL + (BITFLOW_URL.indexOf('?') > -1 ? '&' : '?') + BITFLOW_PARAM + '=' + encodeURIComponent(ref)) : null;
+    var code = ref || BITFLOW_DEFAULT_CODE; // fall back to the house code
+    var redirect = BITFLOW_URL + (BITFLOW_URL.indexOf('?') > -1 ? '&' : '?') + BITFLOW_PARAM + '=' + encodeURIComponent(code);
 
     btn.disabled = true; btn.textContent = 'Submitting…';
     var ins = await s.from('merchant_applications').insert({ client_id: uid, data: data, referral_id: ref || null, redirected_to: redirect }).select('id').single();
@@ -1641,13 +1641,8 @@
       btn.disabled = false; btn.textContent = 'Submit application';
       msg.style.color = '#c0392b'; msg.textContent = 'Couldn’t submit — please try again.'; return;
     }
-    if (redirect) {
-      msg.style.color = '#1a7f4b'; msg.textContent = 'Submitted. Taking you to BitFlow…';
-      setTimeout(function () { window.location.href = redirect; }, 900);
-    } else {
-      btn.textContent = 'Submitted'; msg.style.color = '#1a7f4b';
-      msg.textContent = 'Thanks — your application is in. Our team will send your BitFlow link shortly.';
-    }
+    msg.style.color = '#1a7f4b'; msg.textContent = 'Submitted. Taking you to BitFlow…';
+    setTimeout(function () { window.location.href = redirect; }, 900);
   }
 
   function mount() {
