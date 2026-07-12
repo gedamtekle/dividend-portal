@@ -1691,7 +1691,16 @@
     var origOpen = window.openClient;
     window.openClient = function (id) {
       var out = origOpen.apply(this, arguments);
-      setTimeout(function () { injectReferralField(id); }, 400);
+      // openClient fetches from the DB, so the profile fields render async.
+      // Poll for the anchor for a few seconds instead of a fixed delay.
+      var n = 0;
+      (function tryInject() {
+        if (document.getElementById('pf_bitflow')) return;
+        var a = document.getElementById('pf_slack') || document.getElementById('pf_address') || document.getElementById('pf_program');
+        if (a) { injectReferralField(id); return; }
+        if (++n > 40) return;
+        setTimeout(tryInject, 150);
+      })();
       return out;
     };
     if (typeof window.saveProfile === 'function') {
