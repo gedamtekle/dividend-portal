@@ -2381,3 +2381,146 @@
   var tries = 0;
   (function wait() { if (install()) return; if (++tries > 80) return; setTimeout(wait, 250); })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 19) DEAL ANALYZER (client-facing) — 5 credits.
+ *   Client enters deal context; Claude returns assessment + drafted
+ *   email + follow-up plan. Calls /functions/v1/deal-analyzer.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsDeal) return; window.__dsDeal = true;
+
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var sb = null;
+
+  async function ensureSb() {
+    if (sb) return sb;
+    if (window.__dsSB) { sb = window.__dsSB; return sb; }
+    var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+    sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } });
+    window.__dsSB = sb; return sb;
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
+  function md(s) {
+    s = esc(s);
+    s = s.replace(/^###\s?(.*)$/gm, '<div style="font-weight:700;color:#0E1A2B;margin:14px 0 4px">$1</div>');
+    s = s.replace(/^##\s?(.*)$/gm, '<div style="font-weight:800;color:#0E1A2B;font-size:15px;margin:18px 0 6px;border-top:1px solid #EEF0F4;padding-top:12px">$1</div>');
+    s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    s = s.replace(/^\s*[-*]\s+/gm, '• ');
+    s = s.replace(/\n/g, '<br>');
+    return s;
+  }
+
+  var FIELDS = [
+    { k: 'business', label: 'Business / location(s)', big: false, ph: 'e.g. Sunrise Diner — 2 locations, Tampa' },
+    { k: 'industry', label: 'Business type / industry', big: false, ph: 'e.g. Restaurant' },
+    { k: 'decision_maker', label: 'Decision-maker(s) and role', big: false, ph: 'e.g. Sam Cook, owner' },
+    { k: 'conversations', label: 'Conversations so far', big: true, ph: 'What was discussed, their situation, pain points…' },
+    { k: 'goals', label: 'My goals for this account', big: true, ph: 'What a win looks like — rate, locations, timing…' },
+    { k: 'feedback', label: 'Current status / feedback / objections', big: true, ph: 'Where it stands, what they pushed back on…' },
+    { k: 'extra', label: 'Other context (optional)', big: true, ph: '' }
+  ];
+
+  function fieldHtml(f) {
+    var id = 'da_' + f.k;
+    var input = f.big
+      ? '<textarea id="' + id + '" class="field" rows="3" style="width:100%" placeholder="' + esc(f.ph) + '"></textarea>'
+      : '<input id="' + id + '" class="field" style="width:100%" placeholder="' + esc(f.ph) + '">';
+    return '<div style="margin-bottom:14px"><label style="display:block;font-size:13px;font-weight:700;color:#0E1A2B;margin-bottom:5px">' + esc(f.label) + '</label>' + input + '</div>';
+  }
+
+  function screenHtml() {
+    return '<div class="wrap" style="max-width:760px">'
+      + '<div class="h-eyebrow">Deal tools</div>'
+      + '<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 6px">Deal Analyzer</h1>'
+      + '<p class="mut" style="margin-bottom:16px">Enter what you know about the prospect. You’ll get an assessment, a drafted email to the decision-maker, and a follow-up plan. <b>Costs 5 credits.</b></p>'
+      + '<div class="card pad">' + FIELDS.map(fieldHtml).join('')
+      + '<div id="da-msg" class="small" style="min-height:18px;margin:2px 0 10px"></div>'
+      + '<button id="da-go" class="btn primary" style="width:100%;justify-content:center">Analyze deal (5 credits)</button>'
+      + '</div>'
+      + '<div id="da-result" class="card pad" style="display:none;margin-top:16px"></div>'
+      + '</div>';
+  }
+
+  var ICON = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>';
+
+  function activate(nav, sec) {
+    [].forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.remove('active'); });
+    [].forEach.call(document.querySelectorAll('.nav'), function (n) { n.classList.remove('active'); });
+    sec.classList.add('active'); nav.classList.add('active');
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+
+  async function run(sec) {
+    var msg = sec.querySelector('#da-msg'), btn = sec.querySelector('#da-go'), out = sec.querySelector('#da-result');
+    msg.style.color = '#c0392b'; msg.textContent = '';
+    var data = {}; var any = false;
+    FIELDS.forEach(function (f) { var el = sec.querySelector('#da_' + f.k); var v = el ? (el.value || '').trim() : ''; data[f.k] = v; if (v) any = true; });
+    if (!any) { msg.textContent = 'Add some details about the deal first.'; return; }
+
+    var s = await ensureSb();
+    var sess = await s.auth.getSession();
+    var tok = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
+    if (!tok) { msg.textContent = 'Please sign in again.'; return; }
+
+    btn.disabled = true; btn.textContent = 'Analyzing…';
+    var res;
+    try {
+      var r = await fetch(URL_ + '/functions/v1/deal-analyzer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + tok },
+        body: JSON.stringify({ data: data })
+      });
+      res = await r.json();
+    } catch (e) { res = { error: 'network' }; }
+    btn.disabled = false; btn.textContent = 'Analyze deal (5 credits)';
+
+    if (res && res.ok && res.analysis) {
+      out.style.display = 'block';
+      out.innerHTML = '<div class="h-eyebrow">Analysis</div>' + md(res.analysis);
+      if (typeof res.remaining_credits === 'number') { msg.style.color = '#1a7f4b'; msg.textContent = res.remaining_credits + ' credits left.'; }
+      out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (res && res.error === 'insufficient_credits') {
+      msg.textContent = 'You’re out of credits (this costs ' + (res.cost || 5) + '). They reset on the 1st, or top up from Settings.';
+    } else {
+      msg.textContent = 'Couldn’t analyze that just now — try again in a moment.';
+    }
+  }
+
+  function mount() {
+    var anchorNav = document.querySelector('.nav[data-screen="merchant"]') || document.querySelector('.nav[data-screen="settings"]');
+    if (!anchorNav) return false;
+    if (document.querySelector('.nav[data-screen="deal"]')) return true;
+    var side = anchorNav.parentElement;
+    var screenParent = (document.querySelector('section.screen') || {}).parentElement;
+    if (!side || !screenParent) return false;
+
+    var nav = document.createElement('div');
+    nav.className = 'nav'; nav.setAttribute('data-screen', 'deal');
+    nav.innerHTML = ICON + 'Deal Analyzer';
+    side.insertBefore(nav, anchorNav);
+
+    var sec = document.createElement('section');
+    sec.className = 'screen'; sec.id = 'deal'; sec.innerHTML = screenHtml();
+    screenParent.appendChild(sec);
+
+    nav.addEventListener('click', function () { activate(nav, sec); });
+    sec.querySelector('#da-go').addEventListener('click', function () { run(sec); });
+
+    if (typeof window.show === 'function' && !window.show.__dsDealWrapped) {
+      var origShow = window.show;
+      var wrapped = function (screen) {
+        var o = origShow.apply(this, arguments);
+        if (screen !== 'deal') { var el = document.getElementById('deal'); if (el) el.classList.remove('active'); }
+        return o;
+      };
+      wrapped.__dsDealWrapped = true; window.show = wrapped;
+    }
+    return true;
+  }
+
+  var tries = 0;
+  (function wait() { if (mount()) return; if (++tries > 80) return; setTimeout(wait, 250); })();
+})();
