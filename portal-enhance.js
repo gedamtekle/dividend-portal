@@ -1826,3 +1826,271 @@
     }
   })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 15) ADMIN — Merchant Applications grid.
+ *   Admin-only sidebar screen. A rich, sortable, searchable table of
+ *   public.merchant_applications with inline status editing, expandable
+ *   full-detail rows, and CSV export.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsMGrid) return; window.__dsMGrid = true;
+
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var sb = null, ROWS = [], SORT = { key: 'created_at', dir: -1 }, QUERY = '', EXPANDED = {};
+
+  async function ensureSb() {
+    if (sb) return sb;
+    if (window.__dsSB) { sb = window.__dsSB; return sb; }
+    var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+    sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } });
+    window.__dsSB = sb; return sb;
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
+  function toast(m) { try { if (typeof window.toast === 'function') window.toast(m); } catch (e) {} }
+  function fmtDate(d) { if (!d) return ''; try { return new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) { return ''; } }
+
+  var STATUSES = ['submitted', 'contacted', 'approved', 'declined'];
+  var STATUS_COLOR = { submitted: '#2F6BFF', contacted: '#B8860B', approved: '#1a7f4b', declined: '#c0392b' };
+
+  var COLS = [
+    { k: 'created_at', label: 'Submitted', get: function (r) { return r.created_at; }, cell: function (r) { return fmtDate(r.created_at); } },
+    { k: 'business_name', label: 'Business', get: function (r) { return r.d.business_name; } },
+    { k: 'industry', label: 'Industry', get: function (r) { return r.d.industry; } },
+    { k: 'submitter', label: 'Submitted by', get: function (r) { return (r.d.first_name || '') + ' ' + (r.d.last_name || ''); }, cell: function (r) { var n = ((r.d.first_name || '') + ' ' + (r.d.last_name || '')).trim(); return esc(n) + (r.d.role ? ' <span class="mut" style="font-size:11px">(' + esc(r.d.role) + ')</span>' : ''); } },
+    { k: 'business_phone', label: 'Phone', get: function (r) { return r.d.business_phone; } },
+    { k: 'business_email', label: 'Email', get: function (r) { return r.d.business_email; } },
+    { k: 'monthly_sales', label: 'Monthly sales', get: function (r) { return r.d.monthly_sales; } },
+    { k: 'fee_paid_by', label: 'Fee by', get: function (r) { return r.d.fee_paid_by; } },
+    { k: 'fee_percentage', label: 'Rate', get: function (r) { return r.d.fee_percentage; }, cell: function (r) { return r.d.fee_percentage ? esc(r.d.fee_percentage) + '%' : ''; } },
+    { k: 'code', label: 'BitFlow code', get: function (r) { return r.code; }, cell: function (r) { return r.code ? '<code style="font-size:12px">' + esc(r.code) + '</code>' : ''; } },
+    { k: 'status', label: 'Status', get: function (r) { return r.status; }, cell: statusCell }
+  ];
+
+  function statusCell(r) {
+    var c = STATUS_COLOR[r.status] || '#8A8A93';
+    var opts = STATUSES.map(function (s) { return '<option value="' + s + '"' + (s === r.status ? ' selected' : '') + '>' + s + '</option>'; }).join('');
+    return '<select data-status="' + esc(r.id) + '" style="border:1px solid ' + c + '55;color:' + c + ';font-weight:700;border-radius:20px;padding:4px 8px;font-size:11.5px;background:' + c + '11;text-transform:capitalize;cursor:pointer">' + opts + '</select>';
+  }
+
+  function normalize(row, nameMap) {
+    var d = row.data || {};
+    var code = row.referral_id || (String(row.redirected_to || '').split('code=')[1] || '');
+    return { id: row.id, created_at: row.created_at, status: row.status || 'submitted', d: d, code: code,
+             redirect: row.redirected_to || '', client_id: row.client_id, client: nameMap[row.client_id] || '' };
+  }
+
+  async function load() {
+    var s = await ensureSb();
+    var r = await s.from('merchant_applications').select('*').order('created_at', { ascending: false });
+    if (r.error) { ROWS = []; return { error: r.error.message }; }
+    var rows = r.data || [];
+    var ids = [].concat.apply([], rows.map(function (x) { return x.client_id ? [x.client_id] : []; }));
+    var nameMap = {};
+    if (ids.length) {
+      var pr = await s.from('profiles').select('id,full_name,email').in('id', ids);
+      (pr.data || []).forEach(function (p) { nameMap[p.id] = p.full_name || p.email || ''; });
+    }
+    ROWS = rows.map(function (x) { return normalize(x, nameMap); });
+    return { ok: true };
+  }
+
+  function filtered() {
+    var q = QUERY.trim().toLowerCase();
+    var out = ROWS;
+    if (q) {
+      out = ROWS.filter(function (r) {
+        var hay = [r.d.business_name, r.d.industry, r.d.first_name, r.d.last_name, r.d.business_email,
+          r.d.business_phone, r.d.business_city, r.d.business_state, r.code, r.status, r.client].join(' ').toLowerCase();
+        return hay.indexOf(q) > -1;
+      });
+    }
+    var col = COLS.filter(function (c) { return c.k === SORT.key; })[0] || COLS[0];
+    out = out.slice().sort(function (a, b) {
+      var av = col.get(a), bv = col.get(b);
+      if (SORT.key === 'created_at') { av = new Date(av || 0).getTime(); bv = new Date(bv || 0).getTime(); }
+      else { av = String(av == null ? '' : av).toLowerCase(); bv = String(bv == null ? '' : bv).toLowerCase(); }
+      if (av < bv) return -1 * SORT.dir; if (av > bv) return 1 * SORT.dir; return 0;
+    });
+    return out;
+  }
+
+  function detailHtml(r) {
+    var d = r.d;
+    function kv(k, v) { v = (v == null ? '' : String(v)).trim(); return '<div style="min-width:180px;margin:0 18px 10px 0"><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em">' + esc(k) + '</div><div style="font-size:13.5px">' + (v ? esc(v) : '<span class="mut">—</span>') + '</div></div>'; }
+    var addr = [d.business_address, d.business_city, [d.business_state, d.business_zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    return '<td colspan="' + (COLS.length + 1) + '" style="background:#FAFAFB;padding:16px 18px">'
+      + '<div style="display:flex;flex-wrap:wrap">'
+      + kv('Referred by rep', d.referred_by_representative)
+      + kv('Point of contact', ((d.poc_first_name || '') + ' ' + (d.poc_last_name || '')).trim())
+      + kv('Business address', addr)
+      + kv('Equipment', d.equipment)
+      + kv('Portal client', r.client)
+      + kv('Redirect', r.redirect)
+      + '</div></td>';
+  }
+
+  function render() {
+    var sec = document.getElementById('mgrid'); if (!sec) return;
+    var rows = filtered();
+    var head = COLS.map(function (c) {
+      var arrow = SORT.key === c.k ? (SORT.dir === 1 ? ' ▲' : ' ▼') : '';
+      return '<th data-sort="' + c.k + '" style="position:sticky;top:0;background:#0E1A2B;color:#fff;text-align:left;padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;cursor:pointer;z-index:1">' + esc(c.label) + arrow + '</th>';
+    }).join('');
+    head = '<th style="position:sticky;top:0;background:#0E1A2B;z-index:1;width:26px"></th>' + head;
+
+    var body = rows.length ? rows.map(function (r, i) {
+      var zebra = i % 2 ? '#fff' : '#FBFBFD';
+      var tds = COLS.map(function (c) {
+        var v = c.cell ? c.cell(r) : esc(c.get(r) || '');
+        return '<td style="padding:10px 12px;font-size:13px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis">' + v + '</td>';
+      }).join('');
+      var caret = EXPANDED[r.id] ? '▾' : '▸';
+      var main = '<tr data-row="' + esc(r.id) + '" style="background:' + zebra + ';border-bottom:1px solid #EEF0F4;cursor:pointer">'
+        + '<td style="padding:10px 6px;text-align:center;color:#8A8A93">' + caret + '</td>' + tds + '</tr>';
+      var det = EXPANDED[r.id] ? '<tr>' + detailHtml(r) + '</tr>' : '';
+      return main + det;
+    }).join('') : '<tr><td colspan="' + (COLS.length + 1) + '" style="padding:28px;text-align:center" class="mut">No applications yet.</td></tr>';
+
+    sec.querySelector('#mgrid-count').textContent = rows.length + (rows.length === 1 ? ' application' : ' applications');
+    sec.querySelector('#mgrid-tbody').innerHTML = body;
+    sec.querySelector('#mgrid-thead').innerHTML = '<tr>' + head + '</tr>';
+  }
+
+  function toCsv() {
+    var rows = filtered();
+    var headers = ['Submitted', 'Status', 'Role', 'First', 'Last', 'Business', 'Industry', 'Phone', 'Email',
+      'Address', 'City', 'State', 'ZIP', 'POC first', 'POC last', 'Monthly sales', 'Fee by', 'Rate %',
+      'Equipment', 'Referred by rep', 'BitFlow code', 'Portal client'];
+    function q(v) { v = (v == null ? '' : String(v)); return '"' + v.replace(/"/g, '""') + '"'; }
+    var lines = [headers.map(q).join(',')];
+    rows.forEach(function (r) {
+      var d = r.d;
+      lines.push([r.created_at, r.status, d.role, d.first_name, d.last_name, d.business_name, d.industry,
+        d.business_phone, d.business_email, d.business_address, d.business_city, d.business_state, d.business_zip,
+        d.poc_first_name, d.poc_last_name, d.monthly_sales, d.fee_paid_by, d.fee_percentage, d.equipment,
+        d.referred_by_representative, r.code, r.client].map(q).join(','));
+    });
+    var blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = window.URL.createObjectURL(blob);
+    a.download = 'merchant-applications-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { window.URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  function screenHtml() {
+    return '<div class="wrap" style="max-width:1200px">'
+      + '<div class="h-eyebrow">Admin</div>'
+      + '<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">Merchant Applications</h1>'
+      + '<p class="mut" style="margin-bottom:16px">Every submission, newest first. Click a row for full detail. Edit status inline.</p>'
+      + '<div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap">'
+        + '<input id="mgrid-search" class="field" placeholder="Search business, name, email, code…" style="flex:1;min-width:240px;max-width:420px">'
+        + '<span id="mgrid-count" class="mut" style="font-size:13px;font-weight:600"></span>'
+        + '<button id="mgrid-refresh" class="btn" style="background:#eef1f6;color:#0E1A2B">Refresh</button>'
+        + '<button id="mgrid-csv" class="btn primary">Export CSV</button>'
+      + '</div>'
+      + '<div class="card" style="padding:0;overflow:hidden">'
+        + '<div style="overflow:auto;max-height:70vh">'
+          + '<table style="width:100%;border-collapse:collapse;min-width:900px">'
+            + '<thead id="mgrid-thead"></thead><tbody id="mgrid-tbody"></tbody>'
+          + '</table>'
+        + '</div>'
+      + '</div></div>';
+  }
+
+  var ICON = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>';
+
+  function activate(nav, sec) {
+    [].forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.remove('active'); });
+    [].forEach.call(document.querySelectorAll('.nav'), function (n) { n.classList.remove('active'); });
+    sec.classList.add('active'); nav.classList.add('active');
+    try { window.scrollTo(0, 0); } catch (e) {}
+    load().then(render);
+  }
+
+  function wire(sec) {
+    sec.querySelector('#mgrid-search').addEventListener('input', function (e) { QUERY = e.target.value; render(); });
+    sec.querySelector('#mgrid-csv').addEventListener('click', toCsv);
+    sec.querySelector('#mgrid-refresh').addEventListener('click', function () { load().then(render); });
+
+    sec.querySelector('#mgrid-thead').addEventListener('click', function (e) {
+      var th = e.target && e.target.closest ? e.target.closest('th[data-sort]') : null;
+      if (!th) return;
+      var k = th.getAttribute('data-sort');
+      if (SORT.key === k) SORT.dir *= -1; else { SORT.key = k; SORT.dir = (k === 'created_at') ? -1 : 1; }
+      render();
+    });
+
+    sec.querySelector('#mgrid-tbody').addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('select[data-status]')) return;
+      var tr = e.target && e.target.closest ? e.target.closest('tr[data-row]') : null;
+      if (!tr) return;
+      var id = tr.getAttribute('data-row');
+      EXPANDED[id] = !EXPANDED[id];
+      render();
+    });
+
+    sec.querySelector('#mgrid-tbody').addEventListener('change', async function (e) {
+      var sel = e.target && e.target.closest ? e.target.closest('select[data-status]') : null;
+      if (!sel) return;
+      var id = sel.getAttribute('data-status'), val = sel.value;
+      var s = await ensureSb();
+      var r = await s.from('merchant_applications').update({ status: val }).eq('id', id).select('id');
+      if (r.error || !r.data || !r.data.length) { toast('Couldn’t update status'); return; }
+      var row = ROWS.filter(function (x) { return x.id === id; })[0]; if (row) row.status = val;
+      toast('Status updated'); render();
+    });
+  }
+
+  async function isAdmin() {
+    var s = await ensureSb();
+    var u = await s.auth.getUser();
+    var id = u && u.data && u.data.user ? u.data.user.id : null;
+    if (!id) return false;
+    var r = await s.from('profiles').select('role').eq('id', id).single();
+    return !!(r.data && (r.data.role === 'admin' || r.data.role === 'team'));
+  }
+
+  async function mount() {
+    var anchorNav = document.querySelector('.nav[data-screen="clients"]') || document.querySelector('.nav[data-screen="settings"]');
+    if (!anchorNav) return false;
+    if (document.querySelector('.nav[data-screen="mgrid"]')) return true;
+    if (!(await isAdmin())) return true;
+
+    var side = anchorNav.parentElement;
+    var screenParent = (document.querySelector('section.screen') || {}).parentElement;
+    if (!side || !screenParent) return false;
+
+    var nav = document.createElement('div');
+    nav.className = 'nav admin-only';
+    nav.setAttribute('data-screen', 'mgrid');
+    nav.style.display = '';
+    nav.innerHTML = ICON + 'Merchant Apps <span class="badge-admin" style="margin-left:auto">Admin</span>';
+    side.insertBefore(nav, anchorNav.nextSibling);
+
+    var sec = document.createElement('section');
+    sec.className = 'screen'; sec.id = 'mgrid'; sec.innerHTML = screenHtml();
+    screenParent.appendChild(sec);
+
+    wire(sec);
+    nav.addEventListener('click', function () { activate(nav, sec); });
+
+    if (typeof window.show === 'function' && !window.show.__dsMGridWrapped) {
+      var origShow = window.show;
+      var wrapped = function (screen) {
+        var out = origShow.apply(this, arguments);
+        if (screen !== 'mgrid') { var el = document.getElementById('mgrid'); if (el) el.classList.remove('active'); }
+        return out;
+      };
+      wrapped.__dsMGridWrapped = true; window.show = wrapped;
+    }
+    return true;
+  }
+
+  var tries = 0;
+  (function wait() { mount().then(function (done) { if (done) return; if (++tries > 80) return; setTimeout(wait, 300); }); })();
+})();
