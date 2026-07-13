@@ -2524,3 +2524,178 @@
   var tries = 0;
   (function wait() { if (mount()) return; if (++tries > 80) return; setTimeout(wait, 250); })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 20) ADMIN — Client Progress Analysis button on the client detail.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsProg) return; window.__dsProg = true;
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var sb = null;
+  async function ensureSb() { if (sb) return sb; if (window.__dsSB) { sb = window.__dsSB; return sb; } var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0'); sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } }); window.__dsSB = sb; return sb; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
+  function md(s) { s = esc(s); s = s.replace(/^###\s?(.*)$/gm, '<div style="font-weight:700;margin:12px 0 4px">$1</div>'); s = s.replace(/^##\s?(.*)$/gm, '<div style="font-weight:800;font-size:15px;margin:16px 0 6px;border-top:1px solid #EEF0F4;padding-top:10px">$1</div>'); s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); s = s.replace(/^\s*[-*]\s+/gm, '• '); s = s.replace(/\n/g, '<br>'); return s; }
+  async function analyze(clientId, panel, btn) {
+    btn.disabled = true; btn.textContent = 'Analyzing…';
+    var res;
+    try { var s = await ensureSb(); var sess = await s.auth.getSession(); var tok = sess.data.session ? sess.data.session.access_token : null;
+      var r = await fetch(URL_ + '/functions/v1/progress-analyzer', { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + tok }, body: JSON.stringify({ client_id: clientId }) }); res = await r.json();
+    } catch (e) { res = { error: 'network' }; }
+    btn.disabled = false; btn.textContent = 'Analyze progress';
+    panel.style.display = 'block';
+    panel.innerHTML = (res && res.ok && res.analysis) ? md(res.analysis) : '<div class="small mut">Couldn’t analyze right now — try again.</div>';
+  }
+  function inject(clientId, inner) {
+    if (document.getElementById('ds-prog-card')) return;
+    var card = document.createElement('div'); card.id = 'ds-prog-card'; card.className = 'card pad'; card.style.marginBottom = '14px';
+    card.innerHTML = '<div class="h-eyebrow">Team tool</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+      + '<div><b>AI Progress Analysis</b><div class="small mut">Summary, next actions & risks from this client’s activity.</div></div>'
+      + '<button id="ds-prog-btn" class="btn primary">Analyze progress</button></div>'
+      + '<div id="ds-prog-panel" style="display:none;margin-top:12px"></div>';
+    inner.insertBefore(card, inner.firstChild);
+    card.querySelector('#ds-prog-btn').addEventListener('click', function () { analyze(clientId, card.querySelector('#ds-prog-panel'), card.querySelector('#ds-prog-btn')); });
+  }
+  (function hook() {
+    if (typeof window.openClient !== 'function') { setTimeout(hook, 300); return; }
+    var orig = window.openClient;
+    window.openClient = function (id) {
+      var out = orig.apply(this, arguments);
+      var n = 0; (function t() { if (document.getElementById('ds-prog-card')) return; var inner = document.getElementById('clientInner'); if (inner && inner.querySelector('.card')) { inject(id, inner); return; } if (++n > 40) return; setTimeout(t, 150); })();
+      return out;
+    };
+  })();
+})();
+
+
+/* ------------------------------------------------------------------ *
+ * 21) ADMIN — Credits screen (settings + per-client balances + top-up).
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsCredAdmin) return; window.__dsCredAdmin = true;
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var sb = null, SET = null, CLIENTS = [], CR = {};
+  async function ensureSb() { if (sb) return sb; if (window.__dsSB) { sb = window.__dsSB; return sb; } var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0'); sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } }); window.__dsSB = sb; return sb; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
+  function toast(m) { try { if (typeof window.toast === 'function') window.toast(m); } catch (e) {} }
+  function avail(id) { var a = SET ? SET.monthly_allowance : 100; var r = CR[id]; var used = r ? r.monthly_used : 0; var pur = r ? r.purchased_balance : 0; return Math.max(0, a - used) + pur; }
+  async function isAdmin() { var s = await ensureSb(); var u = await s.auth.getUser(); var id = u.data.user ? u.data.user.id : null; if (!id) return false; var r = await s.from('profiles').select('role').eq('id', id).single(); return !!(r.data && (r.data.role === 'admin' || r.data.role === 'team')); }
+  async function load(sec) {
+    var s = await ensureSb();
+    var st = await s.from('ai_credit_settings').select('*').eq('id', 'default').single();
+    var cl = await s.from('profiles').select('id,full_name,email').eq('role', 'client').order('created_at');
+    var cr = await s.from('ai_credits').select('*');
+    SET = st.data; CLIENTS = cl.data || []; CR = {}; (cr.data || []).forEach(function (r) { CR[r.client_id] = r; });
+    render(sec);
+  }
+  function render(sec) {
+    var rows = CLIENTS.map(function (c) {
+      return '<tr style="border-bottom:1px solid #EEF0F4"><td style="padding:8px 10px">' + esc(c.full_name || c.email || '—') + '<div class="small mut">' + esc(c.email || '') + '</div></td>'
+        + '<td style="padding:8px 10px;font-weight:700">' + avail(c.id) + '</td>'
+        + '<td style="padding:8px 10px"><input class="field ds-tp" data-id="' + esc(c.id) + '" style="width:90px" placeholder="+ credits" inputmode="numeric"><button class="btn ds-tpb" data-id="' + esc(c.id) + '" style="margin-left:6px;background:#eef1f6;color:#0E1A2B">Add</button></td></tr>';
+    }).join('');
+    sec.querySelector('#cr-body').innerHTML = '<div class="card pad" style="margin-bottom:16px"><div class="h-eyebrow">Settings</div>'
+      + '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px">'
+      + '<div><label class="small mut">Monthly allowance</label><input id="cs_allow" class="field" style="width:120px" value="' + (SET ? SET.monthly_allowance : 100) + '"></div>'
+      + '<div><label class="small mut">Coach cost</label><input id="cs_coach" class="field" style="width:90px" value="' + (SET ? SET.cost_coach : 1) + '"></div>'
+      + '<div><label class="small mut">Location cost</label><input id="cs_loc" class="field" style="width:90px" value="' + (SET ? SET.cost_location : 2) + '"></div>'
+      + '<div><label class="small mut">Deal cost</label><input id="cs_deal" class="field" style="width:90px" value="' + (SET ? SET.cost_deal : 5) + '"></div>'
+      + '<div style="align-self:flex-end"><button id="cs_save" class="btn primary">Save</button></div></div>'
+      + '<div id="cs_msg" class="small" style="margin-top:8px"></div></div>'
+      + '<div class="card" style="padding:0;overflow:hidden"><div style="padding:12px 14px" class="h-eyebrow">Client balances</div>'
+      + '<div style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#FBFBFD"><th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#8A8A93">Client</th><th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#8A8A93">Balance</th><th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#8A8A93">Top up</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+    sec.querySelector('#cs_save').addEventListener('click', function () { saveSettings(sec); });
+    [].forEach.call(sec.querySelectorAll('.ds-tpb'), function (b) { b.addEventListener('click', function () { topup(sec, b.getAttribute('data-id')); }); });
+  }
+  async function saveSettings(sec) {
+    var s = await ensureSb();
+    var patch = { monthly_allowance: parseInt(sec.querySelector('#cs_allow').value || '0', 10), cost_coach: parseInt(sec.querySelector('#cs_coach').value || '0', 10), cost_location: parseInt(sec.querySelector('#cs_loc').value || '0', 10), cost_deal: parseInt(sec.querySelector('#cs_deal').value || '0', 10), updated_at: new Date().toISOString() };
+    var r = await s.from('ai_credit_settings').update(patch).eq('id', 'default').select('id');
+    var msg = sec.querySelector('#cs_msg');
+    if (r.error || !r.data || !r.data.length) { msg.style.color = '#c0392b'; msg.textContent = 'Couldn’t save.'; return; }
+    msg.style.color = '#1a7f4b'; msg.textContent = 'Saved.'; load(sec);
+  }
+  async function topup(sec, id) {
+    var inp = sec.querySelector('.ds-tp[data-id="' + id + '"]');
+    var amt = parseInt((inp && inp.value) || '0', 10);
+    if (!(amt > 0)) { toast('Enter a positive number'); return; }
+    var s = await ensureSb(); var sess = await s.auth.getSession(); var tok = sess.data.session ? sess.data.session.access_token : null;
+    var r = await fetch(URL_ + '/functions/v1/admin-credits', { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + tok }, body: JSON.stringify({ client_id: id, amount: amt, reason: 'admin top-up' }) });
+    var j = await r.json();
+    if (j.ok) { toast('Added ' + amt + ' credits'); load(sec); } else { toast('Top-up failed'); }
+  }
+  function activate(nav, sec) { [].forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.remove('active'); }); [].forEach.call(document.querySelectorAll('.nav'), function (n) { n.classList.remove('active'); }); sec.classList.add('active'); nav.classList.add('active'); try { window.scrollTo(0, 0); } catch (e) {} load(sec); }
+  var ICON = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h4a2 2 0 0 1 0 4H9"/></svg>';
+  async function mount() {
+    var anchor = document.querySelector('.nav[data-screen="coachcfg"]') || document.querySelector('.nav[data-screen="mgrid"]') || document.querySelector('.nav[data-screen="settings"]');
+    if (!anchor) return false;
+    if (document.querySelector('.nav[data-screen="credits"]')) return true;
+    if (!(await isAdmin())) return true;
+    var side = anchor.parentElement; var screenParent = (document.querySelector('section.screen') || {}).parentElement; if (!side || !screenParent) return false;
+    var nav = document.createElement('div'); nav.className = 'nav admin-only'; nav.setAttribute('data-screen', 'credits'); nav.style.display = '';
+    nav.innerHTML = ICON + 'Credits <span class="badge-admin" style="margin-left:auto">Admin</span>';
+    side.insertBefore(nav, anchor.nextSibling);
+    var sec = document.createElement('section'); sec.className = 'screen'; sec.id = 'credits';
+    sec.innerHTML = '<div class="wrap" style="max-width:900px"><div class="h-eyebrow">Admin</div><h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 12px">Credits</h1><div id="cr-body"></div></div>';
+    screenParent.appendChild(sec);
+    nav.addEventListener('click', function () { activate(nav, sec); });
+    if (typeof window.show === 'function' && !window.show.__dsCredWrapped) { var o = window.show; var w = function (screen) { var out = o.apply(this, arguments); if (screen !== 'credits') { var el = document.getElementById('credits'); if (el) el.classList.remove('active'); } return out; }; w.__dsCredWrapped = true; window.show = w; }
+    return true;
+  }
+  var tries = 0; (function wait() { mount().then(function (d) { if (d) return; if (++tries > 80) return; setTimeout(wait, 300); }); })();
+})();
+
+
+/* ------------------------------------------------------------------ *
+ * 22) CLIENT — credit balance + history on the Settings screen.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsCredClient) return; window.__dsCredClient = true;
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var sb = null;
+  async function ensureSb() { if (sb) return sb; if (window.__dsSB) { sb = window.__dsSB; return sb; } var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0'); sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } }); window.__dsSB = sb; return sb; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
+  function fmt(d) { if (!d) return ''; try { return new Date(d).toLocaleDateString(); } catch (e) { return ''; } }
+  var busy = false;
+  async function render() {
+    var settings = document.getElementById('settings'); if (!settings) return;
+    var host = settings.querySelector('.wrap') || settings;
+    if (busy) return; busy = true;
+    try {
+      var s = await ensureSb(); var u = await s.auth.getUser(); var uid = u.data.user ? u.data.user.id : null; if (!uid) { busy = false; return; }
+      var st = await s.from('ai_credit_settings').select('monthly_allowance').eq('id', 'default').single();
+      var cr = await s.from('ai_credits').select('*').eq('client_id', uid).maybeSingle();
+      var led = await s.from('ai_credit_ledger').select('*').eq('client_id', uid).order('created_at', { ascending: false }).limit(10);
+      var allow = st.data ? st.data.monthly_allowance : 100;
+      var row = cr.data; var used = row ? row.monthly_used : 0; var pur = row ? row.purchased_balance : 0;
+      var bal = Math.max(0, allow - used) + pur;
+      var hist = (led.data || []).map(function (e) {
+        var lbl = e.feature === 'coach' ? 'Coach' : e.feature === 'deal' ? 'Deal Analyzer' : e.feature === 'location' ? 'Location Finder' : e.feature === 'reset' ? 'Monthly reset' : (e.reason || e.feature || '');
+        var sign = e.delta > 0 ? '+' : '';
+        return '<div style="display:flex;justify-content:space-between;border-top:1px solid #EEF0F4;padding:6px 0;font-size:13px"><span>' + esc(lbl) + ' <span class="small mut">' + fmt(e.created_at) + '</span></span><span style="font-weight:700;color:' + (e.delta > 0 ? '#1a7f4b' : '#48566b') + '">' + sign + e.delta + '</span></div>';
+      }).join('') || '<div class="small mut">No usage yet.</div>';
+      var card = document.getElementById('ds-cred-card');
+      if (!card) { card = document.createElement('div'); card.id = 'ds-cred-card'; card.className = 'card pad'; card.style.marginBottom = '16px'; host.insertBefore(card, host.firstChild); }
+      card.innerHTML = '<div class="h-eyebrow">AI credits</div>'
+        + '<div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 4px"><div style="font-size:30px;font-weight:800;color:#0E1A2B">' + bal + '</div><div class="mut">credits available</div></div>'
+        + '<div class="small mut" style="margin-bottom:10px">' + Math.max(0, allow - used) + ' of ' + allow + ' monthly + ' + pur + ' purchased. Resets on the 1st.</div>'
+        + '<div>' + hist + '</div>';
+    } catch (e) {}
+    busy = false;
+  }
+  function hook() {
+    if (typeof window.show === 'function' && !window.show.__dsCredCliWrapped) {
+      var o = window.show; var w = function (screen) { var out = o.apply(this, arguments); if (screen === 'settings') setTimeout(render, 60); return out; }; w.__dsCredCliWrapped = true; window.show = w;
+    }
+    if (document.getElementById('settings') && document.getElementById('settings').classList.contains('active')) setTimeout(render, 60);
+    document.addEventListener('ds-credits', function () { render(); });
+  }
+  var n = 0; (function wait() { if (typeof window.show === 'function') { hook(); return; } if (++n > 80) return; setTimeout(wait, 250); })();
+})();
