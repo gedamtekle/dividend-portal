@@ -1470,25 +1470,39 @@
     if (!rows.length) { card.innerHTML = head + '<div class="small mut">No clients have been deleted.</div>'; card.setAttribute('data-loaded', '1'); return; }
 
     card.innerHTML = head + rows.map(function (d) {
-      return '<div style="border-top:1px solid #E7E7EC;padding:12px 0">'
-        + '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline">'
-        + '<div><b>' + esc(d.full_name || '—') + '</b> <span class="small mut">' + esc(d.email || '') + '</span></div>'
-        + '<div class="small mut">deleted ' + fmt(d.deleted_at) + ' by ' + esc(d.deleted_by_email || '—') + '</div>'
+      return '<div class="dc-row" style="border-top:1px solid #E7E7EC">'
+        + '<div class="dc-head" data-dc="' + esc(d.id) + '" style="display:flex;align-items:baseline;gap:8px;padding:11px 0;cursor:pointer">'
+          + '<span class="dc-caret" style="color:#8A8A93;font-size:12px">▸</span>'
+          + '<b>' + esc(d.full_name || '—') + '</b>'
+          + '<span class="small mut">' + esc(d.email || '') + '</span>'
+          + '<span class="small mut" style="margin-left:auto">deleted ' + fmt(d.deleted_at) + '</span>'
         + '</div>'
-        + '<div class="small mut" style="margin:4px 0 8px">'
-        + (d.program ? 'Program: ' + esc(d.program) + ' · ' : '')
-        + 'Joined ' + fmt(d.signed_up_at) + ' · Last login ' + fmt(d.last_sign_in_at)
-        + (d.reason ? ' · Reason: ' + esc(d.reason) : '')
+        + '<div class="dc-detail" style="display:none;padding:0 0 14px 20px">'
+          + '<div class="small mut" style="margin:0 0 8px">'
+          + (d.program ? 'Program: ' + esc(d.program) + ' · ' : '')
+          + 'Joined ' + fmt(d.signed_up_at) + ' · Last login ' + fmt(d.last_sign_in_at)
+          + ' · Deleted by ' + esc(d.deleted_by_email || '—')
+          + (d.reason ? ' · Reason: ' + esc(d.reason) : '')
+          + '</div>'
+          + '<div style="margin-bottom:8px">' + chips(d.summary) + '</div>'
+          + '<a href="#" data-ds-export="' + esc(d.id) + '" class="small" style="font-weight:600">Export full record (JSON)</a>'
         + '</div>'
-        + '<div style="margin-bottom:8px">' + chips(d.summary) + '</div>'
-        + '<a href="#" data-ds-export="' + esc(d.id) + '" class="small" style="font-weight:600">Export full record (JSON)</a>'
-        + '</div>';
+      + '</div>';
     }).join('');
     card.setAttribute('data-loaded', '1');
 
     if (!card.__dsWired) {
       card.__dsWired = true;
       card.addEventListener('click', async function (e) {
+        var head = e.target && e.target.closest ? e.target.closest('.dc-head') : null;
+        if (head) {
+          var det = head.nextElementSibling;
+          var car = head.querySelector('.dc-caret');
+          var open = det && det.style.display !== 'none';
+          if (det) det.style.display = open ? 'none' : 'block';
+          if (car) car.textContent = open ? '▸' : '▾';
+          return;
+        }
         var a = e.target && e.target.closest ? e.target.closest('a[data-ds-export]') : null;
         if (!a) return;
         e.preventDefault();
