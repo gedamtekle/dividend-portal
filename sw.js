@@ -1,70 +1,64 @@
-/* Dividend Shift — Service Worker
+/* Dividend Shift — Service Worker (v3)
  * Strategy:
- *  - Navigations (the app shell): NETWORK-FIRST, fall back to cache when offline.
- *    This guarantees clients always get your latest deploy on next open — no stale app.
- *  - Same-origin static assets (icons, css, js): stale-while-revalidate for speed.
- *  - Cross-origin requests (Supabase auth/DB/storage, Twilio, etc.): NEVER touched by
- *    the SW — they always go straight to the network and are never cached.
- * Bump CACHE_VERSION any time you want to force-clear old caches.
+ *  - Navigations (app shell): NETWORK-FIRST, fall back to cache offline.
+ *  - Fast-changing code (portal-enhance.js, pwa.js): NETWORK-FIRST, so every
+ *    deploy reaches clients on the FIRST load — no stale lag.
+ *  - Other same-origin static assets (icons, css): stale-while-revalidate.
  */
-const CACHE_VERSION = 'ds-pwa-v1';
-const SHELL = [
-  '/', '/index.html', '/manifest.json', '/pwa.js',
-  '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png'
-];
+const CACHE = 'ds-sw-v3';
+const PRECACHE = ['/index.html', '/pwa.js'];
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(SHELL).catch(() => {}))
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)));
-    await self.clients.claim();
-  })());
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
 
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
   if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  const sameOrigin = url.origin === self.location.origin;
 
-  let url;
-  try { url = new URL(req.url); } catch (_e) { return; }
-
-  // Only handle our own origin. Supabase/Twilio/analytics/etc. go straight to network.
-  if (url.origin !== self.location.origin) return;
-
-  // App shell navigations: network-first so updates are instant; cache is offline fallback.
+  // App-shell navigations: network-first
   if (req.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const net = await fetch(req);
-        const cache = await caches.open(CACHE_VERSION);
-        cache.put('/index.html', net.clone()).catch(() => {});
-        return net;
-      } catch (_e) {
-        return (await caches.match(req)) ||
-               (await caches.match('/index.html')) ||
-               (await caches.match('/')) ||
-               new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
-      }
-    })());
+    e.respondWith(
+      fetch(req)
+        .then((res) => { const cp = res.clone(); caches.open(CACHE).then((c) => c.put('/index.html', cp)); return res; })
+        .catch(() => caches.match('/index.html'))
+    );
     return;
   }
 
-  // Same-origin static assets: stale-while-revalidate.
-  event.respondWith((async () => {
-    const cached = await caches.match(req);
-    const network = fetch(req).then((res) => {
-      if (res && res.status === 200 && res.type === 'basic') {
-        caches.open(CACHE_VERSION).then((c) => c.put(req, res.clone())).catch(() => {});
-      }
-      return res;
-    }).catch(() => null);
-    return cached || (await network) || new Response('', { status: 504 });
-  })());
+  // Fast-changing code: network-first (always latest deploy)
+  if (sameOrigin && /\/(portal-enhance|pwa)\.js$/.test(url.pathname)) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => { const cp = res.clone(); caches.open(CACHE).then((c) => c.put(req, cp)); return res; })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Other same-origin static assets: stale-while-revalidate
+  if (sameOrigin) {
+    e.respondWith(
+      caches.match(req).then((cached) => {
+        const net = fetch(req)
+          .then((res) => { const cp = res.clone(); caches.open(CACHE).then((c) => c.put(req, cp)); return res; })
+          .catch(() => cached);
+        return cached || net;
+      })
+    );
+    return;
+  }
+  // cross-origin: default passthrough
 });
