@@ -2108,3 +2108,179 @@
   var tries = 0;
   (function wait() { mount().then(function (done) { if (done) return; if (++tries > 80) return; setTimeout(wait, 300); }); })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 16) AI COACH — hide training sources from the client view.
+ *   The coach screen shows a "Knowledge base" card listing its sources
+ *   (lesson transcripts, recordings, worksheets, counts). Clients must
+ *   not see the coach's training sources. There is no client-facing way
+ *   to ADD a source, so nothing to lock there.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsCoachHide) return; window.__dsCoachHide = true;
+  function hide() {
+    var coach = document.getElementById('coach'); if (!coach) return false;
+    var hidden = false;
+    [].forEach.call(coach.querySelectorAll('.h-eyebrow'), function (e) {
+      if (/knowledge base/i.test(e.textContent || '')) {
+        var card = e.closest ? e.closest('.card') : null;
+        if (card) { card.style.display = 'none'; hidden = true; }
+      }
+    });
+    return hidden;
+  }
+  var n = 0;
+  (function w() { if (hide() || ++n > 100) return; setTimeout(w, 250); })();
+})();
+
+
+/* ------------------------------------------------------------------ *
+ * 17) ADMIN — AI Coach guardrails editor.
+ *   Admin-only screen to define the Coach "like a team member": name,
+ *   role/persona, tone, rhetoric, follow-up level, and hard guardrails
+ *   (do / don't / escalation / knowledge scope). Stored in
+ *   public.ai_coach_config (single row, admin-only, no client access).
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsCoachCfg) return; window.__dsCoachCfg = true;
+
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var sb = null;
+
+  async function ensureSb() {
+    if (sb) return sb;
+    if (window.__dsSB) { sb = window.__dsSB; return sb; }
+    var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+    sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } });
+    window.__dsSB = sb; return sb;
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
+  function toast(m) { try { if (typeof window.toast === 'function') window.toast(m); } catch (e) {} }
+  function fmtDT(d) { if (!d) return ''; try { return new Date(d).toLocaleString(); } catch (e) { return ''; } }
+
+  var FIELDS = [
+    { k: 'agent_name', label: 'Agent name', sub: 'What the coach calls itself', big: false },
+    { k: 'persona', label: 'Role / persona', sub: 'Who the agent is — write it as if onboarding a team member', big: true },
+    { k: 'tone', label: 'Tone', sub: 'e.g. warm, direct, professional, motivational', big: true },
+    { k: 'rhetoric', label: 'Rhetoric / style', sub: 'How it argues and explains — consultative, Socratic, directive…', big: true },
+    { k: 'follow_up', label: 'Follow-up level', sub: 'How much it should follow up / push', big: true },
+    { k: 'guardrails_do', label: 'Guardrails — always do', sub: 'Hard rules the agent must follow', big: true },
+    { k: 'guardrails_dont', label: 'Guardrails — never do', sub: 'Hard limits the agent must never cross', big: true },
+    { k: 'escalation', label: 'When to hand off to the team', sub: 'Conditions that should route to a human', big: true },
+    { k: 'knowledge_scope', label: 'Knowledge scope', sub: 'What the agent is allowed to reference', big: true },
+    { k: 'extra', label: 'Additional guardrails / notes', sub: 'Anything else', big: true }
+  ];
+
+  function fieldHtml(f) {
+    var id = 'cc_' + f.k;
+    var input = f.big
+      ? '<textarea id="' + id + '" class="field" rows="3" style="width:100%"></textarea>'
+      : '<input id="' + id + '" class="field" style="width:100%">';
+    return '<div style="margin-bottom:16px">'
+      + '<label style="display:block;font-size:13px;font-weight:700;color:#0E1A2B;margin-bottom:2px">' + esc(f.label) + '</label>'
+      + '<div class="small mut" style="margin-bottom:6px">' + esc(f.sub) + '</div>'
+      + input + '</div>';
+  }
+
+  function screenHtml() {
+    return '<div class="wrap" style="max-width:760px">'
+      + '<div class="h-eyebrow">Admin</div>'
+      + '<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">AI Coach — Persona &amp; Guardrails</h1>'
+      + '<p class="mut" style="margin-bottom:8px">Define the Coach like a team member. This is the single, always-current source of truth for how the agent behaves. Clients never see any of this.</p>'
+      + '<div id="cc-note" class="small mut" style="margin-bottom:16px"></div>'
+      + '<div class="card pad">'
+      + FIELDS.map(fieldHtml).join('')
+      + '<div id="cc-msg" class="small" style="min-height:18px;margin:2px 0 10px"></div>'
+      + '<button id="cc-save" class="btn primary" style="width:100%;justify-content:center">Save guardrails</button>'
+      + '</div></div>';
+  }
+
+  var ICON = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 1 3 3v1a3 3 0 0 1 3 3 3 3 0 0 1 0 6 3 3 0 0 1-3 3v1a3 3 0 0 1-6 0v-1a3 3 0 0 1-3-3 3 3 0 0 1 0-6 3 3 0 0 1 3-3V5a3 3 0 0 1 3-3z"/></svg>';
+
+  async function loadInto(sec) {
+    var s = await ensureSb();
+    var r = await s.from('ai_coach_config').select('*').eq('id', 'default').single();
+    var note = sec.querySelector('#cc-note');
+    if (r.error || !r.data) { note.textContent = 'Couldn’t load the current config.'; return; }
+    FIELDS.forEach(function (f) { var el = sec.querySelector('#cc_' + f.k); if (el) el.value = r.data[f.k] || ''; });
+    note.textContent = 'Last updated ' + (r.data.updated_at ? fmtDT(r.data.updated_at) : '—') + (r.data.updated_by_email ? ' by ' + r.data.updated_by_email : '');
+  }
+
+  async function save(sec) {
+    var msg = sec.querySelector('#cc-msg'), btn = sec.querySelector('#cc-save');
+    msg.style.color = '#c0392b'; msg.textContent = '';
+    var s = await ensureSb();
+    var u = await s.auth.getUser();
+    var uid = u && u.data && u.data.user ? u.data.user.id : null;
+    var email = u && u.data && u.data.user ? u.data.user.email : null;
+    if (!uid) { msg.textContent = 'Please sign in again.'; return; }
+    var patch = { updated_at: new Date().toISOString(), updated_by: uid, updated_by_email: email };
+    FIELDS.forEach(function (f) { var el = sec.querySelector('#cc_' + f.k); patch[f.k] = el ? (el.value || '').trim() : ''; });
+    btn.disabled = true; btn.textContent = 'Saving…';
+    var r = await s.from('ai_coach_config').update(patch).eq('id', 'default').select('id');
+    btn.disabled = false; btn.textContent = 'Save guardrails';
+    if (r.error || !r.data || !r.data.length) { msg.textContent = 'Couldn’t save — admin access required.'; return; }
+    msg.style.color = '#1a7f4b'; msg.textContent = 'Saved.';
+    loadInto(sec);
+  }
+
+  function activate(nav, sec) {
+    [].forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.remove('active'); });
+    [].forEach.call(document.querySelectorAll('.nav'), function (n) { n.classList.remove('active'); });
+    sec.classList.add('active'); nav.classList.add('active');
+    try { window.scrollTo(0, 0); } catch (e) {}
+    loadInto(sec);
+  }
+
+  async function isAdmin() {
+    var s = await ensureSb();
+    var u = await s.auth.getUser();
+    var id = u && u.data && u.data.user ? u.data.user.id : null;
+    if (!id) return false;
+    var r = await s.from('profiles').select('role').eq('id', id).single();
+    return !!(r.data && (r.data.role === 'admin' || r.data.role === 'team'));
+  }
+
+  async function mount() {
+    var anchorNav = document.querySelector('.nav[data-screen="mgrid"]') || document.querySelector('.nav[data-screen="clients"]') || document.querySelector('.nav[data-screen="settings"]');
+    if (!anchorNav) return false;
+    if (document.querySelector('.nav[data-screen="coachcfg"]')) return true;
+    if (!(await isAdmin())) return true;
+
+    var side = anchorNav.parentElement;
+    var screenParent = (document.querySelector('section.screen') || {}).parentElement;
+    if (!side || !screenParent) return false;
+
+    var nav = document.createElement('div');
+    nav.className = 'nav admin-only';
+    nav.setAttribute('data-screen', 'coachcfg');
+    nav.style.display = '';
+    nav.innerHTML = ICON + 'AI Coach <span class="badge-admin" style="margin-left:auto">Admin</span>';
+    side.insertBefore(nav, anchorNav.nextSibling);
+
+    var sec = document.createElement('section');
+    sec.className = 'screen'; sec.id = 'coachcfg'; sec.innerHTML = screenHtml();
+    screenParent.appendChild(sec);
+
+    nav.addEventListener('click', function () { activate(nav, sec); });
+    sec.querySelector('#cc-save').addEventListener('click', function () { save(sec); });
+
+    if (typeof window.show === 'function' && !window.show.__dsCoachCfgWrapped) {
+      var origShow = window.show;
+      var wrapped = function (screen) {
+        var out = origShow.apply(this, arguments);
+        if (screen !== 'coachcfg') { var el = document.getElementById('coachcfg'); if (el) el.classList.remove('active'); }
+        return out;
+      };
+      wrapped.__dsCoachCfgWrapped = true; window.show = wrapped;
+    }
+    return true;
+  }
+
+  var tries = 0;
+  (function wait() { mount().then(function (done) { if (done) return; if (++tries > 80) return; setTimeout(wait, 300); }); })();
+})();
