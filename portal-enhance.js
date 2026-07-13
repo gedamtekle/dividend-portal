@@ -2564,7 +2564,7 @@
     var orig = window.openClient;
     window.openClient = function (id) {
       var out = orig.apply(this, arguments);
-      var n = 0; (function t() { if (document.getElementById('ds-prog-card')) return; var inner = document.getElementById('clientInner'); if (inner && inner.querySelector('.card')) { inject(id, inner); return; } if (++n > 40) return; setTimeout(t, 150); })();
+      var n = 0; (function t() { if (document.getElementById('ds-prog-card')) return; var inner = document.getElementById('clientInner'); var ready = document.getElementById('pf_name'); if (inner && ready) { inject(id, inner); return; } if (++n > 60) return; setTimeout(t, 150); })();
       return out;
     };
   })();
