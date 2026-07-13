@@ -2284,3 +2284,100 @@
   var tries = 0;
   (function wait() { mount().then(function (done) { if (done) return; if (++tries > 80) return; setTimeout(wait, 300); }); })();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 18) AI COACH — wire the client chat to the live coach-chat function.
+ *   Replaces the canned demo (sendCoach / sendFab -> converse) with real
+ *   calls to /functions/v1/coach-chat. Keeps short history for context,
+ *   renders light markdown, and shows a friendly out-of-credits message.
+ * ------------------------------------------------------------------ */
+(function () {
+  'use strict';
+  if (window.__dsCoachLive) return; window.__dsCoachLive = true;
+
+  var URL_ = 'https://dehttbxrkeqhsfkfpfwt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+  var sb = null;
+
+  async function ensureSb() {
+    if (sb) return sb;
+    if (window.__dsSB) { sb = window.__dsSB; return sb; }
+    var m = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+    sb = m.createClient(URL_, ANON, { auth: { storageKey: 'sb-dehttbxrkeqhsfkfpfwt-auth-token', persistSession: true, autoRefreshToken: true } });
+    window.__dsSB = sb; return sb;
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]; }); }
+  function fmt(s) {
+    s = esc(s);
+    s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    s = s.replace(/\n/g, '<br>');
+    return s;
+  }
+  function scroll(box) { try { box.scrollTop = box.scrollHeight; } catch (e) {} }
+  function add(box, cls, html) {
+    var d = document.createElement('div');
+    d.className = 'msg ' + cls;
+    d.innerHTML = html;
+    box.appendChild(d); scroll(box);
+    return d;
+  }
+  function history(box) {
+    var out = [];
+    [].forEach.call(box.querySelectorAll('.msg'), function (el) {
+      if (el.getAttribute('data-typing')) return;
+      var role = el.classList.contains('me') ? 'user' : 'assistant';
+      var text = el.getAttribute('data-raw') || el.textContent || '';
+      if (text.trim()) out.push({ role: role, content: text.trim() });
+    });
+    return out.slice(-8);
+  }
+
+  async function callCoach(message, hist) {
+    try {
+      var s = await ensureSb();
+      var sess = await s.auth.getSession();
+      var tok = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
+      if (!tok) return { error: 'signin' };
+      var r = await fetch(URL_ + '/functions/v1/coach-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + tok },
+        body: JSON.stringify({ message: message, history: hist })
+      });
+      return await r.json();
+    } catch (e) { return { error: 'network' }; }
+  }
+
+  async function ask(box, input) {
+    if (!box || !input) return;
+    var q = (input.value || '').trim(); if (!q) return;
+    var hist = history(box);
+    add(box, 'me', esc(q));
+    input.value = '';
+    var typing = add(box, 'ai', '<span style="opacity:.5">…</span>');
+    typing.setAttribute('data-typing', '1');
+    var res = await callCoach(q, hist);
+    typing.removeAttribute('data-typing');
+    if (res && res.ok && res.reply) {
+      typing.innerHTML = fmt(res.reply);
+      typing.setAttribute('data-raw', res.reply);
+      if (typeof res.remaining_credits === 'number') { try { window.__dsCoachCredits = res.remaining_credits; document.dispatchEvent(new CustomEvent('ds-credits', { detail: res.remaining_credits })); } catch (e) {} }
+    } else if (res && res.error === 'insufficient_credits') {
+      typing.innerHTML = 'You’re out of Coach credits for this month. They reset on the 1st — or you can top up from Settings.';
+    } else if (res && res.error === 'signin') {
+      typing.innerHTML = 'Please sign in again to keep chatting.';
+    } else {
+      typing.innerHTML = 'Hmm, I couldn’t answer that just now — try again in a moment.';
+    }
+    scroll(box);
+  }
+
+  function install() {
+    if (typeof window.sendCoach !== 'function' && typeof window.sendFab !== 'function') return false;
+    window.sendCoach = function () { ask(document.getElementById('coachMsgs'), document.getElementById('coachInput')); };
+    window.sendFab = function () { ask(document.getElementById('fabMsgs'), document.getElementById('fabInput')); };
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (install()) return; if (++tries > 80) return; setTimeout(wait, 250); })();
+})();
