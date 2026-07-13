@@ -1531,22 +1531,13 @@
 /* ------------------------------------------------------------------ *
  * 14) MERCHANT APPLICATION (client-facing) + BitFlow referral redirect.
  *
- *   - Adds a "Merchant Application" item to the client sidebar and a
- *     screen with a DRAFT fillable form (fields to be finalized later).
- *   - Admin sets each client's BitFlow referral ID on the client-detail
- *     editor; it rides along on the existing saveProfile().
- *   - On submit we save the application to public.merchant_applications
- *     and redirect the client to BitFlow with their referral ID
- *     appended. If no referral ID is set, we still save the app but do
- *     NOT send them to a mis-attributed link -- we tell them the team
- *     will follow up. (Attribution integrity.)
- *
- *   The native show() only knows built-in screens; this screen manages
- *   its own active state and wraps show() so navigating to a built-in
- *   screen hides it.
- *
- *   Redirect: https://merchant.getbitflow.com/sign-up?code=<client id>,
+ *   Client sidebar item + full application form. On submit we save to
+ *   public.merchant_applications and redirect to BitFlow:
+ *     https://merchant.getbitflow.com/sign-up?code=<client id>,
  *   falling back to the house code NC-3B2087 when no personal id is set.
+ *   Admin sets each client's BitFlow referral ID on the client-detail
+ *   editor; it rides along on saveProfile() and is protected from
+ *   client self-edit.
  * ------------------------------------------------------------------ */
 (function () {
   'use strict';
@@ -1569,48 +1560,137 @@
   }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }); }
 
-  var FIELDS = [
-    { k: 'legal_name',    label: 'Business legal name',          type: 'text' },
-    { k: 'dba',           label: 'DBA / trade name',             type: 'text' },
-    { k: 'ein',           label: 'EIN / Tax ID',                 type: 'text' },
-    { k: 'entity_type',   label: 'Business type',                type: 'select', opts: ['Sole proprietor', 'LLC', 'S-Corp', 'C-Corp', 'Partnership', 'Non-profit'] },
-    { k: 'years',         label: 'Years in business',            type: 'text' },
-    { k: 'monthly_vol',   label: 'Estimated monthly volume ($)', type: 'text' },
-    { k: 'website',       label: 'Business website',             type: 'text' },
-    { k: 'address',       label: 'Business address',             type: 'text' },
-    { k: 'contact_name',  label: 'Primary contact name',         type: 'text' },
-    { k: 'contact_email', label: 'Contact email',                type: 'text' },
-    { k: 'contact_phone', label: 'Contact phone',                type: 'text' },
-    { k: 'description',   label: 'What does the business sell?',  type: 'textarea' }
+  var STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+
+  var INDUSTRIES = [
+    'Retail — General', 'Restaurant / Food Service', 'E-commerce / Online', 'Automotive (Sales & Repair)',
+    'Salon / Spa / Beauty', 'Health & Wellness', 'Medical / Dental Practice', 'Professional Services',
+    'Legal Services', 'Accounting / Bookkeeping', 'Construction / Contractor', 'Home Services (HVAC, Plumbing, Electrical)',
+    'Real Estate', 'Hospitality / Hotel / Lodging', 'Travel & Tourism', 'Fitness / Gym',
+    'Education / Tutoring', 'Nonprofit / Charity', 'Grocery / Convenience Store', 'Clothing / Apparel',
+    'Jewelry / Accessories', 'Electronics / Technology', 'Furniture / Home Goods', 'Pet Services / Veterinary',
+    'Childcare / Daycare', 'Entertainment / Events', 'Transportation / Logistics', 'Cleaning Services',
+    'Landscaping / Lawn Care', 'Insurance'
   ];
 
-  function fieldHtml(f) {
-    var id = 'ma_' + f.k, input;
-    if (f.type === 'select') {
-      input = '<select id="' + id + '" class="field" style="width:100%"><option value="">Select…</option>'
-        + f.opts.map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('') + '</select>';
-    } else if (f.type === 'textarea') {
-      input = '<textarea id="' + id + '" class="field" rows="3" style="width:100%"></textarea>';
-    } else {
-      input = '<input id="' + id + '" class="field" style="width:100%">';
-    }
-    return '<div style="margin-bottom:14px"><label style="display:block;font-size:13px;color:#48566b;margin-bottom:5px">'
-      + esc(f.label) + '</label>' + input + '</div>';
+  function label(t, sub) {
+    return '<label style="display:block;font-size:13px;font-weight:600;color:#0E1A2B;margin-bottom:5px">' + esc(t)
+      + (sub ? '<span style="display:block;font-weight:400;font-size:12px;color:#8A8A93;margin-top:2px">' + esc(sub) + '</span>' : '') + '</label>';
+  }
+  function text(id, ph) { return '<input id="' + id + '" class="field" style="width:100%"' + (ph ? ' placeholder="' + esc(ph) + '"' : '') + '>'; }
+  function block(inner) { return '<div style="margin-bottom:16px">' + inner + '</div>'; }
+  function seg(id, opts) {
+    return '<div id="' + id + '" class="ma-seg" data-val="" style="display:flex;gap:8px">'
+      + opts.map(function (o) {
+        return '<button type="button" class="ma-seg-btn" data-v="' + esc(o) + '" '
+          + 'style="flex:1;padding:11px;border:1.5px solid #E7E7EC;border-radius:9px;background:#fff;font-weight:600;color:#48566b;cursor:pointer">'
+          + esc(o) + '</button>';
+      }).join('') + '</div>';
+  }
+  function select(id, opts, withOther) {
+    return '<select id="' + id + '" class="field" style="width:100%">'
+      + '<option value="">Select…</option>'
+      + opts.map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('')
+      + (withOther ? '<option value="__other">Other…</option>' : '') + '</select>';
   }
 
   function screenHtml() {
-    return '<div class="wrap" style="max-width:720px">'
+    return '<div class="wrap" style="max-width:680px">'
       + '<div class="h-eyebrow">Merchant services</div>'
       + '<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 6px">Merchant Application</h1>'
-      + '<p class="mut" style="margin-bottom:6px">Tell us about your business. When you submit, we’ll take you to BitFlow to finish setting up your merchant account.</p>'
-      + '<div class="small mut" style="margin-bottom:18px;font-style:italic">Draft form — fields will be finalized.</div>'
-      + '<div class="card pad">' + FIELDS.map(fieldHtml).join('')
-      + '<div id="ma-msg" class="small" style="min-height:18px;margin:2px 0 10px"></div>'
+      + '<p class="mut" style="margin-bottom:18px">Fill this out and we’ll take you to BitFlow to finish setting up your merchant account.</p>'
+      + '<div class="card pad">'
+      + block(label('Are you a merchant or representative filling out this form?') + seg('ma_role', ['Merchant', 'Representative']))
+      + block(label('What is your name?')
+          + '<div style="display:flex;gap:10px">' + text('ma_first', 'First name') + text('ma_last', 'Last name') + '</div>')
+      + '<div id="ma-rep-wrap" style="display:none">'
+        + block(label('Who is the representative that referred you?') + text('ma_ref_rep', 'Representative name'))
+      + '</div>'
+      + block(label('What is the business name to sign up?') + text('ma_business_name'))
+      + block(label('What is the business address?')
+          + text('ma_addr', 'Street address')
+          + '<div style="display:flex;gap:10px;margin-top:10px">'
+            + '<div style="flex:2">' + text('ma_city', 'City') + '</div>'
+            + '<div style="flex:1">' + select('ma_state', STATES, false) + '</div>'
+            + '<div style="flex:1">' + text('ma_zip', 'ZIP') + '</div>'
+          + '</div>')
+      + block(label('Who is the business primary point of contact?')
+          + '<div style="display:flex;gap:10px">' + text('ma_poc_first', 'First name') + text('ma_poc_last', 'Last name') + '</div>')
+      + block(label('What is the business phone number?')
+          + '<div style="display:flex;align-items:center;gap:8px">'
+            + '<span style="padding:11px 12px;border:1.5px solid #E7E7EC;border-radius:9px;background:#f7f8fa;color:#48566b;font-weight:600">+1</span>'
+            + '<input id="ma_phone" class="field" style="flex:1" placeholder="(555) 555-5555" inputmode="tel">'
+          + '</div>')
+      + block(label('What is the business email address?') + text('ma_email', 'name@business.com'))
+      + block(label('What is the current monthly sales?', 'Roughly how much do you do in sales across all payment methods') + text('ma_monthly_sales', '$'))
+      + block(label('What is the business industry?')
+          + select('ma_industry', INDUSTRIES, true)
+          + '<div id="ma-industry-other-wrap" style="display:none;margin-top:10px">' + text('ma_industry_other', 'Describe the industry') + '</div>')
+      + block(label('Who will be charged the transaction fee?') + seg('ma_fee_payer', ['Customer', 'Merchant']))
+      + block(label('What equipment will you be using?', 'If software only put N/A') + text('ma_equipment'))
+      + block(label('What percentage will be charged?', 'Typically 4%')
+          + '<div style="display:flex;align-items:center;gap:8px">'
+            + '<input id="ma_percentage" class="field" style="flex:1" placeholder="4" inputmode="decimal">'
+            + '<span style="color:#48566b;font-weight:600">%</span>'
+          + '</div>')
+      + '<div id="ma-msg" class="small" style="min-height:18px;margin:4px 0 10px"></div>'
       + '<button id="ma-submit" class="btn primary" style="width:100%;justify-content:center">Submit application</button>'
       + '</div></div>';
   }
 
   var GLOBE_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+
+  function wireForm(sec) {
+    [].forEach.call(sec.querySelectorAll('.ma-seg'), function (grp) {
+      grp.addEventListener('click', function (e) {
+        var b = e.target && e.target.closest ? e.target.closest('.ma-seg-btn') : null;
+        if (!b || !grp.contains(b)) return;
+        [].forEach.call(grp.querySelectorAll('.ma-seg-btn'), function (x) {
+          x.style.borderColor = '#E7E7EC'; x.style.background = '#fff'; x.style.color = '#48566b';
+        });
+        b.style.borderColor = '#F2B33D'; b.style.background = '#FFF8EC'; b.style.color = '#0E1A2B';
+        grp.setAttribute('data-val', b.getAttribute('data-v'));
+        if (grp.id === 'ma_role') {
+          var repWrap = sec.querySelector('#ma-rep-wrap');
+          if (repWrap) repWrap.style.display = (b.getAttribute('data-v') === 'Merchant') ? '' : 'none';
+        }
+      });
+    });
+    var ind = sec.querySelector('#ma_industry');
+    if (ind) ind.addEventListener('change', function () {
+      var w = sec.querySelector('#ma-industry-other-wrap');
+      if (w) w.style.display = (ind.value === '__other') ? '' : 'none';
+    });
+  }
+
+  function collect(sec) {
+    function v(id) { var el = sec.querySelector('#' + id); return el ? (el.value || '').trim() : ''; }
+    function segv(id) { var el = sec.querySelector('#' + id); return el ? (el.getAttribute('data-val') || '') : ''; }
+    var role = segv('ma_role');
+    var industry = v('ma_industry');
+    if (industry === '__other') industry = v('ma_industry_other') || 'Other';
+    var phone = v('ma_phone').replace(/[^\d]/g, '');
+    return {
+      role: role,
+      first_name: v('ma_first'),
+      last_name: v('ma_last'),
+      referred_by_representative: role === 'Merchant' ? v('ma_ref_rep') : '',
+      business_name: v('ma_business_name'),
+      business_address: v('ma_addr'),
+      business_city: v('ma_city'),
+      business_state: v('ma_state'),
+      business_zip: v('ma_zip'),
+      poc_first_name: v('ma_poc_first'),
+      poc_last_name: v('ma_poc_last'),
+      business_phone: phone ? '+1' + phone : '',
+      business_email: v('ma_email'),
+      monthly_sales: v('ma_monthly_sales'),
+      industry: industry,
+      fee_paid_by: segv('ma_fee_payer'),
+      equipment: v('ma_equipment'),
+      fee_percentage: v('ma_percentage')
+    };
+  }
 
   function activate(nav, sec) {
     [].forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.remove('active'); });
@@ -1621,28 +1701,46 @@
 
   async function submit(sec) {
     var msg = sec.querySelector('#ma-msg'), btn = sec.querySelector('#ma-submit');
-    msg.style.color = '#48566b'; msg.textContent = '';
-    var data = {};
-    FIELDS.forEach(function (f) { var el = sec.querySelector('#ma_' + f.k); if (el) data[f.k] = (el.value || '').trim(); });
+    msg.style.color = '#c0392b'; msg.textContent = '';
+    var data = collect(sec);
+
+    if (!data.role) { msg.textContent = 'Please choose merchant or representative.'; return; }
+    if (!data.first_name || !data.last_name) { msg.textContent = 'Please enter your name.'; return; }
+    if (!data.business_name) { msg.textContent = 'Please enter the business name.'; return; }
+    if (!data.business_email || data.business_email.indexOf('@') < 0) { msg.textContent = 'Please enter a valid business email.'; return; }
 
     var s = await ensureSb();
     var u = await s.auth.getUser();
     var uid = u && u.data && u.data.user ? u.data.user.id : null;
-    if (!uid) { msg.style.color = '#c0392b'; msg.textContent = 'Please sign in again.'; return; }
+    if (!uid) { msg.textContent = 'Please sign in again.'; return; }
 
     var pr = await s.from('profiles').select('bitflow_referral_id').eq('id', uid).single();
     var ref = pr.data && pr.data.bitflow_referral_id ? String(pr.data.bitflow_referral_id).trim() : '';
-    var code = ref || BITFLOW_DEFAULT_CODE; // fall back to the house code
+    var code = ref || BITFLOW_DEFAULT_CODE;
     var redirect = BITFLOW_URL + (BITFLOW_URL.indexOf('?') > -1 ? '&' : '?') + BITFLOW_PARAM + '=' + encodeURIComponent(code);
 
     btn.disabled = true; btn.textContent = 'Submitting…';
     var ins = await s.from('merchant_applications').insert({ client_id: uid, data: data, referral_id: ref || null, redirected_to: redirect }).select('id').single();
     if (ins.error) {
       btn.disabled = false; btn.textContent = 'Submit application';
-      msg.style.color = '#c0392b'; msg.textContent = 'Couldn’t submit — please try again.'; return;
+      msg.textContent = 'Couldn’t submit — please try again.'; return;
     }
+
+    // notify the pp-agent-secured channel (best-effort; never blocks the redirect)
+    try {
+      var sess = await s.auth.getSession();
+      var tok = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
+      if (tok) {
+        fetch(URL_ + '/functions/v1/merchant-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + tok },
+          body: JSON.stringify({ application_id: ins.data.id })
+        }).catch(function () {});
+      }
+    } catch (e) {}
+
     msg.style.color = '#1a7f4b'; msg.textContent = 'Submitted. Taking you to BitFlow…';
-    setTimeout(function () { window.location.href = redirect; }, 900);
+    setTimeout(function () { window.location.href = redirect; }, 1200);
   }
 
   function mount() {
@@ -1662,6 +1760,7 @@
     sec.className = 'screen'; sec.id = 'merchant'; sec.innerHTML = screenHtml();
     screenParent.appendChild(sec);
 
+    wireForm(sec);
     nav.addEventListener('click', function () { activate(nav, sec); });
     sec.querySelector('#ma-submit').addEventListener('click', function () { submit(sec); });
 
@@ -1686,8 +1785,6 @@
     var origOpen = window.openClient;
     window.openClient = function (id) {
       var out = origOpen.apply(this, arguments);
-      // openClient fetches from the DB, so the profile fields render async.
-      // Poll for the anchor for a few seconds instead of a fixed delay.
       var n = 0;
       (function tryInject() {
         if (document.getElementById('pf_bitflow')) return;
@@ -1701,14 +1798,11 @@
     if (typeof window.saveProfile === 'function') {
       var origSave = window.saveProfile;
       window.saveProfile = async function () {
+        var el0 = document.getElementById('pf_bitflow');
+        var uid0 = el0 && el0.getAttribute('data-uid');
+        var val0 = el0 ? (el0.value || '').trim() : null;
         var out = await origSave.apply(this, arguments);
-        try {
-          var el = document.getElementById('pf_bitflow');
-          if (el && el.getAttribute('data-uid')) {
-            var s = await ensureSb();
-            await s.from('profiles').update({ bitflow_referral_id: (el.value || '').trim() || null }).eq('id', el.getAttribute('data-uid'));
-          }
-        } catch (e) {}
+        try { if (uid0) { var s = await ensureSb(); await s.from('profiles').update({ bitflow_referral_id: val0 || null }).eq('id', uid0); } } catch (e) {}
         return out;
       };
     }
@@ -1719,7 +1813,7 @@
       var wrap = document.createElement('div');
       wrap.style.marginTop = '10px';
       wrap.innerHTML = '<label style="display:block;font-size:12.5px;color:#48566b;margin-bottom:5px">BitFlow referral ID</label>'
-        + '<input id="pf_bitflow" class="field" placeholder="client’s unique BitFlow ref" style="width:100%">';
+        + '<input id="pf_bitflow" class="field" placeholder="client’s unique BitFlow code" style="width:100%">';
       var host = anchor.closest ? (anchor.closest('.field-row') || anchor.parentElement) : anchor.parentElement;
       (host && host.parentElement ? host.parentElement : host).appendChild(wrap);
       var input = wrap.querySelector('#pf_bitflow');
