@@ -2778,3 +2778,120 @@ var n=0;(function wait(){if(typeof window.show==='function'){hook();return;}if(+
 function clean(){try{history.replaceState({},'',location.pathname+location.hash);}catch(e){}}
 async function run(){var p=new URLSearchParams(location.search);var ro=p.get('reorder');if(!ro)return;if(ro==='cancel'){clean();toast('Checkout canceled.');return;}if(ro!=='success')return;var sid=p.get('session_id');clean();if(!sid)return;try{var s=await ensureSb();var sess=await s.auth.getSession();var tok=sess.data.session&&sess.data.session.access_token;if(!tok)return;var r=await fetch(URL_+'/functions/v1/confirm-reorder',{method:'POST',headers:{'Content-Type':'application/json','apikey':ANON,'Authorization':'Bearer '+tok},body:JSON.stringify({session_id:sid})});var j=await r.json();if(j&&j.ok){toast('Order confirmed — thank you!');var nav=document.querySelector('.nav[data-screen="reorders"]');if(nav)setTimeout(function(){nav.click();},400);}}catch(e){}}
 var n=0;(function wait(){if(document.querySelector('.nav[data-screen="reorders"]')){run();return;}if(++n>60)return;setTimeout(wait,300);})();})();
+
+
+/* ---- 30) LOCATION FINDER (Scouter): Google Places discovery + enrich ---- */
+(function(){'use strict';
+if(window.__dsFinder)return;window.__dsFinder=true;
+var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+var sb=null;
+async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}
+async function tok(){var s=await ensureSb();var r=await s.auth.getSession();return r.data.session&&r.data.session.access_token;}
+async function call(fn,payload){var t=await tok();if(!t)throw new Error('signin');var r=await fetch(URL_+'/functions/v1/'+fn,{method:'POST',headers:{'Content-Type':'application/json','apikey':ANON,'Authorization':'Bearer '+t},body:JSON.stringify(payload||{})});return await r.json();}
+async function refreshBal(root){try{var s=await ensureSb();var u=await s.auth.getUser();var id=u.data.user.id;var r=await s.rpc('credits_available',{p_client:id});var el=root.querySelector('#ds-fi-bal');if(el)el.textContent=(r.data==null?'—':r.data)+' credits';}catch(e){}}
+function stripUrl(u){return String(u).replace('https://','').replace('http://','').slice(0,48);}
+function drow(label,val){if(val==null||val==='')return '';return '<div style="display:flex;gap:8px;margin:2px 0"><div class="small mut" style="min-width:130px">'+label+'</div><div class="small" style="flex:1">'+val+'</div></div>';}
+function renderEnrich(d){
+  if(!d)return '<div class="small mut">No data.</div>';
+  if(d.found===false)return '<div class="small mut">'+esc(d.note||'No public records found. Credits were refunded.')+'</div>';
+  var officers=(d.officers||[]).map(function(o){return esc(o.name||'')+(o.role?' ('+esc(o.role)+')':'');}).filter(Boolean).join(', ');
+  var lic=(d.licenses||[]).map(function(l){return esc(l.type||'License')+(l.number?' #'+esc(l.number):'')+(l.status?' — '+esc(l.status):'')+(l.expires?', exp '+esc(l.expires):'');}).join('<br>');
+  var src=(d.sources||[]).map(function(u){return '<a href="'+esc(u)+'" target="_blank" rel="noopener" class="small">'+esc(stripUrl(u))+'</a>';}).join('<br>');
+  return '<div class="card pad" style="background:#F7FAFC">'
+    +drow('Legal name',esc(d.legal_name))
+    +drow('Entity number',esc(d.company_number))
+    +drow('Status',esc(d.status))
+    +drow('Formed',esc(d.incorporation_date))
+    +drow('Registered agent',esc(d.registered_agent))
+    +drow('Officers / owners',officers)
+    +drow('Address',esc(d.address))
+    +drow('Business type',esc(d.business_type))
+    +drow('Licenses',lic)
+    +drow('Sources',src)
+    +(d.notes?'<div class="small mut" style="margin-top:6px">'+esc(d.notes)+'</div>':'')
+    +'</div>';
+}
+function resultCard(row,i){
+  var meta=[];if(row.phone)meta.push(esc(row.phone));if(row.rating)meta.push('★ '+row.rating+' ('+(row.reviews||0)+')');if(row.status&&row.status!=='OPERATIONAL')meta.push(esc(row.status));
+  return '<div class="card pad" style="margin-bottom:10px">'
+    +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">'
+    +'<div style="flex:1"><div style="font-weight:700;color:#0E1A2B">'+esc(row.name)+'</div>'
+    +'<div class="small mut">'+esc(row.type||'')+(row.state?' · '+esc(row.state):'')+'</div>'
+    +'<div class="small" style="margin-top:2px">'+esc(row.address||'')+'</div>'
+    +(meta.length?'<div class="small mut" style="margin-top:2px">'+meta.join(' · ')+'</div>':'')
+    +'</div>'
+    +'<div style="text-align:right;white-space:nowrap">'
+    +(row.website?'<a class="small" href="'+esc(row.website)+'" target="_blank" rel="noopener">Website</a><br>':'')
+    +(row.maps_url?'<a class="small" href="'+esc(row.maps_url)+'" target="_blank" rel="noopener">Map</a><br>':'')
+    +'<button class="btn primary" data-enrich="'+i+'" style="margin-top:6px">Enrich (6 credits)</button>'
+    +'</div></div>'
+    +'<div id="ds-fi-out-'+i+'" style="margin-top:8px"></div>'
+    +'</div>';
+}
+async function search(root){
+  var q=(root.querySelector('#ds-fi-q').value||'').trim();
+  var msg=root.querySelector('#ds-fi-msg');msg.style.color='';msg.textContent='';
+  if(!q){msg.style.color='#c0392b';msg.textContent='Enter what to search for, e.g. liquor stores in Atlanta GA.';return;}
+  var go=root.querySelector('#ds-fi-go');go.disabled=true;go.textContent='Searching…';
+  root.querySelector('#ds-fi-results').innerHTML='';
+  try{
+    var res=await call('places-search',{query:q});
+    if(res.error==='insufficient_credits'){msg.style.color='#c0392b';msg.textContent='Not enough credits to search (needs '+(res.cost||1)+').';}
+    else if(res.error==='places_not_configured'){msg.style.color='#c0392b';msg.textContent='Places API key not set up yet.';}
+    else if(!res.ok){msg.style.color='#c0392b';msg.textContent='Search failed: '+esc(res.detail||res.error||'unknown');}
+    else{var list=res.results||[];root.__rows=list;if(!list.length){msg.textContent=res.note||'No results.';}root.querySelector('#ds-fi-results').innerHTML=list.map(resultCard).join('');}
+  }catch(e){msg.style.color='#c0392b';msg.textContent='Search error. Please try again.';}
+  go.disabled=false;go.textContent='Search (1 credit)';refreshBal(root);
+}
+async function enrich(root,i,btn){
+  var row=(root.__rows||[])[i];if(!row)return;
+  var out=root.querySelector('#ds-fi-out-'+i);
+  btn.disabled=true;btn.textContent='Enriching…';
+  out.innerHTML='<div class="small mut">Pulling public records — this can take up to a minute.</div>';
+  try{
+    var res=await call('enrich-business',{name:row.name,state:row.state});
+    if(res.error==='insufficient_credits'){out.innerHTML='<div class="small" style="color:#c0392b">Not enough credits (needs '+(res.cost||6)+').</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';refreshBal(root);return;}
+    if(!res.ok||!res.job_id){out.innerHTML='<div class="small" style="color:#c0392b">Could not start enrichment.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';return;}
+    refreshBal(root);
+    var s=await ensureSb();var tries=0;
+    var iv=setInterval(async function(){
+      tries++;
+      var qr=await s.from('enrichment_jobs').select('status,result,error').eq('id',res.job_id).single();
+      if(qr.error)return;
+      var st=qr.data.status;
+      if(st==='done'){clearInterval(iv);out.innerHTML=renderEnrich(qr.data.result);btn.textContent='Enriched ✓';refreshBal(root);}
+      else if(st==='error'){clearInterval(iv);out.innerHTML='<div class="small" style="color:#c0392b">Enrichment failed'+(qr.data.error?': '+esc(qr.data.error):'')+'. Credits refunded.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';refreshBal(root);}
+      else if(tries>40){clearInterval(iv);out.innerHTML='<div class="small mut">Still working — reopen this later to see the result.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';}
+    },2500);
+  }catch(e){out.innerHTML='<div class="small" style="color:#c0392b">Enrichment error.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';}
+}
+var UI='<div class="wrap" style="max-width:820px">'
+  +'<div class="h-eyebrow">Tools</div>'
+  +'<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">Location Finder</h1>'
+  +'<p class="mut" style="margin-bottom:12px">Search Google for businesses by type and area, then spend credits to enrich the ones you want — legal entity, owners, and licenses from public records.</p>'
+  +'<div class="card pad" style="margin-bottom:14px">'
+  +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+  +'<input id="ds-fi-q" class="field" placeholder="e.g. liquor stores in Atlanta, GA" style="flex:1;min-width:240px">'
+  +'<button id="ds-fi-go" class="btn primary">Search (1 credit)</button>'
+  +'</div>'
+  +'<div style="display:flex;justify-content:space-between;margin-top:8px;gap:10px">'
+  +'<div id="ds-fi-msg" class="small" style="min-height:16px;flex:1"></div>'
+  +'<div class="small mut">Balance: <b id="ds-fi-bal">—</b></div>'
+  +'</div></div>'
+  +'<div id="ds-fi-results"></div></div>';
+function mount(){
+  var inner=document.getElementById('scouterInner');
+  if(!inner)return false;
+  if(inner.getAttribute('data-dsfi'))return true;
+  inner.setAttribute('data-dsfi','1');
+  inner.innerHTML=UI;var root=inner;
+  root.querySelector('#ds-fi-go').addEventListener('click',function(){search(root);});
+  root.querySelector('#ds-fi-q').addEventListener('keydown',function(e){if(e.key==='Enter')search(root);});
+  root.querySelector('#ds-fi-results').addEventListener('click',function(e){var b=e.target.closest('[data-enrich]');if(b)enrich(root,parseInt(b.getAttribute('data-enrich'),10),b);});
+  refreshBal(root);return true;
+}
+var n=0;(function w(){if(mount()||++n>80)return;setTimeout(w,300);})();
+})();
