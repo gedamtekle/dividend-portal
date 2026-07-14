@@ -2780,118 +2780,177 @@ async function run(){var p=new URLSearchParams(location.search);var ro=p.get('re
 var n=0;(function wait(){if(document.querySelector('.nav[data-screen="reorders"]')){run();return;}if(++n>60)return;setTimeout(wait,300);})();})();
 
 
-/* ---- 30) LOCATION FINDER (Scouter): Google Places discovery + enrich ---- */
+/* ---- 30) LOCATION FINDER (Scouter): map radius + type/keyword/hours + history ---- */
 (function(){'use strict';
 if(window.__dsFinder)return;window.__dsFinder=true;
 var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
 var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
-var sb=null;
+var sb=null,map=null,circle=null;
+var TYPES=[['','Any business type'],['liquor_store','Liquor / package store'],['convenience_store','Convenience store'],['supermarket','Grocery / supermarket'],['restaurant','Restaurant'],['cafe','Cafe / coffee'],['bar','Bar'],['bakery','Bakery'],['jewelry_store','Jewelry store'],['clothing_store','Clothing / apparel'],['shoe_store','Shoe store'],['furniture_store','Furniture store'],['electronics_store','Electronics store'],['hardware_store','Hardware store'],['home_goods_store','Home goods'],['florist','Florist'],['pet_store','Pet store'],['pharmacy','Pharmacy'],['gas_station','Gas station'],['car_repair','Auto repair'],['car_dealer','Car dealer'],['beauty_salon','Beauty salon'],['hair_salon','Hair salon'],['nail_salon','Nail salon'],['barber_shop','Barber shop'],['spa','Spa'],['gym','Gym / fitness'],['laundry','Laundry / dry cleaning'],['book_store','Book store'],['store','General retail store']];
+var DAYS=[['0','Sun'],['1','Mon'],['2','Tue'],['3','Wed'],['4','Thu'],['5','Fri'],['6','Sat']];
 async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
 function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}
 async function tok(){var s=await ensureSb();var r=await s.auth.getSession();return r.data.session&&r.data.session.access_token;}
 async function call(fn,payload){var t=await tok();if(!t)throw new Error('signin');var r=await fetch(URL_+'/functions/v1/'+fn,{method:'POST',headers:{'Content-Type':'application/json','apikey':ANON,'Authorization':'Bearer '+t},body:JSON.stringify(payload||{})});return await r.json();}
-async function refreshBal(root){try{var s=await ensureSb();var u=await s.auth.getUser();var id=u.data.user.id;var r=await s.rpc('credits_available',{p_client:id});var el=root.querySelector('#ds-fi-bal');if(el)el.textContent=(r.data==null?'—':r.data)+' credits';}catch(e){}}
+async function refreshBal(root){try{var s=await ensureSb();var u=await s.auth.getUser();var id=u.data.user.id;var r=await s.rpc('credits_available',{p_client:id});var el=root.querySelector('#ds-fi-bal');if(el)el.textContent=(r.data==null?'-':r.data)+' credits';}catch(e){}}
+function milesToM(mi){return Math.round(mi*1609.34);}
+function hm(v){if(!v)return null;var p=String(v).split(':');if(p.length<2)return null;var h=parseInt(p[0],10),m=parseInt(p[1],10);if(isNaN(h)||isNaN(m))return null;return h*60+m;}
 function stripUrl(u){return String(u).replace('https://','').replace('http://','').slice(0,48);}
+function setRlabel(root){var s=root.querySelector('#ds-fi-radius');root.querySelector('#ds-fi-rlabel').textContent=parseFloat(s.value).toFixed(1)+' mi';}
 function drow(label,val){if(val==null||val==='')return '';return '<div style="display:flex;gap:8px;margin:2px 0"><div class="small mut" style="min-width:130px">'+label+'</div><div class="small" style="flex:1">'+val+'</div></div>';}
 function renderEnrich(d){
   if(!d)return '<div class="small mut">No data.</div>';
   if(d.found===false)return '<div class="small mut">'+esc(d.note||'No public records found. Credits were refunded.')+'</div>';
   var officers=(d.officers||[]).map(function(o){return esc(o.name||'')+(o.role?' ('+esc(o.role)+')':'');}).filter(Boolean).join(', ');
-  var lic=(d.licenses||[]).map(function(l){return esc(l.type||'License')+(l.number?' #'+esc(l.number):'')+(l.status?' — '+esc(l.status):'')+(l.expires?', exp '+esc(l.expires):'');}).join('<br>');
+  var lic=(d.licenses||[]).map(function(l){return esc(l.type||'License')+(l.number?' #'+esc(l.number):'')+(l.status?' - '+esc(l.status):'')+(l.expires?', exp '+esc(l.expires):'');}).join('<br>');
   var src=(d.sources||[]).map(function(u){return '<a href="'+esc(u)+'" target="_blank" rel="noopener" class="small">'+esc(stripUrl(u))+'</a>';}).join('<br>');
   return '<div class="card pad" style="background:#F7FAFC">'
-    +drow('Legal name',esc(d.legal_name))
-    +drow('Entity number',esc(d.company_number))
-    +drow('Status',esc(d.status))
-    +drow('Formed',esc(d.incorporation_date))
-    +drow('Registered agent',esc(d.registered_agent))
-    +drow('Officers / owners',officers)
-    +drow('Address',esc(d.address))
-    +drow('Business type',esc(d.business_type))
-    +drow('Licenses',lic)
-    +drow('Sources',src)
-    +(d.notes?'<div class="small mut" style="margin-top:6px">'+esc(d.notes)+'</div>':'')
-    +'</div>';
+    +drow('Legal name',esc(d.legal_name))+drow('Entity number',esc(d.company_number))+drow('Status',esc(d.status))
+    +drow('Formed',esc(d.incorporation_date))+drow('Registered agent',esc(d.registered_agent))+drow('Officers / owners',officers)
+    +drow('Address',esc(d.address))+drow('Business type',esc(d.business_type))+drow('Licenses',lic)+drow('Sources',src)
+    +(d.notes?'<div class="small mut" style="margin-top:6px">'+esc(d.notes)+'</div>':'')+'</div>';
 }
 function resultCard(row,i){
-  var meta=[];if(row.phone)meta.push(esc(row.phone));if(row.rating)meta.push('★ '+row.rating+' ('+(row.reviews||0)+')');if(row.status&&row.status!=='OPERATIONAL')meta.push(esc(row.status));
+  var meta=[];if(row.distance_m!=null)meta.push((row.distance_m/1609.34).toFixed(1)+' mi');if(row.phone)meta.push(esc(row.phone));if(row.rating)meta.push('Rating '+row.rating+' ('+(row.reviews||0)+')');if(row.status&&row.status!=='OPERATIONAL')meta.push(esc(row.status));
+  var hrs=(row.hours&&row.hours.length)?'<div class="small mut" style="margin-top:2px">'+esc(row.hours.join('  |  ')).slice(0,180)+'</div>':'';
   return '<div class="card pad" style="margin-bottom:10px">'
     +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">'
     +'<div style="flex:1"><div style="font-weight:700;color:#0E1A2B">'+esc(row.name)+'</div>'
-    +'<div class="small mut">'+esc(row.type||'')+(row.state?' · '+esc(row.state):'')+'</div>'
+    +'<div class="small mut">'+esc(row.type||'')+(row.state?' - '+esc(row.state):'')+'</div>'
     +'<div class="small" style="margin-top:2px">'+esc(row.address||'')+'</div>'
-    +(meta.length?'<div class="small mut" style="margin-top:2px">'+meta.join(' · ')+'</div>':'')
-    +'</div>'
+    +(meta.length?'<div class="small mut" style="margin-top:2px">'+meta.join(' - ')+'</div>':'')+hrs+'</div>'
     +'<div style="text-align:right;white-space:nowrap">'
     +(row.website?'<a class="small" href="'+esc(row.website)+'" target="_blank" rel="noopener">Website</a><br>':'')
     +(row.maps_url?'<a class="small" href="'+esc(row.maps_url)+'" target="_blank" rel="noopener">Map</a><br>':'')
     +'<button class="btn primary" data-enrich="'+i+'" style="margin-top:6px">Enrich (6 credits)</button>'
-    +'</div></div>'
-    +'<div id="ds-fi-out-'+i+'" style="margin-top:8px"></div>'
-    +'</div>';
-}
-async function search(root){
-  var q=(root.querySelector('#ds-fi-q').value||'').trim();
-  var msg=root.querySelector('#ds-fi-msg');msg.style.color='';msg.textContent='';
-  if(!q){msg.style.color='#c0392b';msg.textContent='Enter what to search for, e.g. liquor stores in Atlanta GA.';return;}
-  var go=root.querySelector('#ds-fi-go');go.disabled=true;go.textContent='Searching…';
-  root.querySelector('#ds-fi-results').innerHTML='';
-  try{
-    var res=await call('places-search',{query:q});
-    if(res.error==='insufficient_credits'){msg.style.color='#c0392b';msg.textContent='Not enough credits to search (needs '+(res.cost||1)+').';}
-    else if(res.error==='places_not_configured'){msg.style.color='#c0392b';msg.textContent='Places API key not set up yet.';}
-    else if(!res.ok){msg.style.color='#c0392b';msg.textContent='Search failed: '+esc(res.detail||res.error||'unknown');}
-    else{var list=res.results||[];root.__rows=list;if(!list.length){msg.textContent=res.note||'No results.';}root.querySelector('#ds-fi-results').innerHTML=list.map(resultCard).join('');}
-  }catch(e){msg.style.color='#c0392b';msg.textContent='Search error. Please try again.';}
-  go.disabled=false;go.textContent='Search (1 credit)';refreshBal(root);
+    +'</div></div><div id="ds-fi-out-'+i+'" style="margin-top:8px"></div></div>';
 }
 async function enrich(root,i,btn){
   var row=(root.__rows||[])[i];if(!row)return;
-  var out=root.querySelector('#ds-fi-out-'+i);
-  btn.disabled=true;btn.textContent='Enriching…';
-  out.innerHTML='<div class="small mut">Pulling public records — this can take up to a minute.</div>';
+  var out=root.querySelector('#ds-fi-out-'+i);btn.disabled=true;btn.textContent='Enriching...';
+  out.innerHTML='<div class="small mut">Pulling public records - this can take up to a minute.</div>';
   try{
     var res=await call('enrich-business',{name:row.name,state:row.state});
     if(res.error==='insufficient_credits'){out.innerHTML='<div class="small" style="color:#c0392b">Not enough credits (needs '+(res.cost||6)+').</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';refreshBal(root);return;}
     if(!res.ok||!res.job_id){out.innerHTML='<div class="small" style="color:#c0392b">Could not start enrichment.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';return;}
-    refreshBal(root);
-    var s=await ensureSb();var tries=0;
+    refreshBal(root);var s=await ensureSb();var tries=0;
     var iv=setInterval(async function(){
-      tries++;
-      var qr=await s.from('enrichment_jobs').select('status,result,error').eq('id',res.job_id).single();
-      if(qr.error)return;
-      var st=qr.data.status;
-      if(st==='done'){clearInterval(iv);out.innerHTML=renderEnrich(qr.data.result);btn.textContent='Enriched ✓';refreshBal(root);}
+      tries++;var qr=await s.from('enrichment_jobs').select('status,result,error').eq('id',res.job_id).single();if(qr.error)return;var st=qr.data.status;
+      if(st==='done'){clearInterval(iv);out.innerHTML=renderEnrich(qr.data.result);btn.textContent='Enriched';refreshBal(root);}
       else if(st==='error'){clearInterval(iv);out.innerHTML='<div class="small" style="color:#c0392b">Enrichment failed'+(qr.data.error?': '+esc(qr.data.error):'')+'. Credits refunded.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';refreshBal(root);}
-      else if(tries>40){clearInterval(iv);out.innerHTML='<div class="small mut">Still working — reopen this later to see the result.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';}
+      else if(tries>40){clearInterval(iv);out.innerHTML='<div class="small mut">Still working - reopen later to see the result.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';}
     },2500);
   }catch(e){out.innerHTML='<div class="small" style="color:#c0392b">Enrichment error.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';}
 }
-var UI='<div class="wrap" style="max-width:820px">'
+function loadMaps(key){return new Promise(function(res,rej){if(window.google&&window.google.maps){res();return;}var cbn='__dsGmapsCb';window[cbn]=function(){res();};var s=document.createElement('script');s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&libraries=geometry&loading=async&callback='+cbn;s.async=true;s.onerror=function(){rej(new Error('maps_load_failed'));};document.head.appendChild(s);});}
+function initMap(root){
+  var center={lat:33.749,lng:-84.388};
+  map=new google.maps.Map(root.querySelector('#ds-fi-map'),{center:center,zoom:11,mapTypeControl:false,streetViewControl:false,fullscreenControl:false});
+  circle=new google.maps.Circle({map:map,center:center,radius:milesToM(parseFloat(root.querySelector('#ds-fi-radius').value)),editable:true,draggable:true,fillColor:'#2F6BFF',fillOpacity:0.10,strokeColor:'#2F6BFF',strokeOpacity:0.85,strokeWeight:1.5});
+  try{map.fitBounds(circle.getBounds());}catch(e){}
+  google.maps.event.addListener(circle,'radius_changed',function(){var mi=circle.getRadius()/1609.34;var s=root.querySelector('#ds-fi-radius');s.value=Math.min(30,Math.max(0.5,parseFloat(mi.toFixed(1))));setRlabel(root);});
+}
+function locate(root){
+  var q=(root.querySelector('#ds-fi-place').value||'').trim();if(!q)return;
+  if(!window.google||!google.maps){root.querySelector('#ds-fi-msg').textContent='Map not ready yet.';return;}
+  var gc=new google.maps.Geocoder();
+  gc.geocode({address:q,componentRestrictions:{country:'US'}},function(r,status){
+    if(status==='OK'&&r&&r[0]){var loc=r[0].geometry.location;map.setCenter(loc);circle.setCenter(loc);try{map.fitBounds(circle.getBounds());}catch(e){}root.__city=q;var m=root.querySelector('#ds-fi-msg');m.style.color='';m.textContent='';}
+    else{var m2=root.querySelector('#ds-fi-msg');m2.style.color='#c0392b';m2.textContent='Could not find that place. Check spelling or add a state.';}
+  });
+}
+function showSetup(root){
+  var s=root.querySelector('#ds-fi-setup');s.style.display='';s.style.color='#8a6d1a';
+  s.innerHTML='Map is not set up yet. Add a Google Maps browser key (GOOGLE_MAPS_BROWSER_KEY) and enable the Maps JavaScript + Geocoding APIs to use the map and radius. You can still search by keyword below.';
+  var mp=root.querySelector('#ds-fi-map');if(mp)mp.style.display='none';
+  var pe=root.querySelector('#ds-fi-place');if(pe&&pe.parentElement)pe.parentElement.style.display='none';
+  var re=root.querySelector('#ds-fi-radius');if(re&&re.parentElement)re.parentElement.style.display='none';
+}
+async function loadHistory(root){
+  try{var s=await ensureSb();var u=await s.auth.getUser();var id=u.data.user.id;
+  var r=await s.from('search_history').select('id,label,result_count,created_at').eq('client_id',id).order('created_at',{ascending:false}).limit(25);
+  var rows=r.data||[];var el=root.querySelector('#ds-fi-history');if(!el)return;
+  if(!rows.length){el.innerHTML='<div class="small mut">No searches yet. Your searches and their results will be saved here.</div>';return;}
+  el.innerHTML=rows.map(function(h){var d=new Date(h.created_at);return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #EEF2F6"><div style="flex:1"><div class="small" style="font-weight:600">'+esc(h.label||'Search')+'</div><div class="small mut">'+h.result_count+' results - '+d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</div></div><div style="white-space:nowrap"><button class="btn" data-hload="'+h.id+'" style="padding:2px 8px">Load</button> <button class="btn" data-hdel="'+h.id+'" style="padding:2px 7px">Delete</button></div></div>';}).join('');
+  }catch(e){}
+}
+async function search(root){
+  var msg=root.querySelector('#ds-fi-msg');msg.style.color='';msg.textContent='';
+  var type=root.querySelector('#ds-fi-type').value;
+  var kw=(root.querySelector('#ds-fi-kw').value||'').trim();
+  var days=[].slice.call(root.querySelectorAll('#ds-fi-days input:checked')).map(function(c){return parseInt(c.getAttribute('data-day'),10);});
+  var t1=hm(root.querySelector('#ds-fi-t1').value),t2=hm(root.querySelector('#ds-fi-t2').value);
+  if(!type&&!kw){msg.style.color='#c0392b';msg.textContent='Pick a business type or enter a keyword.';return;}
+  if(root.__nomap&&!kw){msg.style.color='#c0392b';msg.textContent='Map not set up yet - enter a keyword to search.';return;}
+  var payload={included_type:type,keyword:kw,open_days:days};
+  if(t1!=null&&t2!=null){payload.time_start=t1;payload.time_end=t2;}
+  if(!root.__nomap&&circle){var c=circle.getCenter();payload.lat=c.lat();payload.lng=c.lng();payload.radius=circle.getRadius();payload.city=root.__city||(root.querySelector('#ds-fi-place').value||'');}
+  var topt=root.querySelector('#ds-fi-type').selectedOptions[0];var typeLabel=topt?topt.textContent:'';
+  var parts=[];if(kw)parts.push(kw);else if(type)parts.push(typeLabel);if(payload.city)parts.push(payload.city);if(payload.radius)parts.push((payload.radius/1609.34).toFixed(1)+' mi');
+  payload.label=parts.join(' - ')||'Search';
+  var go=root.querySelector('#ds-fi-go');go.disabled=true;go.textContent='Searching...';root.querySelector('#ds-fi-results').innerHTML='';
+  try{
+    var res=await call('places-search',payload);
+    if(res.error==='insufficient_credits'){msg.style.color='#c0392b';msg.textContent='Not enough credits to search (needs '+(res.cost||1)+').';}
+    else if(res.error==='places_not_configured'){msg.style.color='#c0392b';msg.textContent='Places API key not set up yet.';}
+    else if(res.error==='need_location_or_keyword'){msg.style.color='#c0392b';msg.textContent='Set a location on the map or enter a keyword.';}
+    else if(!res.ok){msg.style.color='#c0392b';msg.textContent='Search failed: '+esc(res.detail||res.error||'unknown');}
+    else{var list=res.results||[];root.__rows=list;if(!list.length){msg.textContent=res.note||'No results.';}root.querySelector('#ds-fi-results').innerHTML=list.map(resultCard).join('');loadHistory(root);}
+  }catch(e){msg.style.color='#c0392b';msg.textContent='Search error. Please try again.';}
+  go.disabled=false;go.textContent='Search (1 credit)';refreshBal(root);
+}
+function newSearch(root){
+  root.querySelector('#ds-fi-results').innerHTML='';root.querySelector('#ds-fi-kw').value='';
+  [].slice.call(root.querySelectorAll('#ds-fi-days input')).forEach(function(c){c.checked=false;});
+  root.querySelector('#ds-fi-t1').value='';root.querySelector('#ds-fi-t2').value='';
+  root.__rows=[];var m=root.querySelector('#ds-fi-msg');m.style.color='';m.textContent='';toast('Cleared - history kept below.');
+}
+var UI='<div class="wrap" style="max-width:1000px">'
   +'<div class="h-eyebrow">Tools</div>'
   +'<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">Location Finder</h1>'
-  +'<p class="mut" style="margin-bottom:12px">Search Google for businesses by type and area, then spend credits to enrich the ones you want — legal entity, owners, and licenses from public records.</p>'
-  +'<div class="card pad" style="margin-bottom:14px">'
-  +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
-  +'<input id="ds-fi-q" class="field" placeholder="e.g. liquor stores in Atlanta, GA" style="flex:1;min-width:240px">'
-  +'<button id="ds-fi-go" class="btn primary">Search (1 credit)</button>'
+  +'<p class="mut" style="margin-bottom:12px">Set an area on the map, filter by business type and hours, then enrich the ones you want. Your searches are saved below.</p>'
+  +'<div id="ds-fi-setup" class="small" style="display:none;margin-bottom:10px"></div>'
+  +'<div class="card pad" style="margin-bottom:14px"><div style="display:flex;gap:14px;flex-wrap:wrap">'
+  +'<div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:8px">'
+  +'<div style="display:flex;gap:6px"><input id="ds-fi-place" class="field" placeholder="City or ZIP (e.g. Atlanta, GA)" style="flex:1"><button id="ds-fi-loc" class="btn">Go</button></div>'
+  +'<select id="ds-fi-type" class="field"></select>'
+  +'<input id="ds-fi-kw" class="field" placeholder="Optional keyword (e.g. package store)">'
+  +'<div><div class="small mut" style="margin-bottom:3px">Radius: <b id="ds-fi-rlabel">5.0 mi</b></div><input id="ds-fi-radius" type="range" min="0.5" max="30" step="0.5" value="5" style="width:100%"></div>'
+  +'<div><div class="small mut" style="margin-bottom:3px">Open on days</div><div id="ds-fi-days" style="display:flex;gap:4px;flex-wrap:wrap"></div></div>'
+  +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="small mut">Open between</span><input id="ds-fi-t1" type="time" class="field" style="width:120px"><span class="small mut">and</span><input id="ds-fi-t2" type="time" class="field" style="width:120px"></div>'
+  +'<div style="display:flex;gap:8px;margin-top:2px"><button id="ds-fi-go" class="btn primary" style="flex:1">Search (1 credit)</button><button id="ds-fi-new" class="btn">New search</button></div>'
+  +'<div style="display:flex;justify-content:space-between;gap:10px"><div id="ds-fi-msg" class="small" style="min-height:16px;flex:1"></div><div class="small mut">Balance: <b id="ds-fi-bal">-</b></div></div>'
   +'</div>'
-  +'<div style="display:flex;justify-content:space-between;margin-top:8px;gap:10px">'
-  +'<div id="ds-fi-msg" class="small" style="min-height:16px;flex:1"></div>'
-  +'<div class="small mut">Balance: <b id="ds-fi-bal">—</b></div>'
+  +'<div style="flex:1;min-width:280px"><div id="ds-fi-map" style="width:100%;height:360px;border-radius:10px;background:#EEF2F6"></div></div>'
   +'</div></div>'
-  +'<div id="ds-fi-results"></div></div>';
-function mount(){
-  var inner=document.getElementById('scouterInner');
-  if(!inner)return false;
-  if(inner.getAttribute('data-dsfi'))return true;
-  inner.setAttribute('data-dsfi','1');
+  +'<div id="ds-fi-results"></div>'
+  +'<div class="card pad" style="margin-top:14px"><div style="display:flex;justify-content:space-between;align-items:center"><div class="h-eyebrow" style="margin:0">Search history</div><button id="ds-fi-hrefresh" class="btn" style="padding:2px 8px">Refresh</button></div><div id="ds-fi-history" style="margin-top:8px"></div></div>'
+  +'</div>';
+async function mount(){
+  var inner=document.getElementById('scouterInner');if(!inner)return false;
+  if(inner.getAttribute('data-dsfi'))return true;inner.setAttribute('data-dsfi','1');
   inner.innerHTML=UI;var root=inner;
+  root.querySelector('#ds-fi-type').innerHTML=TYPES.map(function(t){return '<option value="'+t[0]+'">'+esc(t[1])+'</option>';}).join('');
+  root.querySelector('#ds-fi-days').innerHTML=DAYS.map(function(d){return '<label class="small" style="display:inline-flex;align-items:center;gap:3px;border:1px solid #D8E0EA;border-radius:6px;padding:3px 7px;cursor:pointer"><input type="checkbox" data-day="'+d[0]+'" style="margin:0">'+d[1]+'</label>';}).join('');
+  var slider=root.querySelector('#ds-fi-radius');
+  slider.addEventListener('input',function(){setRlabel(root);if(!root.__nomap&&circle)circle.setRadius(milesToM(parseFloat(slider.value)));});
+  setRlabel(root);
   root.querySelector('#ds-fi-go').addEventListener('click',function(){search(root);});
-  root.querySelector('#ds-fi-q').addEventListener('keydown',function(e){if(e.key==='Enter')search(root);});
+  root.querySelector('#ds-fi-new').addEventListener('click',function(){newSearch(root);});
+  root.querySelector('#ds-fi-loc').addEventListener('click',function(){locate(root);});
+  root.querySelector('#ds-fi-place').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();locate(root);}});
+  root.querySelector('#ds-fi-kw').addEventListener('keydown',function(e){if(e.key==='Enter')search(root);});
+  root.querySelector('#ds-fi-hrefresh').addEventListener('click',function(){loadHistory(root);});
   root.querySelector('#ds-fi-results').addEventListener('click',function(e){var b=e.target.closest('[data-enrich]');if(b)enrich(root,parseInt(b.getAttribute('data-enrich'),10),b);});
-  refreshBal(root);return true;
+  root.querySelector('#ds-fi-history').addEventListener('click',async function(e){
+    var lb=e.target.closest('[data-hload]');var db=e.target.closest('[data-hdel]');
+    if(lb){var id=lb.getAttribute('data-hload');var s=await ensureSb();var r=await s.from('search_history').select('results,params,label').eq('id',id).single();if(r.data){root.__rows=r.data.results||[];root.querySelector('#ds-fi-results').innerHTML=(r.data.results||[]).map(resultCard).join('');var p=r.data.params||{};if(!root.__nomap&&circle&&p.lat){var cc={lat:p.lat,lng:p.lng};map.setCenter(cc);circle.setCenter(cc);if(p.radius)circle.setRadius(p.radius);try{map.fitBounds(circle.getBounds());}catch(e2){}}var m=root.querySelector('#ds-fi-msg');m.style.color='';m.textContent='Loaded saved results (no credits used).';try{window.scrollTo(0,0);}catch(e3){}}}
+    else if(db){var id2=db.getAttribute('data-hdel');var s2=await ensureSb();await s2.from('search_history').delete().eq('id',id2);loadHistory(root);}
+  });
+  refreshBal(root);loadHistory(root);
+  try{var cfg=await call('public-config',{});if(cfg&&cfg.maps_key){await loadMaps(cfg.maps_key);initMap(root);}else{root.__nomap=true;showSetup(root);}}catch(e){root.__nomap=true;showSetup(root);}
+  return true;
 }
-var n=0;(function w(){if(mount()||++n>80)return;setTimeout(w,300);})();
+var n=0;(function w(){if(mount()===true||++n>80)return;setTimeout(w,300);})();
 })();
