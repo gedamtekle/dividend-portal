@@ -2844,11 +2844,20 @@ async function enrich(root,i,btn){
   }catch(e){out.innerHTML='<div class="small" style="color:#c0392b">Enrichment error.</div>';btn.disabled=false;btn.textContent='Enrich (6 credits)';}
 }
 function loadMaps(key){return new Promise(function(res,rej){if(window.google&&window.google.maps){res();return;}var cbn='__dsGmapsCb';window[cbn]=function(){res();};var s=document.createElement('script');s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&libraries=geometry&loading=async&callback='+cbn;s.async=true;s.onerror=function(){rej(new Error('maps_load_failed'));};document.head.appendChild(s);});}
-function kickMap(){if(!map||!circle)return;try{window.dispatchEvent(new Event('resize'));}catch(e){}try{google.maps.event.trigger(map,'resize');}catch(e){}try{map.setCenter(circle.getCenter());map.fitBounds(circle.getBounds());}catch(e){}}
+function kickMap(){if(!map||!circle)return;try{window.dispatchEvent(new Event('resize'));}catch(e){}try{map.setCenter(circle.getCenter());map.fitBounds(circle.getBounds());}catch(e){}}
+function mapVisible(root){var el=root.querySelector('#ds-fi-map');return !!(el&&el.offsetParent!==null&&el.offsetWidth>0&&el.offsetHeight>0);}
+function ensureMapInit(root){
+  if(root.__nomap)return;
+  if(map){kickMap();return;}
+  if(!window.google||!window.google.maps)return;
+  if(!mapVisible(root))return;
+  try{initMap(root);}catch(e){}
+}
 function watchVisible(root){
-  try{var target=root.querySelector('#ds-fi-map');var io=new IntersectionObserver(function(ents){ents.forEach(function(en){if(en.isIntersecting){setTimeout(kickMap,150);setTimeout(kickMap,600);}});},{threshold:0.01});io.observe(target);}catch(e){}
-  var nv=document.querySelector('.nav[data-screen="scouter"]');if(nv)nv.addEventListener('click',function(){setTimeout(kickMap,250);setTimeout(kickMap,800);});
-  setTimeout(kickMap,400);
+  var el=root.querySelector('#ds-fi-map');
+  try{var io=new IntersectionObserver(function(ents){ents.forEach(function(en){if(en.isIntersecting){ensureMapInit(root);setTimeout(function(){ensureMapInit(root);},300);}});},{threshold:0.01});io.observe(el);}catch(e){}
+  var nv=document.querySelector('.nav[data-screen="scouter"]');if(nv)nv.addEventListener('click',function(){setTimeout(function(){ensureMapInit(root);},250);setTimeout(function(){ensureMapInit(root);},800);});
+  setTimeout(function(){ensureMapInit(root);},500);
 }
 function initMap(root){
   var center={lat:33.749,lng:-84.388};
@@ -2955,7 +2964,7 @@ async function mount(){
     else if(db){var id2=db.getAttribute('data-hdel');var s2=await ensureSb();await s2.from('search_history').delete().eq('id',id2);loadHistory(root);}
   });
   refreshBal(root);loadHistory(root);
-  try{var cfg=await call('public-config',{});if(cfg&&cfg.maps_key){await loadMaps(cfg.maps_key);initMap(root);watchVisible(root);}else{root.__nomap=true;showSetup(root);}}catch(e){root.__nomap=true;showSetup(root);}
+  try{var cfg=await call('public-config',{});if(cfg&&cfg.maps_key){await loadMaps(cfg.maps_key);watchVisible(root);}else{root.__nomap=true;showSetup(root);}}catch(e){root.__nomap=true;showSetup(root);}
   return true;
 }
 var n=0;(function w(){if(mount()===true||++n>80)return;setTimeout(w,300);})();
