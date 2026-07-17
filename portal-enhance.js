@@ -2813,10 +2813,10 @@ function renderEnrich(d){
 }
 function resultCard(row,i){
   var meta=[];if(row.distance_m!=null)meta.push((row.distance_m/1609.34).toFixed(1)+' mi');if(row.phone)meta.push(esc(row.phone));if(row.rating)meta.push('Rating '+row.rating+' ('+(row.reviews||0)+')');if(row.status&&row.status!=='OPERATIONAL')meta.push(esc(row.status));
-  var hrs=(row.hours&&row.hours.length)?'<div class="small mut" style="margin-top:2px">'+esc(row.hours.join('  |  ')).slice(0,180)+'</div>':'';
+  var hrs=(row.hours&&row.hours.length)?'<div class="small mut" style="margin-top:2px">'+esc(row.hours.join('  |  ')).slice(0,180)+'</div>':(row.hours_unknown?'<div class="small mut" style="margin-top:2px">Opening hours not published on Google - shown because hours could not be confirmed.</div>':'');
   return '<div class="card pad" style="margin-bottom:10px">'
     +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">'
-    +'<div style="flex:1"><div style="font-weight:700;color:#0E1A2B">'+esc(row.name)+'</div>'
+    +'<div style="flex:1"><div style="font-weight:700;color:#0E1A2B">'+esc(row.name)+(row.hours_unknown?' <span class="small" style="font-weight:600;color:#8a6d1a;background:#FDF6E3;border:1px solid #EBD9A6;border-radius:5px;padding:1px 5px;vertical-align:middle">Hours unknown</span>':'')+'</div>'
     +'<div class="small mut">'+esc(row.type||'')+(row.state?' - '+esc(row.state):'')+'</div>'
     +'<div class="small" style="margin-top:2px">'+esc(row.address||'')+'</div>'
     +(meta.length?'<div class="small mut" style="margin-top:2px">'+meta.join(' - ')+'</div>':'')+hrs+'</div>'
