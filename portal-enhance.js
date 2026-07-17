@@ -2969,3 +2969,186 @@ async function mount(){
 }
 var n=0;(function w(){if(mount()===true||++n>80)return;setTimeout(w,300);})();
 })();
+
+
+/* ---- 31) ADMIN: Deal Analyzer playbook + knowledge base ---- */
+(function(){'use strict';
+if(window.__dsDealCfg)return;window.__dsDealCfg=true;
+var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+var sb=null;
+async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+function fmtDT(d){if(!d)return '';try{return new Date(d).toLocaleString();}catch(e){return '';}}
+var TOGGLES=[
+ {k:'inherit_coach',label:'Inherit the AI Coach persona and guardrails',sub:'When on, the Deal Analyzer uses the same voice and rules as the AI Coach. Anything below is layered on top.'},
+ {k:'use_marketing_resources',label:'Reference approved sales scripts',sub:'Pull the scripts from Sales and Marketing Resources so drafts match your talk tracks.'}
+];
+var OVERRIDES=[
+ {k:'persona',label:'Persona notes',sub:'Added on top of the Coach persona (or replaces it when inherit is off)'},
+ {k:'tone',label:'Tone notes',sub:'How it should sound on deal work'},
+ {k:'rhetoric',label:'Style notes',sub:'How it argues and explains'},
+ {k:'guardrails_do',label:'Always do',sub:'Extra hard rules for deal analysis'},
+ {k:'guardrails_dont',label:'Never do',sub:'Extra hard limits for deal analysis'}
+];
+var FIELDS=[
+ {k:'ideal_merchant',label:'Ideal merchant profile',sub:'What a good-fit account looks like'},
+ {k:'objection_handling',label:'Objection handling',sub:'Common objections and how you want them answered'},
+ {k:'pricing_guidance',label:'Pricing and rate guidance',sub:'What it may and may not say about pricing'},
+ {k:'competitive_positioning',label:'Competitive positioning',sub:'How you position against competitors'},
+ {k:'email_rules',label:'Email rules',sub:'Rules for the drafted email: length, tone, sign-off, what to avoid'},
+ {k:'extra',label:'Additional notes',sub:'Anything else it should know'}
+];
+function fieldHtml(f){
+  return '<div style="margin-bottom:14px">'
+    +'<label style="display:block;font-size:13px;font-weight:700;color:#0E1A2B;margin-bottom:2px">'+esc(f.label)+'</label>'
+    +(f.sub?'<div class="small mut" style="margin-bottom:6px">'+esc(f.sub)+'</div>':'')
+    +'<textarea id="da_'+f.k+'" class="field" rows="3" style="width:100%"></textarea></div>';
+}
+function toggleHtml(t){
+  return '<label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;cursor:pointer">'
+    +'<input type="checkbox" id="da_'+t.k+'" style="margin-top:3px">'
+    +'<span><span style="font-size:13px;font-weight:700;color:#0E1A2B">'+esc(t.label)+'</span>'
+    +'<div class="small mut">'+esc(t.sub)+'</div></span></label>';
+}
+function screenHtml(){
+  return '<div class="wrap" style="max-width:820px">'
+    +'<div class="h-eyebrow">Admin</div>'
+    +'<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">Deal Analyzer - Playbook and Knowledge</h1>'
+    +'<p class="mut" style="margin-bottom:8px">What the Deal Analyzer knows and how it behaves on every client analysis. Clients never see this.</p>'
+    +'<div id="da-note" class="small mut" style="margin-bottom:14px"></div>'
+    +'<div class="card pad">'
+    +TOGGLES.map(toggleHtml).join('')
+    +'<div class="h-eyebrow" style="margin:14px 0 8px">Voice and guardrails</div>'
+    +OVERRIDES.map(fieldHtml).join('')
+    +'<div class="h-eyebrow" style="margin:14px 0 8px">Playbook</div>'
+    +FIELDS.map(fieldHtml).join('')
+    +'<div id="da-msg" class="small" style="min-height:18px;margin:2px 0 10px"></div>'
+    +'<div style="display:flex;gap:8px"><button id="da-save" class="btn primary" style="flex:1;justify-content:center">Save</button><button id="da-preview" class="btn">Preview prompt</button></div>'
+    +'</div>'
+    +'<div class="card pad" style="margin-top:14px">'
+    +'<div class="h-eyebrow" style="margin:0 0 4px">Knowledge base entries</div>'
+    +'<div class="small mut" style="margin-bottom:10px">Reusable notes the analyzer references on every deal.</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px"><input id="da-nt" class="field" placeholder="Title" style="flex:1"><input id="da-nc" class="field" placeholder="Category (optional)" style="width:170px"></div>'
+    +'<textarea id="da-nb" class="field" rows="3" placeholder="What should the analyzer know?" style="width:100%"></textarea>'
+    +'<button id="da-add" class="btn primary" style="margin-top:6px">Add entry</button>'
+    +'<div id="da-kb" style="margin-top:14px"></div>'
+    +'</div>'
+    +'<div id="da-prev" class="card pad" style="margin-top:14px;display:none"><div class="h-eyebrow" style="margin:0 0 6px">Composed prompt preview</div><div id="da-prevmeta" class="small mut" style="margin-bottom:6px"></div><pre id="da-prevtxt" class="small" style="white-space:pre-wrap;max-height:340px;overflow:auto;margin:0"></pre></div>'
+    +'</div>';
+}
+var ICON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>';
+async function loadCfg(sec){
+  var s=await ensureSb();
+  var r=await s.from('deal_analyzer_config').select('*').eq('id','default').single();
+  var note=sec.querySelector('#da-note');
+  if(r.error||!r.data){note.textContent='Could not load the config (admin access required).';return;}
+  TOGGLES.forEach(function(t){var el=sec.querySelector('#da_'+t.k);if(el)el.checked=r.data[t.k]!==false;});
+  OVERRIDES.concat(FIELDS).forEach(function(f){var el=sec.querySelector('#da_'+f.k);if(el)el.value=r.data[f.k]||'';});
+  note.textContent='Last updated '+(r.data.updated_at?fmtDT(r.data.updated_at):'-')+(r.data.updated_by_email?' by '+r.data.updated_by_email:'');
+}
+async function loadKb(sec){
+  var s=await ensureSb();
+  var r=await s.from('deal_knowledge').select('*').order('sort',{ascending:true}).order('created_at',{ascending:true});
+  var el=sec.querySelector('#da-kb');if(!el)return;
+  var rows=r.data||[];
+  if(!rows.length){el.innerHTML='<div class="small mut">No entries yet.</div>';return;}
+  el.innerHTML=rows.map(function(k){
+    return '<div class="card pad" style="margin-bottom:8px;background:#F7FAFC" data-kid="'+k.id+'">'
+      +'<div style="display:flex;gap:6px;margin-bottom:6px"><input class="field da-kt" value="'+esc(k.title||'')+'" style="flex:1"><input class="field da-kc" value="'+esc(k.category||'')+'" placeholder="Category" style="width:160px"></div>'
+      +'<textarea class="field da-kb2" rows="3" style="width:100%">'+esc(k.body||'')+'</textarea>'
+      +'<div style="display:flex;gap:8px;align-items:center;margin-top:6px">'
+      +'<label class="small" style="display:flex;gap:4px;align-items:center;cursor:pointer"><input type="checkbox" class="da-ka"'+(k.active?' checked':'')+'>Active</label>'
+      +'<div style="flex:1"></div>'
+      +'<button class="btn da-ksave" style="padding:3px 10px">Save</button>'
+      +'<button class="btn da-kdel" style="padding:3px 10px">Delete</button>'
+      +'</div></div>';
+  }).join('');
+}
+async function save(sec){
+  var msg=sec.querySelector('#da-msg'),btn=sec.querySelector('#da-save');
+  msg.style.color='#c0392b';msg.textContent='';
+  var s=await ensureSb();var u=await s.auth.getUser();
+  var uid=u&&u.data&&u.data.user?u.data.user.id:null;var email=u&&u.data&&u.data.user?u.data.user.email:null;
+  if(!uid){msg.textContent='Please sign in again.';return;}
+  var patch={updated_at:new Date().toISOString(),updated_by:uid,updated_by_email:email};
+  TOGGLES.forEach(function(t){var el=sec.querySelector('#da_'+t.k);patch[t.k]=el?!!el.checked:true;});
+  OVERRIDES.concat(FIELDS).forEach(function(f){var el=sec.querySelector('#da_'+f.k);patch[f.k]=el?(el.value||'').trim():'';});
+  btn.disabled=true;btn.textContent='Saving...';
+  var r=await s.from('deal_analyzer_config').update(patch).eq('id','default').select('id');
+  btn.disabled=false;btn.textContent='Save';
+  if(r.error||!r.data||!r.data.length){msg.textContent='Could not save - admin access required.';return;}
+  msg.style.color='#1a7f4b';msg.textContent='Saved. New analyses use this immediately.';
+  loadCfg(sec);
+}
+async function preview(sec){
+  var box=sec.querySelector('#da-prev'),txt=sec.querySelector('#da-prevtxt'),meta=sec.querySelector('#da-prevmeta');
+  var btn=sec.querySelector('#da-preview');btn.disabled=true;btn.textContent='Loading...';
+  try{
+    var s=await ensureSb();var ses=await s.auth.getSession();var tk=ses.data.session&&ses.data.session.access_token;
+    var r=await fetch(URL_+'/functions/v1/deal-analyzer',{method:'POST',headers:{'Content-Type':'application/json','apikey':ANON,'Authorization':'Bearer '+tk},body:JSON.stringify({preview:true})});
+    var j=await r.json();
+    if(j&&j.ok&&j.system){box.style.display='';txt.textContent=j.system;meta.textContent=j.chars+' characters - model '+(j.model||'');}
+    else{box.style.display='';txt.textContent='Could not build preview.';meta.textContent='';}
+  }catch(e){box.style.display='';txt.textContent='Preview failed.';}
+  btn.disabled=false;btn.textContent='Preview prompt';
+}
+function activate(nav,sec){
+  [].forEach.call(document.querySelectorAll('.screen'),function(s){s.classList.remove('active');});
+  [].forEach.call(document.querySelectorAll('.nav'),function(n){n.classList.remove('active');});
+  sec.classList.add('active');nav.classList.add('active');
+  try{window.scrollTo(0,0);}catch(e){}
+  loadCfg(sec);loadKb(sec);
+}
+async function isAdmin(){
+  var s=await ensureSb();var u=await s.auth.getUser();
+  var id=u&&u.data&&u.data.user?u.data.user.id:null;if(!id)return false;
+  var r=await s.from('profiles').select('role').eq('id',id).single();
+  return !!(r.data&&(r.data.role==='admin'||r.data.role==='team'));
+}
+async function mount(){
+  var anchorNav=document.querySelector('.nav[data-screen="coachcfg"]')||document.querySelector('.nav[data-screen="mgrid"]')||document.querySelector('.nav[data-screen="clients"]');
+  if(!anchorNav)return false;
+  if(document.querySelector('.nav[data-screen="dealcfg"]'))return true;
+  if(!(await isAdmin()))return true;
+  var side=anchorNav.parentElement;
+  var screenParent=(document.querySelector('section.screen')||{}).parentElement;
+  if(!side||!screenParent)return false;
+  var nav=document.createElement('div');
+  nav.className='nav admin-only';nav.setAttribute('data-screen','dealcfg');nav.style.display='';
+  nav.innerHTML=ICON+'Deal Analyzer <span class="badge-admin" style="margin-left:auto">Admin</span>';
+  side.insertBefore(nav,anchorNav.nextSibling);
+  var sec=document.createElement('section');
+  sec.className='screen';sec.id='dealcfg';sec.innerHTML=screenHtml();
+  screenParent.appendChild(sec);
+  nav.addEventListener('click',function(){activate(nav,sec);});
+  sec.querySelector('#da-save').addEventListener('click',function(){save(sec);});
+  sec.querySelector('#da-preview').addEventListener('click',function(){preview(sec);});
+  sec.querySelector('#da-add').addEventListener('click',async function(){
+    var t=(sec.querySelector('#da-nt').value||'').trim();var c=(sec.querySelector('#da-nc').value||'').trim();var b=(sec.querySelector('#da-nb').value||'').trim();
+    if(!t||!b)return;
+    var s=await ensureSb();
+    await s.from('deal_knowledge').insert({title:t,category:c||null,body:b,active:true});
+    sec.querySelector('#da-nt').value='';sec.querySelector('#da-nc').value='';sec.querySelector('#da-nb').value='';
+    loadKb(sec);
+  });
+  sec.querySelector('#da-kb').addEventListener('click',async function(e){
+    var card=e.target.closest('[data-kid]');if(!card)return;var id=card.getAttribute('data-kid');
+    var s=await ensureSb();
+    if(e.target.classList.contains('da-ksave')){
+      await s.from('deal_knowledge').update({title:card.querySelector('.da-kt').value,category:card.querySelector('.da-kc').value||null,body:card.querySelector('.da-kb2').value,active:card.querySelector('.da-ka').checked,updated_at:new Date().toISOString()}).eq('id',id);
+      loadKb(sec);
+    } else if(e.target.classList.contains('da-kdel')){
+      await s.from('deal_knowledge').delete().eq('id',id);loadKb(sec);
+    }
+  });
+  if(typeof window.show==='function'&&!window.show.__dsDealCfgWrapped){
+    var origShow=window.show;
+    var wrapped=function(screen){var out=origShow.apply(this,arguments);if(screen!=='dealcfg'){var el=document.getElementById('dealcfg');if(el)el.classList.remove('active');}return out;};
+    wrapped.__dsDealCfgWrapped=true;window.show=wrapped;
+  }
+  return true;
+}
+var tries=0;
+(function wait(){mount().then(function(done){if(done)return;if(++tries>80)return;setTimeout(wait,300);});})();
+})();
