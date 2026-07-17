@@ -3152,3 +3152,35 @@ async function mount(){
 var tries=0;
 (function wait(){mount().then(function(done){if(done)return;if(++tries>80)return;setTimeout(wait,300);});})();
 })();
+
+
+/* ---- 32) SIDEBAR: make it scrollable and keep the floating helper buttons
+   from covering the bottom nav items (Deal Analyzer / Merchant Application /
+   Re-Orders / My Merchants / Sales & Marketing Resources / Settings). ---- */
+(function(){'use strict';
+if(window.__dsSideFix)return;window.__dsSideFix=true;
+var CSS=''
+ +'.side{overflow-y:auto !important;overflow-x:hidden !important;max-height:100vh !important;'
+ +'padding-bottom:112px !important;scrollbar-width:thin;-webkit-overflow-scrolling:touch;}'
+ +'.side::-webkit-scrollbar{width:8px}'
+ +'.side::-webkit-scrollbar-thumb{background:#D8E0EA;border-radius:4px}'
+ +'.side::-webkit-scrollbar-track{background:transparent}';
+function inject(){
+  if(document.getElementById('ds-side-fix'))return true;
+  var st=document.createElement('style');st.id='ds-side-fix';st.textContent=CSS;
+  document.head.appendChild(st);
+  return true;
+}
+inject();
+// If a nav item ends up under a fixed helper button, scroll it into view on click.
+function guard(){
+  var side=document.querySelector('.side');if(!side)return false;
+  if(side.__dsGuard)return true;side.__dsGuard=true;
+  side.addEventListener('click',function(e){
+    var n=e.target.closest?e.target.closest('.nav'):null;if(!n)return;
+    try{var r=n.getBoundingClientRect();if(r.bottom>window.innerHeight-8){n.scrollIntoView({block:'nearest'});}}catch(err){}
+  },true);
+  return true;
+}
+var n=0;(function w(){if(guard()||++n>60)return;setTimeout(w,300);})();
+})();
