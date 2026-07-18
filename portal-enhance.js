@@ -2908,18 +2908,102 @@ async function mount(){var anchor=document.querySelector('.nav[data-screen="coac
 var tr=0;(function wait(){mount().then(function(d){if(d)return;if(++tr>80)return;setTimeout(wait,300);});})();})();
 
 
-/* ---- 27) ADMIN — Re-order Catalog (auto-mirrors to Stripe) ---- */
-(function(){'use strict';if(window.__dsCatAdmin)return;window.__dsCatAdmin=true;var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';var sb=null;async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}async function isAdmin(){var s=await ensureSb();var u=await s.auth.getUser();var id=u.data.user&&u.data.user.id;if(!id)return false;var r=await s.from('profiles').select('role').eq('id',id).single();return !!(r.data&&(r.data.role==='admin'||r.data.role==='team'));}
-var ICON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3zM5 7v14h14V7M9 11h6"/></svg>';
-async function syncItem(id,action){var s=await ensureSb();var sess=await s.auth.getSession();var tok=sess.data.session&&sess.data.session.access_token;var r=await fetch(URL_+'/functions/v1/sync-catalog-item',{method:'POST',headers:{'Content-Type':'application/json','apikey':ANON,'Authorization':'Bearer '+tok},body:JSON.stringify({item_id:id,action:action||'sync'})});return await r.json();}
-function screenHtml(){return '<div class="wrap" style="max-width:860px"><div class="h-eyebrow">Admin</div><h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">Re-order Catalog</h1><p class="mut" style="margin-bottom:12px">Add an item with a price and it is created in Stripe automatically — no need to touch the Stripe dashboard.</p><div class="card pad" style="margin-bottom:14px"><div class="h-eyebrow">Add item</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><input id="ca-name" class="field" style="flex:1;min-width:160px" placeholder="Name"><input id="ca-cat" class="field" style="width:130px" placeholder="Category"><div style="display:flex;align-items:center;gap:4px"><span class="mut">$</span><input id="ca-price" class="field" style="width:90px" placeholder="Price" inputmode="decimal"></div></div><input id="ca-desc" class="field" style="width:100%;margin-top:8px" placeholder="Description"><div id="ca-msg" class="small" style="min-height:16px;margin-top:6px"></div><div style="margin-top:4px"><button id="ca-add" class="btn primary">Add & sync to Stripe</button></div></div><div id="ca-list"></div></div>';}
-async function load(sec){var s=await ensureSb();var r=await s.from('reorder_catalog').select('*').order('sort');var rows=r.data||[];sec.querySelector('#ca-list').innerHTML='<div class="card" style="padding:0;overflow:hidden">'+(rows.length?rows.map(function(x){var linked=x.stripe_price_id?'<span class="pill" style="background:#1a7f4b11;color:#1a7f4b;font-size:10.5px">Stripe \u2713</span>':'<span class="pill mut" style="font-size:10.5px">not synced</span>';return '<div style="border-bottom:1px solid #EEF0F4;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><b>'+esc(x.name)+'</b> <span class="small mut">'+esc(x.category||'')+'</span> '+linked+'<div class="small mut">'+esc(x.description||'')+'</div></div><div style="display:flex;gap:8px;align-items:center"><span class="mut">$</span><input class="field ca-p" data-id="'+x.id+'" style="width:80px;font-size:12px" value="'+(x.price_cents?(x.price_cents/100):'')+'" inputmode="decimal"><button class="btn ca-save" data-id="'+x.id+'" style="background:#eef1f6;color:#0E1A2B;font-size:12px">Save & sync</button><a href="#" data-del="'+x.id+'" class="small" style="color:#c0392b">Delete</a></div></div>';}).join(''):'<div style="padding:16px" class="small mut">No items.</div>')+'</div>';var list=sec.querySelector('#ca-list');if(!list.__w){list.__w=true;list.addEventListener('click',async function(e){var save=e.target.closest&&e.target.closest('.ca-save');var del=e.target.closest&&e.target.closest('[data-del]');var s2=await ensureSb();if(save){var id=save.getAttribute('data-id');var inp=list.querySelector('.ca-p[data-id="'+id+'"]');var d=parseFloat(inp.value);var cents=(!isNaN(d)&&d>0)?Math.round(d*100):null;save.disabled=true;save.textContent='Syncing…';await s2.from('reorder_catalog').update({price_cents:cents}).eq('id',id);var j=await syncItem(id,'sync');save.disabled=false;save.textContent='Save & sync';toast(j&&j.ok?'Synced to Stripe':'Sync failed: '+((j&&j.detail)||''));load(sec);return;}if(del){e.preventDefault();if(!window.confirm('Delete this item? Its Stripe product will be archived.'))return;var j2=await syncItem(del.getAttribute('data-del'),'delete');if(!j2||!j2.ok){toast('Couldn\u2019t delete');return;}toast('Deleted');load(sec);}});}}
-async function add(sec){var s=await ensureSb();var name=(sec.querySelector('#ca-name').value||'').trim();var msg=sec.querySelector('#ca-msg');msg.style.color='#c0392b';if(!name){msg.textContent='Add a name.';return;}var d=parseFloat(sec.querySelector('#ca-price').value);var cents=(!isNaN(d)&&d>0)?Math.round(d*100):null;var btn=sec.querySelector('#ca-add');btn.disabled=true;btn.textContent='Creating…';var r=await s.from('reorder_catalog').insert({name:name,category:(sec.querySelector('#ca-cat').value||'').trim()||null,description:(sec.querySelector('#ca-desc').value||'').trim()||null,price_cents:cents,sort:99}).select('id').single();if(r.error){btn.disabled=false;btn.textContent='Add & sync to Stripe';msg.textContent='Couldn\u2019t add — admin only.';return;}var j=cents?await syncItem(r.data.id,'sync'):{ok:true};btn.disabled=false;btn.textContent='Add & sync to Stripe';if(cents&&!(j&&j.ok)){msg.textContent='Added, but Stripe sync failed: '+((j&&j.detail)||'');}else{msg.style.color='#1a7f4b';msg.textContent=cents?'Added and synced to Stripe.':'Added (no price — not orderable online).';}['ca-name','ca-cat','ca-price','ca-desc'].forEach(function(id){sec.querySelector('#'+id).value='';});load(sec);}
-function activate(nav,sec){[].forEach.call(document.querySelectorAll('.screen'),function(s){s.classList.remove('active');});[].forEach.call(document.querySelectorAll('.nav'),function(n){n.classList.remove('active');});sec.classList.add('active');nav.classList.add('active');try{window.scrollTo(0,0);}catch(e){}load(sec);}
-async function mount(){var anchor=document.querySelector('.nav[data-screen="smradmin"]')||document.querySelector('.nav[data-screen="coachcfg"]')||document.querySelector('.nav[data-screen="settings"]');if(!anchor)return false;if(document.querySelector('.nav[data-screen="catadmin"]'))return true;if(!(await isAdmin()))return true;var side=anchor.parentElement;var sp=(document.querySelector('section.screen')||{}).parentElement;if(!side||!sp)return false;var nav=document.createElement('div');nav.className='nav admin-only';nav.setAttribute('data-screen','catadmin');nav.style.display='';nav.innerHTML=ICON+'Re-order Catalog <span class="badge-admin" style="margin-left:auto">Admin</span>';side.insertBefore(nav,anchor.nextSibling);var sec=document.createElement('section');sec.className='screen';sec.id='catadmin';sec.innerHTML=screenHtml();sp.appendChild(sec);nav.addEventListener('click',function(){activate(nav,sec);});sec.querySelector('#ca-add').addEventListener('click',function(){add(sec);});if(typeof window.show==='function'&&!window.show.__dsCatAdminW){var o=window.show;var w=function(x){var out=o.apply(this,arguments);if(x!=='catadmin'){var el=document.getElementById('catadmin');if(el)el.classList.remove('active');}return out;};w.__dsCatAdminW=true;window.show=w;}return true;}
-var tr=0;(function wait(){mount().then(function(d){if(d)return;if(++tr>80)return;setTimeout(wait,300);});})();})();
-
-
+/* ---- 27) ADMIN — Re-order Catalog (images, category, price, refund policy) ---- */
+(function(){'use strict';
+if(window.__dsCatAdmin)return;window.__dsCatAdmin=true;
+var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+var sb=null;
+async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}
+function centsToStr(c){return c==null?'':(c/100).toFixed(2);}
+function strToCents(v){var n=parseFloat(String(v).replace(/[^0-9.]/g,''));return isFinite(n)?Math.round(n*100):null;}
+async function uploadImage(file){
+  var s=await ensureSb();
+  var ext=(String(file.name).split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+  var path='reorder/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
+  var up=await s.storage.from('resources').upload(path,file,{upsert:true,contentType:file.type||'image/jpeg'});
+  if(up.error)throw up.error;
+  return s.storage.from('resources').getPublicUrl(path).data.publicUrl;
+}
+function screenHtml(){
+  return '<div class="wrap" style="max-width:820px">'
+    +'<div class="h-eyebrow">Admin</div>'
+    +'<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">Re-order Catalog</h1>'
+    +'<p class="mut" style="margin-bottom:12px">Items clients can order, plus the refund policy shown at checkout.</p>'
+    +'<div class="card pad" style="margin-bottom:14px"><div class="h-eyebrow" style="margin:0 0 6px">Refund policy</div>'
+    +'<textarea id="cp-policy" class="field" rows="4" style="width:100%" placeholder="Refund policy shown to clients before they order"></textarea>'
+    +'<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="cp-save" class="btn primary" style="padding:5px 14px">Save policy</button><span id="cp-msg" class="small"></span></div></div>'
+    +'<div class="card pad" style="margin-bottom:14px"><div class="h-eyebrow" style="margin:0 0 8px">Add item</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px"><input id="ca-name" class="field" placeholder="Item name" style="flex:1"><input id="ca-cat" class="field" placeholder="Category" style="width:170px"><input id="ca-price" class="field" placeholder="Price $" style="width:110px"></div>'
+    +'<textarea id="ca-desc" class="field" rows="3" style="width:100%;margin-bottom:6px" placeholder="Description (line breaks are kept)"></textarea>'
+    +'<div style="display:flex;gap:8px;align-items:center"><label class="small mut">Image <input id="ca-img" type="file" accept="image/*" style="font-size:12px"></label><button id="ca-add" class="btn primary" style="margin-left:auto">Add item</button></div>'
+    +'<div id="ca-amsg" class="small" style="margin-top:6px"></div></div>'
+    +'<div id="ca-list"></div></div>';
+}
+function itemCard(it){
+  var img=it.image_url?'<img src="'+esc(it.image_url)+'" style="width:64px;height:64px;object-fit:cover;border-radius:8px">':'<div style="width:64px;height:64px;border-radius:8px;background:#EEF2F6"></div>';
+  return '<div class="card pad" data-id="'+it.id+'" style="margin-bottom:8px"><div style="display:flex;gap:10px">'
+    +'<div style="text-align:center">'+img+'<div style="margin-top:4px"><label class="small mut" style="cursor:pointer;color:#2F6BFF">Change<input type="file" accept="image/*" class="ca-chimg" style="display:none"></label></div></div>'
+    +'<div style="flex:1">'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px"><input class="field ca-en" value="'+esc(it.name||'')+'" style="flex:1"><input class="field ca-ec" value="'+esc(it.category||'')+'" placeholder="Category" style="width:150px"><input class="field ca-ep" value="'+centsToStr(it.price_cents)+'" placeholder="$" style="width:90px"></div>'
+    +'<textarea class="field ca-ed" rows="2" style="width:100%">'+esc(it.description||'')+'</textarea>'
+    +'<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><label class="small" style="display:flex;gap:4px;align-items:center;cursor:pointer"><input type="checkbox" class="ca-ea"'+(it.active?' checked':'')+'>Active</label><div style="flex:1"></div><button class="btn ca-save" style="padding:3px 10px">Save</button><button class="btn ca-del" style="padding:3px 10px">Delete</button></div>'
+    +'</div></div></div>';
+}
+async function loadPolicy(sec){var s=await ensureSb();var r=await s.from('reorder_config').select('refund_policy').eq('id','default').single();if(r.data)sec.querySelector('#cp-policy').value=r.data.refund_policy||'';}
+async function loadList(sec){var s=await ensureSb();var r=await s.from('reorder_catalog').select('*').order('category',{ascending:true}).order('sort',{ascending:true}).order('created_at',{ascending:true});var rows=r.data||[];var el=sec.querySelector('#ca-list');el.innerHTML=rows.length?rows.map(itemCard).join(''):'<div class="small mut">No items yet.</div>';}
+async function savePolicy(sec){var s=await ensureSb();var u=await s.auth.getUser();var email=u.data.user?u.data.user.email:null;var msg=sec.querySelector('#cp-msg');msg.style.color='#c0392b';var r=await s.from('reorder_config').update({refund_policy:sec.querySelector('#cp-policy').value,updated_at:new Date().toISOString(),updated_by_email:email}).eq('id','default').select('id');if(r.error||!r.data||!r.data.length){msg.textContent='Could not save (admin only).';return;}msg.style.color='#1a7f4b';msg.textContent='Saved.';}
+async function addItem(sec){
+  var msg=sec.querySelector('#ca-amsg');msg.style.color='#c0392b';msg.textContent='';
+  var name=sec.querySelector('#ca-name').value.trim();if(!name){msg.textContent='Enter an item name.';return;}
+  var cents=strToCents(sec.querySelector('#ca-price').value);
+  var btn=sec.querySelector('#ca-add');btn.disabled=true;btn.textContent='Adding...';
+  try{
+    var img=null;var f=sec.querySelector('#ca-img').files[0];if(f)img=await uploadImage(f);
+    var s=await ensureSb();
+    var row={name:name,category:sec.querySelector('#ca-cat').value.trim()||null,description:sec.querySelector('#ca-desc').value||null,price_cents:cents,price_display:cents!=null?('$'+(cents/100).toFixed(2)):null,image_url:img,active:true};
+    var r=await s.from('reorder_catalog').insert(row).select('id');
+    if(r.error){msg.textContent='Could not add: '+esc(r.error.message);}
+    else{sec.querySelector('#ca-name').value='';sec.querySelector('#ca-cat').value='';sec.querySelector('#ca-price').value='';sec.querySelector('#ca-desc').value='';sec.querySelector('#ca-img').value='';msg.style.color='#1a7f4b';msg.textContent='Added.';loadList(sec);}
+  }catch(e){msg.textContent='Upload or save failed.';}
+  btn.disabled=false;btn.textContent='Add item';
+}
+function activate(nav,sec){[].forEach.call(document.querySelectorAll('.nav'),function(n){n.classList.remove('active');});nav.classList.add('active');try{window.scrollTo(0,0);}catch(e){}loadPolicy(sec);loadList(sec);}
+async function isAdmin(){var s=await ensureSb();var u=await s.auth.getUser();var id=u&&u.data&&u.data.user?u.data.user.id:null;if(!id)return false;var r=await s.from('profiles').select('role').eq('id',id).single();return !!(r.data&&(r.data.role==='admin'||r.data.role==='team'));}
+var ICON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 7v10l8 4 8-4V7"/></svg>';
+async function mount(){
+  var anchorNav=document.querySelector('.nav[data-screen="catadmin"]');
+  if(anchorNav)return true;
+  var anchor=document.querySelector('.nav[data-screen="mgrid"]')||document.querySelector('.nav[data-screen="coachcfg"]')||document.querySelector('.nav[data-screen="clients"]');
+  if(!anchor)return false;
+  if(!(await isAdmin()))return true;
+  var screenParent=(document.querySelector('section.screen')||{}).parentElement;if(!anchor.parentElement||!screenParent)return false;
+  var nav=document.createElement('div');nav.className='nav admin-only';nav.setAttribute('data-screen','catadmin');nav.innerHTML=ICON+'Re-order Catalog <span class="badge-admin" style="margin-left:auto">Admin</span>';
+  anchor.parentElement.insertBefore(nav,anchor.nextSibling);
+  var sec=document.createElement('section');sec.className='screen';sec.id='catadmin';sec.innerHTML=screenHtml();screenParent.appendChild(sec);
+  nav.addEventListener('click',function(){activate(nav,sec);});
+  sec.querySelector('#cp-save').addEventListener('click',function(){savePolicy(sec);});
+  sec.querySelector('#ca-add').addEventListener('click',function(){addItem(sec);});
+  sec.querySelector('#ca-list').addEventListener('click',async function(e){
+    var card=e.target.closest('[data-id]');if(!card)return;var id=card.getAttribute('data-id');var s=await ensureSb();
+    if(e.target.classList.contains('ca-save')){
+      var cents=strToCents(card.querySelector('.ca-ep').value);
+      await s.from('reorder_catalog').update({name:card.querySelector('.ca-en').value,category:card.querySelector('.ca-ec').value||null,description:card.querySelector('.ca-ed').value||null,price_cents:cents,price_display:cents!=null?('$'+(cents/100).toFixed(2)):null,active:card.querySelector('.ca-ea').checked}).eq('id',id);
+      toast('Saved');loadList(sec);
+    } else if(e.target.classList.contains('ca-del')){
+      await s.from('reorder_catalog').delete().eq('id',id);loadList(sec);
+    }
+  });
+  sec.querySelector('#ca-list').addEventListener('change',async function(e){
+    if(!e.target.classList.contains('ca-chimg'))return;var card=e.target.closest('[data-id]');var id=card.getAttribute('data-id');var f=e.target.files[0];if(!f)return;
+    try{var url=await uploadImage(f);var s=await ensureSb();await s.from('reorder_catalog').update({image_url:url}).eq('id',id);loadList(sec);}catch(err){toast('Image upload failed');}
+  });
+  return true;
+}
+var tries=0;(function wait(){mount().then(function(done){if(done)return;if(++tries>80)return;setTimeout(wait,300);});})();
+})();
 /* ---- 28) REFERRAL LINK — admin field preview + client Settings card ---- */
 (function(){'use strict';if(window.__dsRefLink)return;window.__dsRefLink=true;var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';var sb=null;async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}
 var BASE='https://merchant.getbitflow.com/sign-up?code=';
