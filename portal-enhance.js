@@ -3452,3 +3452,76 @@ document.addEventListener('click',function(e){
   setTimeout(function(){ applyShow(id,nav); },40);
 },true);
 })();
+
+
+/* ---- 34) ADMIN — Orders (all re-orders with full detail) ---- */
+(function(){'use strict';
+if(window.__dsOrdersAdmin)return;window.__dsOrdersAdmin=true;
+var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+var sb=null;
+async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}
+function money(c){return c==null?'':'$'+(c/100).toFixed(2);}
+var STATUSES=['pending','paid','shipped','completed','cancelled','refunded'];
+function addrBlock(o,p){var l=[o[p+'line1'],o[p+'line2'],[o[p+'city'],o[p+'state'],o[p+'zip']].filter(Boolean).join(' ')].filter(Boolean);return l.length?l.join('<br>'):'<span class="mut">-</span>';}
+function orderCard(o){
+  var d=new Date(o.created_at);
+  var items=(o.order_items&&o.order_items.length)?o.order_items.map(function(i){return '<div class="small">'+i.qty+' x '+esc(i.name)+' <span class="mut">'+money(i.price_cents)+'</span></div>';}).join(''):('<div class="small">'+esc(o.item_name||'-')+'</div>');
+  var opts=STATUSES.map(function(s){return '<option value="'+s+'"'+(o.status===s?' selected':'')+'>'+s+'</option>';}).join('');
+  var billing=o.billing_same?'<span class="mut">Same as shipping</span>':addrBlock(o,'bill_');
+  return '<div class="card pad" data-oid="'+o.id+'" style="margin-bottom:10px">'
+    +'<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div style="font-weight:700;color:#0E1A2B">'+esc(o.full_name||'(no name)')+'</div><div class="small mut">'+esc(o.email||'')+(o.merchant_name?' - '+esc(o.merchant_name):'')+' - '+d.toLocaleString()+'</div></div>'
+    +'<div style="text-align:right"><div style="font-weight:800;color:#0E1A2B">'+money(o.total_cents!=null?o.total_cents:o.amount_total)+'</div><div class="small mut">'+(o.payment_method==='ach'?'ACH (no fee)':'Card +3%')+'</div></div></div>'
+    +'<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px">'
+    +'<div style="min-width:180px"><div class="h-eyebrow" style="margin:0 0 4px">Items</div>'+items+'<div class="small mut" style="margin-top:4px">Subtotal '+money(o.subtotal_cents)+(o.surcharge_cents?' + fee '+money(o.surcharge_cents):'')+'</div></div>'
+    +'<div style="min-width:150px"><div class="h-eyebrow" style="margin:0 0 4px">Ship to</div><div class="small">'+addrBlock(o,'ship_')+'</div></div>'
+    +'<div style="min-width:150px"><div class="h-eyebrow" style="margin:0 0 4px">Billing</div><div class="small">'+billing+'</div></div>'
+    +'</div>'
+    +(o.notes?'<div class="small mut" style="margin-top:8px">Notes: '+esc(o.notes)+'</div>':'')
+    +'<div style="display:flex;gap:8px;align-items:center;margin-top:10px"><span class="small mut">Status</span><select class="oa-status field" style="width:150px;padding:4px">'+opts+'</select><span class="small mut">'+(o.refund_ack?'Refund policy accepted':'')+'</span></div>'
+    +'</div>';
+}
+async function load(sec){
+  var s=await ensureSb();
+  var r=await s.from('reorders').select('*').order('created_at',{ascending:false}).limit(200);
+  var rows=r.data||[];var el=sec.querySelector('#oa-list');
+  var f=sec.querySelector('#oa-filter').value;
+  if(f)rows=rows.filter(function(o){return (o.status||'pending')===f;});
+  el.innerHTML=rows.length?rows.map(orderCard).join(''):'<div class="small mut">No orders'+(f?' with status '+f:'')+'.</div>';
+  sec.querySelector('#oa-count').textContent=rows.length+' order'+(rows.length===1?'':'s');
+}
+function screenHtml(){
+  return '<div class="wrap" style="max-width:900px">'
+    +'<div class="h-eyebrow">Admin</div>'
+    +'<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">Orders</h1>'
+    +'<p class="mut" style="margin-bottom:12px">Every re-order with contact, shipping, billing, items and payment. <span id="oa-count"></span></p>'
+    +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><span class="small mut">Filter</span><select id="oa-filter" class="field" style="width:170px;padding:6px"><option value="">All statuses</option>'+STATUSES.map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('')+'</select><button id="oa-refresh" class="btn" style="padding:4px 12px">Refresh</button></div>'
+    +'<div id="oa-list"></div></div>';
+}
+function activate(nav,sec){[].forEach.call(document.querySelectorAll('.nav'),function(n){n.classList.remove('active');});nav.classList.add('active');try{window.scrollTo(0,0);}catch(e){}load(sec);}
+async function isAdmin(){var s=await ensureSb();var u=await s.auth.getUser();var id=u&&u.data&&u.data.user?u.data.user.id:null;if(!id)return false;var r=await s.from('profiles').select('role').eq('id',id).single();return !!(r.data&&(r.data.role==='admin'||r.data.role==='team'));}
+var ICON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2l1.5 3h9L18 2"/><path d="M4 7h16l-1.5 12a2 2 0 0 1-2 2H7.5a2 2 0 0 1-2-2L4 7z"/></svg>';
+async function mount(){
+  if(document.querySelector('.nav[data-screen="ordersadmin"]'))return true;
+  var anchor=document.querySelector('.nav[data-screen="catadmin"]')||document.querySelector('.nav[data-screen="mgrid"]')||document.querySelector('.nav[data-screen="clients"]');
+  if(!anchor)return false;
+  if(!(await isAdmin()))return true;
+  var screenParent=(document.querySelector('section.screen')||{}).parentElement;if(!anchor.parentElement||!screenParent)return false;
+  var nav=document.createElement('div');nav.className='nav admin-only';nav.setAttribute('data-screen','ordersadmin');nav.innerHTML=ICON+'Orders <span class="badge-admin" style="margin-left:auto">Admin</span>';
+  anchor.parentElement.insertBefore(nav,anchor.nextSibling);
+  var sec=document.createElement('section');sec.className='screen';sec.id='ordersadmin';sec.innerHTML=screenHtml();screenParent.appendChild(sec);
+  nav.addEventListener('click',function(){activate(nav,sec);});
+  sec.querySelector('#oa-refresh').addEventListener('click',function(){load(sec);});
+  sec.querySelector('#oa-filter').addEventListener('change',function(){load(sec);});
+  sec.querySelector('#oa-list').addEventListener('change',async function(e){
+    if(!e.target.classList.contains('oa-status'))return;
+    var card=e.target.closest('[data-oid]');var id=card.getAttribute('data-oid');var s=await ensureSb();
+    var patch={status:e.target.value};if(e.target.value==='paid')patch.paid_at=new Date().toISOString();
+    await s.from('reorders').update(patch).eq('id',id);toast('Status updated');
+  });
+  return true;
+}
+var tries=0;(function wait(){mount().then(function(done){if(done)return;if(++tries>80)return;setTimeout(wait,300);});})();
+})();
