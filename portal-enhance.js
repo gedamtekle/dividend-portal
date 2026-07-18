@@ -2845,17 +2845,29 @@ function renderList(root){
   recompute(root);
 }
 function activate(root){recompute(root);}
-async function mount(){
-  var sec=document.getElementById('reorders');if(!sec)return false;
-  if(sec.getAttribute('data-dsro'))return true;sec.setAttribute('data-dsro','1');
+var RO_ICON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l2 13h11l2-8H6"/><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/></svg>';
+function mount(){
+  var screenParent=(document.querySelector('section.screen')||{}).parentElement;
+  if(!screenParent)return false;
+  var nav=document.querySelector('.nav[data-screen="reorders"]');
+  if(!nav){
+    var anchor=document.querySelector('.nav[data-screen="reachout"]')||document.querySelector('.nav[data-screen="merchant"]')||document.querySelector('.nav[data-screen="settings"]')||document.querySelector('.nav');
+    if(!anchor||!anchor.parentElement)return false;
+    nav=document.createElement('div');nav.className='nav';nav.setAttribute('data-screen','reorders');nav.innerHTML=RO_ICON+'Re-Orders';
+    anchor.parentElement.insertBefore(nav,anchor.nextSibling);
+  }
+  var sec=document.getElementById('reorders');
+  if(!sec){sec=document.createElement('section');sec.className='screen';sec.id='reorders';screenParent.appendChild(sec);}
+  if(sec.getAttribute('data-dsro'))return true;
+  sec.setAttribute('data-dsro','1');
   sec.innerHTML=screenHtml();var root=sec;
   root.querySelector('#ro-cat').addEventListener('change',function(){renderList(root);});
   root.querySelector('#ro-list').addEventListener('change',function(){recompute(root);});
   [].forEach.call(root.querySelectorAll('input[name=ro-pay]'),function(r){r.addEventListener('change',function(){recompute(root);});});
   root.querySelector('#ro-samebill').addEventListener('change',function(e){root.querySelector('#ro-billbox').style.display=e.target.checked?'none':'block';});
   root.querySelector('#ro-submit').addEventListener('click',function(){submit(root);});
+  nav.addEventListener('click',function(){setTimeout(function(){loadOrders(root);recompute(root);},250);});
   loadData(root);
-  var nav=document.querySelector('.nav[data-screen="reorders"]');if(nav)nav.addEventListener('click',function(){setTimeout(function(){loadOrders(root);recompute(root);},200);});
   return true;
 }
 var n=0;(function wait(){if(mount()===true||++n>100)return;setTimeout(wait,250);})();
