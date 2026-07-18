@@ -3184,3 +3184,28 @@ function guard(){
 }
 var n=0;(function w(){if(guard()||++n>60)return;setTimeout(w,300);})();
 })();
+
+
+/* ---- 33) SCREEN VISIBILITY SHIM: the app shows screens via the .show class
+   (.screen.show{display:block}), but injected admin screens' nav handlers used
+   .active, so they never displayed. On any nav[data-screen] click, apply the
+   app's real visibility model to guarantee the target screen shows. ---- */
+(function(){'use strict';
+if(window.__dsShowShim)return;window.__dsShowShim=true;
+function applyShow(id,nav){
+  var sec=document.getElementById(id);
+  if(!sec||!sec.classList.contains('screen'))return;
+  [].forEach.call(document.querySelectorAll('section.screen'),function(s){s.classList.remove('show');});
+  sec.classList.add('show');
+  [].forEach.call(document.querySelectorAll('.nav'),function(x){x.classList.remove('active');});
+  if(nav)nav.classList.add('active');
+  try{window.scrollTo(0,0);}catch(e){}
+}
+document.addEventListener('click',function(e){
+  var nav=e.target.closest?e.target.closest('.nav[data-screen]'):null;
+  if(!nav)return;
+  var id=nav.getAttribute('data-screen');
+  // run after both the base app and any injected handlers have processed the click
+  setTimeout(function(){ applyShow(id,nav); },40);
+},true);
+})();
