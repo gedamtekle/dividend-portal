@@ -2701,18 +2701,165 @@
 })();
 
 
-/* ---- 23) RE-ORDERS (client, catalog + Stripe checkout) ---- */
-(function(){'use strict';if(window.__dsReorder)return;window.__dsReorder=true;var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';var sb=null;async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}
-var ICON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3zM5 7v14h14V7M9 11h6"/></svg>';
-function screenHtml(){return '<div class="wrap" style="max-width:820px"><div class="h-eyebrow">Equipment</div><h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 6px">Re-Orders</h1><p class="mut" style="margin-bottom:16px">Order terminals, hardware, and supplies for your merchants.</p><div id="ro-catalog" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px"></div><div id="ro-list" style="margin-top:18px"></div></div>';}
-function closeModal(){var m=document.getElementById('ro-modal');if(m)m.remove();}
-function openModal(item){closeModal();var w=document.createElement('div');w.id='ro-modal';w.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(14,26,43,.55);display:flex;align-items:center;justify-content:center;padding:18px';w.innerHTML='<div style="background:#fff;border-radius:14px;max-width:440px;width:100%;padding:22px"><div style="font-size:18px;font-weight:800;color:#0E1A2B">'+esc(item.name)+'</div><div class="small mut" style="margin:2px 0 14px">'+esc(item.description||'')+(item.price_display?' \u00b7 '+esc(item.price_display):'')+'</div><label style="font-size:13px;font-weight:700">Quantity</label><input id="rom-qty" class="field" style="width:100%;margin-bottom:10px" value="1" inputmode="numeric"><label style="font-size:13px;font-weight:700">Which merchant?</label><input id="rom-merchant" class="field" style="width:100%;margin-bottom:10px" placeholder="Merchant / location"><label style="font-size:13px;font-weight:700">Notes</label><textarea id="rom-notes" class="field" rows="2" style="width:100%;margin-bottom:8px"></textarea><div id="rom-msg" class="small" style="min-height:16px;margin-bottom:8px"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button id="rom-cancel" class="btn" style="background:#eef1f6;color:#0E1A2B">Cancel</button><button id="rom-go" class="btn primary">Continue to payment</button></div></div>';document.body.appendChild(w);w.addEventListener('click',function(e){if(e.target===w)closeModal();});w.querySelector('#rom-cancel').addEventListener('click',closeModal);w.querySelector('#rom-go').addEventListener('click',function(){checkout(item,w);});}
-async function checkout(item,w){var msg=w.querySelector('#rom-msg');var go=w.querySelector('#rom-go');msg.style.color='#c0392b';msg.textContent='';go.disabled=true;go.textContent='Starting…';var s=await ensureSb();var sess=await s.auth.getSession();var tok=sess.data.session&&sess.data.session.access_token;var res;try{var r=await fetch(URL_+'/functions/v1/create-reorder-checkout',{method:'POST',headers:{'Content-Type':'application/json','apikey':ANON,'Authorization':'Bearer '+tok},body:JSON.stringify({item_id:item.id,quantity:parseInt(w.querySelector('#rom-qty').value||'1',10),merchant_name:(w.querySelector('#rom-merchant').value||'').trim(),notes:(w.querySelector('#rom-notes').value||'').trim()})});res=await r.json();}catch(e){res={error:'network'};}go.disabled=false;go.textContent='Continue to payment';if(res&&res.ok&&res.url){window.location.href=res.url;return;}msg.textContent=(res&&res.message)||'Couldn\u2019t start checkout — try again.';}
-async function load(sec){var s=await ensureSb();var cat=await s.from('reorder_catalog').select('*').eq('active',true).order('sort');var items=cat.data||[];sec.querySelector('#ro-catalog').innerHTML=items.length?items.map(function(x){return '<div class="card pad" style="display:flex;flex-direction:column"><div style="font-weight:700;color:#0E1A2B">'+esc(x.name)+'</div><div class="small mut" style="flex:1;margin:4px 0 10px">'+esc(x.description||'')+'</div>'+(x.price_display?'<div class="small" style="font-weight:700;margin-bottom:8px">'+esc(x.price_display)+'</div>':'')+'<button class="btn primary" data-order="'+x.id+'" style="width:100%;justify-content:center">Order</button></div>';}).join(''):'<div class="small mut">No items available.</div>';var cel=sec.querySelector('#ro-catalog');if(!cel.__w){cel.__w=true;cel.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-order]');if(!b)return;var it=items.filter(function(x){return x.id===b.getAttribute('data-order');})[0];if(it)openModal(it);});}var ro=await s.from('reorders').select('*').order('created_at',{ascending:false});var rows=ro.data||[];sec.querySelector('#ro-list').innerHTML=rows.length?('<div class="card pad"><div class="h-eyebrow">Your orders</div>'+rows.map(function(x){return '<div style="border-top:1px solid #EEF0F4;padding:8px 0;display:flex;justify-content:space-between"><div><b>'+esc(x.item_name||x.items||'—')+'</b> <span class="small mut">'+esc(x.merchant_name||'')+(x.quantity?' \u00b7 x'+esc(x.quantity):'')+'</span></div><span class="pill mut" style="font-size:11px">'+esc(x.status)+'</span></div>';}).join('')+'</div>'):'';}
-function activate(nav,sec){[].forEach.call(document.querySelectorAll('.screen'),function(s){s.classList.remove('active');});[].forEach.call(document.querySelectorAll('.nav'),function(n){n.classList.remove('active');});sec.classList.add('active');nav.classList.add('active');try{window.scrollTo(0,0);}catch(e){}load(sec);}
-function mount(){var anchor=document.querySelector('.nav[data-screen="settings"]');if(!anchor)return false;if(document.querySelector('.nav[data-screen="reorders"]'))return true;var side=anchor.parentElement;var sp=(document.querySelector('section.screen')||{}).parentElement;if(!side||!sp)return false;var nav=document.createElement('div');nav.className='nav';nav.setAttribute('data-screen','reorders');nav.innerHTML=ICON+'Re-Orders';side.insertBefore(nav,anchor);var sec=document.createElement('section');sec.className='screen';sec.id='reorders';sec.innerHTML=screenHtml();sp.appendChild(sec);nav.addEventListener('click',function(){activate(nav,sec);});if(typeof window.show==='function'&&!window.show.__dsReorderW){var o=window.show;var w=function(x){var out=o.apply(this,arguments);if(x!=='reorders'){var el=document.getElementById('reorders');if(el)el.classList.remove('active');}return out;};w.__dsReorderW=true;window.show=w;}return true;}
-var tr=0;(function wait(){if(mount())return;if(++tr>80)return;setTimeout(wait,250);})();})();
-
+/* ---- 23) RE-ORDERS (client): catalog + full order form + Stripe charge ---- */
+(function(){'use strict';
+if(window.__dsReorder)return;window.__dsReorder=true;
+var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+var sb=null,CAT=[],POLICY='';
+async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}
+function money(c){if(c==null)return '';return '$'+(c/100).toFixed(2);}
+async function tok(){var s=await ensureSb();var r=await s.auth.getSession();return r.data.session&&r.data.session.access_token;}
+async function call(fn,p){var t=await tok();var r=await fetch(URL_+'/functions/v1/'+fn,{method:'POST',headers:{'Content-Type':'application/json','apikey':ANON,'Authorization':'Bearer '+t},body:JSON.stringify(p||{})});return await r.json();}
+function qtyOpts(){var o='';for(var i=1;i<=10;i++)o+='<option value="'+i+'">'+i+'</option>';return o;}
+function itemRow(it){
+  var priced=it.price_cents>0;
+  var img=it.image_url?'<img src="'+esc(it.image_url)+'" alt="" style="width:70px;height:70px;object-fit:cover;border-radius:8px;background:#EEF2F6">':'<div style="width:70px;height:70px;border-radius:8px;background:#EEF2F6"></div>';
+  return '<div class="ro-item" data-id="'+it.id+'" data-price="'+(it.price_cents||0)+'" data-cat="'+esc(it.category||'')+'" style="display:flex;gap:12px;padding:14px 0;border-top:1px solid #EEF2F6">'
+    +'<div style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" class="ro-pick" '+(priced?'':'disabled')+' style="margin-top:6px">'+img+'</div>'
+    +'<div style="flex:1"><div style="font-weight:700;color:#0E1A2B">'+esc(it.name)+'</div>'
+    +(it.description?'<div class="small mut" style="margin-top:2px;white-space:pre-line">'+esc(it.description)+'</div>':'')
+    +'<div style="margin-top:8px;display:flex;align-items:center;gap:8px"><span class="small mut">Quantity</span><select class="ro-qty field" '+(priced?'':'disabled')+' style="width:72px;padding:4px">'+qtyOpts()+'</select></div>'
+    +'</div>'
+    +'<div style="text-align:right;white-space:nowrap;font-weight:700;color:#0E1A2B">'+(priced?money(it.price_cents):'<span class="small mut">Price on request</span>')+'</div>'
+    +'</div>';
+}
+function addrFields(pfx){
+  return '<input class="field" id="'+pfx+'l1" placeholder="Street address" style="width:100%;margin-bottom:6px">'
+    +'<input class="field" id="'+pfx+'l2" placeholder="Apt, suite (optional)" style="width:100%;margin-bottom:6px">'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px"><input class="field" id="'+pfx+'city" placeholder="City" style="flex:1"><input class="field" id="'+pfx+'state" placeholder="State" style="width:80px"><input class="field" id="'+pfx+'zip" placeholder="ZIP" style="width:100px"></div>';
+}
+function screenHtml(){
+  return '<div class="wrap" style="max-width:860px">'
+    +'<div class="h-eyebrow">Operate</div>'
+    +'<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">Re-Orders</h1>'
+    +'<p class="mut" style="margin-bottom:12px">Order equipment and supplies. Select items, choose how you want to pay, and check out securely.</p>'
+    +'<div class="card pad" style="margin-bottom:14px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div class="h-eyebrow" style="margin:0">Select items</div>'
+    +'<select id="ro-cat" class="field" style="width:200px;padding:6px"><option value="">All categories</option></select></div>'
+    +'<div id="ro-list"></div></div>'
+    +'<div class="card pad" style="margin-bottom:14px">'
+    +'<div class="h-eyebrow" style="margin:0 0 8px">Payment method</div>'
+    +'<label style="display:flex;gap:8px;align-items:center;margin-bottom:6px;cursor:pointer"><input type="radio" name="ro-pay" value="card" checked> Credit / debit card <span class="small mut">(+3% processing fee)</span></label>'
+    +'<label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="radio" name="ro-pay" value="ach"> ACH bank withdrawal <span class="small mut">(no fee)</span></label>'
+    +'<div style="border-top:1px solid #EEF2F6;margin-top:10px;padding-top:10px">'
+    +'<div style="display:flex;justify-content:space-between"><span class="small mut">Subtotal</span><span id="ro-sub" class="small">$0.00</span></div>'
+    +'<div id="ro-feeRow" style="display:flex;justify-content:space-between"><span class="small mut">Card fee (3%)</span><span id="ro-fee" class="small">$0.00</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-weight:800;color:#0E1A2B;margin-top:4px"><span>Total</span><span id="ro-total">$0.00</span></div>'
+    +'</div></div>'
+    +'<div class="card pad" style="margin-bottom:14px">'
+    +'<div class="h-eyebrow" style="margin:0 0 8px">Your details</div>'
+    +'<input class="field" id="ro-name" placeholder="Full name" style="width:100%;margin-bottom:6px">'
+    +'<input class="field" id="ro-email" placeholder="Email" style="width:100%;margin-bottom:6px">'
+    +'<input class="field" id="ro-merch" placeholder="Merchant / location (optional)" style="width:100%">'
+    +'<div class="h-eyebrow" style="margin:14px 0 8px">Shipping address</div>'+addrFields('ro-s-')
+    +'<label style="display:flex;gap:8px;align-items:center;margin:8px 0;cursor:pointer"><input type="checkbox" id="ro-samebill" checked> Billing address same as shipping</label>'
+    +'<div id="ro-billbox" style="display:none"><div class="h-eyebrow" style="margin:6px 0 8px">Billing address</div>'+addrFields('ro-b-')+'</div>'
+    +'<div class="h-eyebrow" style="margin:14px 0 6px">Special requests or notes</div>'
+    +'<textarea class="field" id="ro-notes" rows="3" style="width:100%" placeholder="Anything we should know?"></textarea>'
+    +'</div>'
+    +'<div class="card pad" style="margin-bottom:14px">'
+    +'<div class="h-eyebrow" style="margin:0 0 6px">Refund policy</div>'
+    +'<div id="ro-policy" class="small mut" style="white-space:pre-line;max-height:150px;overflow:auto;background:#F7FAFC;border:1px solid #EEF2F6;border-radius:8px;padding:10px;margin-bottom:8px"></div>'
+    +'<label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="ro-ack"> I have read and accept the refund policy.</label>'
+    +'</div>'
+    +'<div id="ro-msg" class="small" style="min-height:18px;margin-bottom:6px"></div>'
+    +'<button id="ro-submit" class="btn primary" style="width:100%;justify-content:center">Place order</button>'
+    +'<div class="card pad" style="margin-top:18px"><div class="h-eyebrow" style="margin:0 0 8px">Your orders</div><div id="ro-orders"></div></div>'
+    +'</div>';
+}
+function selectedItems(root){
+  var out=[];
+  [].forEach.call(root.querySelectorAll('.ro-item'),function(el){
+    var pick=el.querySelector('.ro-pick');
+    if(pick&&pick.checked){var qty=parseInt(el.querySelector('.ro-qty').value,10)||1;out.push({id:el.getAttribute('data-id'),qty:qty,price:parseInt(el.getAttribute('data-price'),10)||0});}
+  });
+  return out;
+}
+function recompute(root){
+  var items=selectedItems(root);
+  var sub=items.reduce(function(a,b){return a+b.price*b.qty;},0);
+  var pay=(root.querySelector('input[name=ro-pay]:checked')||{}).value||'card';
+  var fee=pay==='card'?Math.round(sub*0.03):0;
+  root.querySelector('#ro-sub').textContent=money(sub);
+  root.querySelector('#ro-fee').textContent=money(fee);
+  root.querySelector('#ro-feeRow').style.display=pay==='card'?'flex':'none';
+  root.querySelector('#ro-total').textContent=money(sub+fee);
+}
+function addr(root,pfx){return {line1:root.querySelector('#'+pfx+'l1').value.trim(),line2:root.querySelector('#'+pfx+'l2').value.trim(),city:root.querySelector('#'+pfx+'city').value.trim(),state:root.querySelector('#'+pfx+'state').value.trim(),zip:root.querySelector('#'+pfx+'zip').value.trim()};}
+async function submit(root){
+  var msg=root.querySelector('#ro-msg');msg.style.color='#c0392b';msg.textContent='';
+  var items=selectedItems(root).map(function(x){return {id:x.id,qty:x.qty};});
+  if(!items.length){msg.textContent='Select at least one item.';return;}
+  var name=root.querySelector('#ro-name').value.trim();
+  if(!name){msg.textContent='Enter your full name.';return;}
+  var ship=addr(root,'ro-s-');
+  if(!ship.line1||!ship.city||!ship.zip){msg.textContent='Enter a complete shipping address.';return;}
+  if(!root.querySelector('#ro-ack').checked){msg.textContent='Please accept the refund policy.';return;}
+  var same=root.querySelector('#ro-samebill').checked;
+  var payload={items:items,full_name:name,email:root.querySelector('#ro-email').value.trim(),merchant_name:root.querySelector('#ro-merch').value.trim(),notes:root.querySelector('#ro-notes').value.trim(),ship:ship,billing_same:same,bill:same?ship:addr(root,'ro-b-'),payment_method:(root.querySelector('input[name=ro-pay]:checked')||{}).value||'card',refund_ack:true};
+  var btn=root.querySelector('#ro-submit');btn.disabled=true;btn.textContent='Starting checkout...';
+  try{
+    var res=await call('create-reorder-checkout',payload);
+    if(res.ok&&res.url){window.location.href=res.url;return;}
+    msg.textContent=res.message||('Could not start checkout: '+esc(res.error||'unknown'));
+  }catch(e){msg.textContent='Checkout error. Please try again.';}
+  btn.disabled=false;btn.textContent='Place order';
+}
+async function loadOrders(root){
+  try{var s=await ensureSb();var u=await s.auth.getUser();var id=u.data.user.id;
+  var r=await s.from('reorders').select('*').eq('client_id',id).order('created_at',{ascending:false}).limit(20);
+  var rows=r.data||[];var el=root.querySelector('#ro-orders');if(!el)return;
+  if(!rows.length){el.innerHTML='<div class="small mut">No orders yet.</div>';return;}
+  el.innerHTML=rows.map(function(o){
+    var d=new Date(o.created_at);
+    var its=(o.order_items&&o.order_items.length)?o.order_items.map(function(i){return i.qty+'x '+esc(i.name);}).join(', '):(esc(o.item_name||''));
+    var st=o.status||'pending';var col=st==='paid'?'#1a7f4b':(st==='pending'?'#8a6d1a':'#64748B');
+    var ship=[o.ship_line1,o.ship_city,o.ship_state].filter(Boolean).join(', ');
+    return '<div style="padding:8px 0;border-top:1px solid #EEF2F6"><div style="display:flex;justify-content:space-between"><div class="small" style="font-weight:600">'+its+'</div><div class="small" style="font-weight:700;color:'+col+'">'+st+'</div></div>'
+      +'<div class="small mut">'+money(o.total_cents!=null?o.total_cents:o.amount_total)+' - '+(o.payment_method==='ach'?'ACH':'Card')+' - '+d.toLocaleDateString()+(ship?' - ships to '+esc(ship):'')+'</div></div>';
+  }).join('');
+  }catch(e){}
+}
+async function loadData(root){
+  var s=await ensureSb();
+  var r=await s.from('reorder_catalog').select('*').eq('active',true).order('category',{ascending:true}).order('sort',{ascending:true});
+  CAT=r.data||[];
+  var cats=[];CAT.forEach(function(c){if(c.category&&cats.indexOf(c.category)<0)cats.push(c.category);});
+  var catSel=root.querySelector('#ro-cat');
+  catSel.innerHTML='<option value="">All categories</option>'+cats.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join('');
+  renderList(root);
+  var pol=await s.from('reorder_config').select('refund_policy').eq('id','default').single();
+  POLICY=(pol.data&&pol.data.refund_policy)||'Contact your rep for the current refund policy.';
+  root.querySelector('#ro-policy').textContent=POLICY;
+  // prefill email
+  var u=await s.auth.getUser();if(u.data.user&&u.data.user.email)root.querySelector('#ro-email').value=u.data.user.email;
+  loadOrders(root);
+}
+function renderList(root){
+  var f=root.querySelector('#ro-cat').value;
+  var list=CAT.filter(function(c){return !f||c.category===f;});
+  root.querySelector('#ro-list').innerHTML=list.length?list.map(itemRow).join(''):'<div class="small mut" style="padding:10px 0">No items in this category.</div>';
+  recompute(root);
+}
+function activate(root){recompute(root);}
+async function mount(){
+  var sec=document.getElementById('reorders');if(!sec)return false;
+  if(sec.getAttribute('data-dsro'))return true;sec.setAttribute('data-dsro','1');
+  sec.innerHTML=screenHtml();var root=sec;
+  root.querySelector('#ro-cat').addEventListener('change',function(){renderList(root);});
+  root.querySelector('#ro-list').addEventListener('change',function(){recompute(root);});
+  [].forEach.call(root.querySelectorAll('input[name=ro-pay]'),function(r){r.addEventListener('change',function(){recompute(root);});});
+  root.querySelector('#ro-samebill').addEventListener('change',function(e){root.querySelector('#ro-billbox').style.display=e.target.checked?'none':'block';});
+  root.querySelector('#ro-submit').addEventListener('click',function(){submit(root);});
+  loadData(root);
+  var nav=document.querySelector('.nav[data-screen="reorders"]');if(nav)nav.addEventListener('click',function(){setTimeout(function(){loadOrders(root);recompute(root);},200);});
+  return true;
+}
+var n=0;(function wait(){if(mount()===true||++n>100)return;setTimeout(wait,250);})();
+})();
 /* ---- 24) MY MERCHANTS (client CRM) ---- */
 (function(){'use strict';if(window.__dsMyMerch)return;window.__dsMyMerch=true;var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';var sb=null;async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}
 var STAGES=[['lead','Lead'],['submitted','Submitted'],['need_ein','Need EIN letter'],['partially_approved','Partially approved'],['approved','Approved'],['live','Live'],['lost','Lost']];
