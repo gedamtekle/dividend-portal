@@ -2926,7 +2926,7 @@ function cancelEnroll(){try{if(sb&&enrollFactorId)sb.auth.mfa.unenroll({factorId
 /* session bootstrap */
 (async function(){
   if(!sb){showPanel('apSignin');return;}
-  sb.auth.onAuthStateChange((event)=>{ if(event==='PASSWORD_RECOVERY'){document.getElementById('authScreen').classList.remove('hide');showPanel('apNewpw');} });
+  sb.auth.onAuthStateChange((event)=>{ if(event==='PASSWORD_RECOVERY'){document.getElementById('authScreen').classList.remove('hide');showPanel('apNewpw'); return;} });
   try{const {data:{session}}=await sb.auth.getSession();if(session){await routeAfterLogin();}else{showPanel('apSignin');}}catch(e){showPanel('apSignin');}
 })();
 </script>
