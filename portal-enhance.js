@@ -3525,3 +3525,103 @@ async function mount(){
 }
 var tries=0;(function wait(){mount().then(function(done){if(done)return;if(++tries>80)return;setTimeout(wait,300);});})();
 })();
+
+
+/* ---- 35) RESIDUAL ESTIMATOR (client): iframe calculator + saved scenarios ---- */
+(function(){'use strict';
+if(window.__dsResidual)return;window.__dsResidual=true;
+var URL_='https://dehttbxrkeqhsfkfpfwt.supabase.co';
+var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHR0Ynhya2VxaHNma2ZwZnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNjk4MjcsImV4cCI6MjA5NzY0NTgyN30.sZdkRz0QmLgbsTC_ZjdVd01bxjFH2TaoVgT_yVpoV40';
+var sb=null;
+async function ensureSb(){if(sb)return sb;if(window.__dsSB){sb=window.__dsSB;return sb;}var m=await import('https://esm.sh/@supabase/supabase-js@2.45.0');sb=m.createClient(URL_,ANON,{auth:{storageKey:'sb-dehttbxrkeqhsfkfpfwt-auth-token',persistSession:true,autoRefreshToken:true}});window.__dsSB=sb;return sb;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+function toast(m){try{if(typeof window.toast==='function')window.toast(m);}catch(e){}}
+var ICON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/></svg>';
+function screenHtml(){
+  return '<div class="wrap" style="max-width:920px">'
+    +'<div class="h-eyebrow">Tools</div>'
+    +'<h1 style="font-size:24px;font-weight:800;color:#0E1A2B;margin:2px 0 4px">Residual Estimator</h1>'
+    +'<p class="mut" style="margin-bottom:12px">Model your crypto and card-processing residual income and equipment breakeven. Save scenarios to revisit later. Estimates only.</p>'
+    +'<div class="card pad" style="margin-bottom:12px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="ds-res-name" class="field" placeholder="Name this scenario (e.g. Corner Store)" style="flex:1;min-width:220px"><button id="ds-res-save" class="btn primary">Save this estimate</button></div><div id="ds-res-msg" class="small" style="min-height:16px;margin-top:6px"></div></div>'
+    +'<iframe id="ds-res-frame" src="/residual-estimator.html" style="width:100%;height:1500px;border:0;border-radius:12px;background:#f1f5f9;overflow:hidden" scrolling="no"></iframe>'
+    +'<div class="card pad" style="margin-top:14px"><div style="display:flex;justify-content:space-between;align-items:center"><div class="h-eyebrow" style="margin:0">Saved scenarios</div><button id="ds-res-refresh" class="btn" style="padding:2px 8px">Refresh</button></div><div id="ds-res-list" style="margin-top:8px"></div></div>'
+    +'</div>';
+}
+function frameDoc(root){var f=root.querySelector('#ds-res-frame');return f&&f.contentWindow?f.contentWindow.document:null;}
+function frameWin(root){var f=root.querySelector('#ds-res-frame');return f?f.contentWindow:null;}
+function readParams(root){
+  var d=frameDoc(root);if(!d)return null;
+  var chargedEl=d.getElementById('toggle-merchant');
+  return {
+    sales:d.getElementById('sales-input').value,
+    crypto_pct:d.getElementById('crypto-pct').value,
+    crypto_rate:d.getElementById('crypto-rate').value,
+    cc_enabled:d.getElementById('cc-enabled').checked,
+    cc_tier:d.getElementById('cc-tier').value,
+    charged_to:(chargedEl&&chargedEl.classList.contains('active'))?'merchant':'customer',
+    equip:d.getElementById('equip-input').value
+  };
+}
+function applyParams(root,p){
+  var d=frameDoc(root),w=frameWin(root);if(!d||!w)return;
+  try{
+    if(p.sales!=null)d.getElementById('sales-input').value=p.sales;
+    if(p.crypto_pct!=null)d.getElementById('crypto-pct').value=p.crypto_pct;
+    if(p.crypto_rate!=null)d.getElementById('crypto-rate').value=p.crypto_rate;
+    if(p.equip!=null)d.getElementById('equip-input').value=p.equip;
+    if(p.cc_tier!=null)d.getElementById('cc-tier').value=p.cc_tier;
+    d.getElementById('cc-enabled').checked=!!p.cc_enabled;
+    if(typeof w.toggleCC==='function')w.toggleCC();
+    if(typeof w.setChargedTo==='function')w.setChargedTo(p.charged_to||'merchant');
+    if(typeof w.updateLabel==='function')w.updateLabel('crypto-pct','crypto-pct-label','%');
+    if(typeof w.updateLabelDec==='function')w.updateLabelDec('crypto-rate','crypto-rate-label','%',2);
+    if(typeof w.calc==='function')w.calc();
+  }catch(e){}
+}
+async function loadList(root){
+  try{var s=await ensureSb();var u=await s.auth.getUser();var id=u.data.user.id;
+  var r=await s.from('residual_scenarios').select('id,label,params,created_at').eq('client_id',id).order('created_at',{ascending:false}).limit(30);
+  var rows=r.data||[];var el=root.querySelector('#ds-res-list');if(!el)return;
+  if(!rows.length){el.innerHTML='<div class="small mut">No saved scenarios yet.</div>';return;}
+  el.innerHTML=rows.map(function(h){var d=new Date(h.created_at);var p=h.params||{};return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #EEF2F6"><div style="flex:1"><div class="small" style="font-weight:600">'+esc(h.label||'Scenario')+'</div><div class="small mut">'+esc(p.sales||'')+' vol - '+esc(p.crypto_rate||'')+'% crypto'+(p.cc_enabled?' + CC':'')+' - '+d.toLocaleDateString()+'</div></div><div style="white-space:nowrap"><button class="btn" data-rload="'+h.id+'" style="padding:2px 8px">Load</button> <button class="btn" data-rdel="'+h.id+'" style="padding:2px 7px">Delete</button></div></div>';}).join('');
+  }catch(e){}
+}
+async function save(root){
+  var msg=root.querySelector('#ds-res-msg');msg.style.color='#c0392b';msg.textContent='';
+  var p=readParams(root);if(!p){msg.textContent='Calculator still loading, try again in a moment.';return;}
+  var name=(root.querySelector('#ds-res-name').value||'').trim()||('Scenario '+new Date().toLocaleDateString());
+  try{var s=await ensureSb();var u=await s.auth.getUser();var id=u.data.user.id;
+  var r=await s.from('residual_scenarios').insert({client_id:id,label:name,params:p}).select('id');
+  if(r.error){msg.textContent='Could not save.';return;}
+  msg.style.color='#1a7f4b';msg.textContent='Saved.';root.querySelector('#ds-res-name').value='';loadList(root);
+  }catch(e){msg.textContent='Save error.';}
+}
+function mount(){
+  var screenParent=(document.querySelector('section.screen')||{}).parentElement;
+  if(!screenParent)return false;
+  var nav=document.querySelector('.nav[data-screen="residual"]');
+  if(!nav){
+    var anchor=document.querySelector('.nav[data-screen="scouter"]')||document.querySelector('.nav[data-screen="reachout"]')||document.querySelector('.nav[data-screen="settings"]')||document.querySelector('.nav');
+    if(!anchor||!anchor.parentElement)return false;
+    nav=document.createElement('div');nav.className='nav';nav.setAttribute('data-screen','residual');nav.innerHTML=ICON+'Residual Estimator';
+    anchor.parentElement.insertBefore(nav,anchor.nextSibling);
+  }
+  var sec=document.getElementById('residual');
+  if(!sec){sec=document.createElement('section');sec.className='screen';sec.id='residual';screenParent.appendChild(sec);}
+  if(sec.getAttribute('data-dsres'))return true;
+  sec.setAttribute('data-dsres','1');
+  sec.innerHTML=screenHtml();var root=sec;
+  root.querySelector('#ds-res-save').addEventListener('click',function(){save(root);});
+  root.querySelector('#ds-res-refresh').addEventListener('click',function(){loadList(root);});
+  root.querySelector('#ds-res-list').addEventListener('click',async function(e){
+    var lb=e.target.closest('[data-rload]');var db=e.target.closest('[data-rdel]');
+    if(lb){var id=lb.getAttribute('data-rload');var s=await ensureSb();var r=await s.from('residual_scenarios').select('params').eq('id',id).single();if(r.data){applyParams(root,r.data.params||{});var m=root.querySelector('#ds-res-msg');m.style.color='';m.textContent='Scenario loaded into the calculator.';}}
+    else if(db){var id2=db.getAttribute('data-rdel');var s2=await ensureSb();await s2.from('residual_scenarios').delete().eq('id',id2);loadList(root);}
+  });
+  window.addEventListener('message',function(ev){if(ev.data&&ev.data.dsResidualHeight){var f=root.querySelector('#ds-res-frame');if(f)f.style.height=(ev.data.dsResidualHeight+24)+'px';}});
+  var nv=document.querySelector('.nav[data-screen="residual"]');if(nv)nv.addEventListener('click',function(){setTimeout(function(){loadList(root);var f=root.querySelector('#ds-res-frame');if(f&&f.contentWindow&&f.contentWindow.document&&f.contentWindow.document.body){f.style.height=(f.contentWindow.document.body.scrollHeight+24)+'px';}},250);});
+  loadList(root);
+  return true;
+}
+var n=0;(function wait(){if(mount()===true||++n>100)return;setTimeout(wait,250);})();
+})();
