@@ -2814,13 +2814,44 @@ async function loadOrders(root){
   var rows=r.data||[];var el=root.querySelector('#ro-orders');if(!el)return;
   if(!rows.length){el.innerHTML='<div class="small mut">No orders yet.</div>';return;}
   el.innerHTML=rows.map(function(o){
-    var d=new Date(o.created_at);
-    var its=(o.order_items&&o.order_items.length)?o.order_items.map(function(i){return i.qty+'x '+esc(i.name);}).join(', '):(esc(o.item_name||''));
-    var st=o.status||'pending';var col=st==='paid'?'#1a7f4b':(st==='pending'?'#8a6d1a':'#64748B');
-    var ship=[o.ship_line1,o.ship_city,o.ship_state].filter(Boolean).join(', ');
-    return '<div style="padding:8px 0;border-top:1px solid #EEF2F6"><div style="display:flex;justify-content:space-between"><div class="small" style="font-weight:600">'+its+'</div><div class="small" style="font-weight:700;color:'+col+'">'+st+'</div></div>'
-      +'<div class="small mut">'+money(o.total_cents!=null?o.total_cents:o.amount_total)+' - '+(o.payment_method==='ach'?'ACH':'Card')+' - '+d.toLocaleDateString()+(ship?' - ships to '+esc(ship):'')+'</div></div>';
-  }).join('');
+var d=new Date(o.created_at);
+var its=(o.order_items&&o.order_items.length)?o.order_items.map(function(i){return i.qty+'x '+esc(i.name);}).join(', '):(esc(o.item_name||''));
+var st=o.status||'pending';
+var LB={paid:'Paid',processing:'Processing — ACH clearing',pending:'Pending payment',payment_failed:'Payment failed',shipped:'Shipped',completed:'Completed',cancelled:'Cancelled',refunded:'Refunded',error:'Error'};
+var lab=LB[st]||st;
+var col=(st==='paid'||st==='shipped'||st==='completed')?'#1a7f4b':((st==='payment_failed'||st==='cancelled')?'#b42318':((st==='processing'||st==='pending')?'#8a6d1a':'#64748B'));
+var ship=[o.ship_line1,o.ship_city,o.ship_state].filter(Boolean).join(', ');
+var pay=(o.payment_method==='ach'?'ACH':'Card');
+var sub=(o.subtotal_cents!=null?o.subtotal_cents:(o.total_cents!=null?o.total_cents:o.amount_total));
+var fee=(o.surcharge_cents||0);
+var tot=(o.total_cents!=null?o.total_cents:o.amount_total);
+var lines=(o.order_items&&o.order_items.length)?o.order_items.map(function(i){return '<div style="display:flex;justify-content:space-between"><span>'+i.qty+' &times; '+esc(i.name)+'</span><span>'+money((i.price_cents||0)*(i.qty||1))+'</span></div>';}).join(''):('<div>'+esc(o.item_name||'')+'</div>');
+function addr(p){return [o[p+'line1'],o[p+'line2'],[o[p+'city'],o[p+'state']].filter(Boolean).join(', ')+(o[p+'zip']?' '+o[p+'zip']:'')].filter(function(x){return x&&String(x).trim()&&String(x).trim()!==',';}).map(esc).join('<br>');}
+var shipFull=addr('ship_');
+var billFull=o.billing_same?'Same as shipping':addr('bill_');
+var dd=new Date(o.created_at||Date.now());
+var inv='DS-'+(''+dd.getFullYear()+String(dd.getMonth()+1).padStart(2,'0')+String(dd.getDate()).padStart(2,'0'))+'-'+String(o.id||'').slice(0,6).toUpperCase();
+var note=(st==='processing')?'<div class="small" style="color:#8a6d1a;margin:6px 0">Your ACH bank transfer is still clearing. This order is marked paid and prepared for fulfillment once it clears.</div>':'';
+var bs='display:inline-block;margin:8px 8px 0 0;padding:8px 12px;border:1px solid #D5DBE1;border-radius:8px;background:#fff;cursor:pointer;font-weight:600;font-size:13px';
+var detail='<div style="background:#F8FAFC;border:1px solid #EEF2F6;border-radius:10px;padding:12px;margin-top:6px">'
++'<div class="small mut" style="margin-bottom:6px">Invoice '+inv+'</div>'
++lines
++'<div style="border-top:1px solid #E6EAEF;margin:8px 0 4px"></div>'
++'<div style="display:flex;justify-content:space-between"><span class="mut">Subtotal</span><span>'+money(sub)+'</span></div>'
++(fee>0?'<div style="display:flex;justify-content:space-between"><span class="mut">Card fee (3%)</span><span>'+money(fee)+'</span></div>':'')
++'<div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><span>'+money(tot)+'</span></div>'
++'<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px"><div><div class="small mut">Ship to</div><div class="small">'+(shipFull||'—')+'</div></div><div><div class="small mut">Bill to</div><div class="small">'+(billFull||'—')+'</div></div><div><div class="small mut">Payment</div><div class="small">'+pay+'</div></div></div>'
++note
++'<div><button data-inv-act="pdf" data-oid="'+o.id+'" style="'+bs+'">Download PDF</button>'
++'<button data-inv-act="print" data-oid="'+o.id+'" style="'+bs+'">Print</button>'
++'<button data-inv-act="email" data-oid="'+o.id+'" style="'+bs+'">Email me the invoice</button></div>'
++'</div>';
+return '<div class="ds-ord" data-oid="'+o.id+'">'
++'<div data-inv-toggle="'+o.id+'" style="cursor:pointer;padding:8px 0;border-top:1px solid #EEF2F6">'
++'<div style="display:flex;justify-content:space-between;align-items:center"><div class="small" style="font-weight:600">'+its+'</div><div class="small" style="font-weight:700;color:'+col+'">'+lab+' <span class="ds-ord-caret" style="color:#9AA5B1">&#9656;</span></div></div>'
++'<div class="small mut">'+money(tot)+' - '+pay+' - '+d.toLocaleDateString()+(ship?' - ships to '+esc(ship):'')+'</div>'
++'</div><div class="ds-ord-d" style="display:none">'+detail+'</div></div>';
+}).join('');
   }catch(e){}
 }
 async function loadData(root){
@@ -3624,4 +3655,16 @@ function mount(){
   return true;
 }
 var n=0;(function wait(){if(mount()===true||++n>100)return;setTimeout(wait,250);})();
+})();
+
+;(function(){
+if(window.__dsInvoiceUI) return; window.__dsInvoiceUI=1;
+function toast(msg,ok){try{var t=document.createElement('div');t.textContent=msg;t.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:2147483600;background:'+(ok===false?'#b42318':'#0f1a26')+';color:#fff;padding:10px 16px;border-radius:10px;font:600 13px system-ui;box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:80vw;text-align:center';document.body.appendChild(t);setTimeout(function(){t.style.transition='opacity .4s';t.style.opacity='0';setTimeout(function(){t.remove();},450);},3800);}catch(e){}}
+async function invoke(oid,action){var c=window.__dsSB;if(!c)throw new Error('Not signed in');var sres=await c.auth.getSession();var tok=(sres&&sres.data&&sres.data.session)?sres.data.session.access_token:'';return await fetch(c.functionsUrl+'/order-invoice',{method:'POST',headers:{'Authorization':'Bearer '+tok,'apikey':c.supabaseKey,'Content-Type':'application/json'},body:JSON.stringify({order_id:oid,action:action})});}
+function fnameFrom(res,oid){var cd=res.headers.get('Content-Disposition')||'';var m=cd.match(/filename="?([^";]+)"?/);return (m&&m[1])||('DividendShift-Invoice-'+String(oid).slice(0,6)+'.pdf');}
+async function getPdf(oid){var res=await invoke(oid,'pdf');var ct=res.headers.get('Content-Type')||'';if(ct.indexOf('application/pdf')<0){var j=await res.json().catch(function(){return{};});throw new Error(j.message||j.error||'Could not generate PDF');}return {blob:await res.blob(),name:fnameFrom(res,oid)};}
+async function doDownload(oid,btn){if(btn)btn.disabled=true;try{var r=await getPdf(oid);var u=URL.createObjectURL(r.blob);var a=document.createElement('a');a.href=u;a.download=r.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},4000);}catch(e){toast(String(e.message||e),false);}if(btn)btn.disabled=false;}
+async function doPrint(oid,btn){if(btn)btn.disabled=true;try{var r=await getPdf(oid);var u=URL.createObjectURL(r.blob);var f=document.createElement('iframe');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';f.src=u;document.body.appendChild(f);f.onload=function(){setTimeout(function(){try{f.contentWindow.focus();f.contentWindow.print();}catch(e){window.open(u,'_blank');}},350);};setTimeout(function(){URL.revokeObjectURL(u);},60000);}catch(e){toast(String(e.message||e),false);}if(btn)btn.disabled=false;}
+async function doEmail(oid,btn){var old=btn?btn.textContent:'';if(btn){btn.disabled=true;btn.textContent='Sending…';}try{var res=await invoke(oid,'email');var j=await res.json().catch(function(){return{};});if(j.ok){toast('Invoice emailed to '+(j.sent_to||'your email on file')+'.',true);}else if(j.error==='email_not_configured'){toast(j.message||'Email delivery is not set up yet. Use Download or Print for now.',false);}else{toast(j.message||j.detail||j.error||'Could not send email.',false);}}catch(e){toast(String(e.message||e),false);}if(btn){btn.textContent=old;btn.disabled=false;}}
+document.addEventListener('click',function(ev){var el=ev.target;if(!el||!el.closest)return;var tg=el.closest('[data-inv-act]');if(tg){ev.preventDefault();ev.stopPropagation();var oid=tg.getAttribute('data-oid');var act=tg.getAttribute('data-inv-act');if(act==='pdf')doDownload(oid,tg);else if(act==='print')doPrint(oid,tg);else if(act==='email')doEmail(oid,tg);return;}var hd=el.closest('[data-inv-toggle]');if(hd){var wrap=hd.parentElement;var dd=wrap&&wrap.querySelector('.ds-ord-d');if(dd){var open=dd.style.display!=='none';dd.style.display=open?'none':'block';var car=hd.querySelector('.ds-ord-caret');if(car)car.innerHTML=open?'&#9656;':'&#9662;';}}},true);
 })();
