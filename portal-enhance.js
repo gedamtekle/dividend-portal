@@ -3793,3 +3793,7 @@ async function load(){ var h=H(); var el=document.getElementById('ds-osa-ret-lis
 function ensureCard(){ var sec=document.getElementById('osbilling'); if(!sec) return; if(document.getElementById('ds-osa-retention')) return; var card=document.createElement('div'); card.id='ds-osa-retention'; card.className='card'; card.style.cssText='padding:16px;margin-top:16px'; card.innerHTML='<div style="font-weight:700;margin-bottom:6px">Retention activity</div><div class="small mut" style="margin-bottom:6px">Every Manage-Membership open, save, and cancellation (with feedback). Newest first.</div><div id="ds-osa-ret-list" class="mut small">Loading…</div>'; sec.appendChild(card); var nav=document.querySelector('.nav[data-screen="osbilling"]'); if(nav) nav.addEventListener('click',load); load(); }
 var tries=0; var iv=setInterval(function(){ tries++; if(!SB)SB=window.__dsSB; if(document.getElementById('osbilling')){ ensureCard(); } if(tries>400){ clearInterval(iv);} },1000);
 })();
+
+
+/* ---- Feature 44: mobile polish (16px fields to stop iOS zoom, scrollable tables) ---- */
+;(function(){if(window.__dsMobilePolish)return;window.__dsMobilePolish=1;try{var css='@media (max-width:640px){ input,select,textarea{ font-size:16px !important } } @media (max-width:880px){ table{ display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100% } }';var s=document.createElement('style');s.id='ds-mobile-polish';s.appendChild(document.createTextNode(css));(document.head||document.documentElement).appendChild(s);}catch(e){}})();
