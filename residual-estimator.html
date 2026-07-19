@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Residual Calculator | Dividend Shift Clients</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  body { font-family: 'Inter', sans-serif; background: #f1f5f9; color: #0f172a; }
+  .disclaimer-banner { background: #fef3c7; border-bottom: 1px solid #fde68a; padding: 10px 24px; text-align: center; font-size: 12px; color: #92400e; font-weight: 600; line-height: 1.5; }
+  .disclaimer-banner strong { color: #78350f; }
+  .page { max-width: 860px; width: 100%; margin: 0 auto; padding: 24px 16px 60px; box-sizing: border-box; }
+  .hero { text-align: center; margin-bottom: 28px; }
+  .hero h1 { font-size: clamp(22px, 4vw, 34px); font-weight: 900; color: #0f172a; line-height: 1.15; margin-bottom: 8px; }
+  .hero h1 span { color: #fbbf24; }
+  .hero p { font-size: 14px; color: #64748b; max-width: 500px; margin: 0 auto; line-height: 1.6; }
+  .card { background: #fff; border-radius: 16px; padding: 24px 26px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); margin-bottom: 18px; }
+  .card-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .card-title .dot { width: 6px; height: 6px; border-radius: 50%; background: #fbbf24; flex-shrink: 0; }
+  .field { margin-bottom: 20px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+  label .sub { font-weight: 500; color: #94a3b8; font-size: 12px; margin-left: 6px; }
+  input[type="text"], input[type="number"], select { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 15px; font-family: 'Inter', sans-serif; color: #0f172a; background: #f8fafc; transition: border-color 0.2s; outline: none; }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus { border-color: #fbbf24; background: #fff; }
+  .slider-wrap { position: relative; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 4px; background: #e2e8f0; outline: none; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fbbf24; border: 3px solid #fff; box-shadow: 0 0 0 2px #fbbf24; cursor: pointer; }
+  .slider-labels { display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-top: 6px; font-weight: 600; }
+  .slider-val { display: inline-block; background: #0f172a; color: #fbbf24; font-size: 13px; font-weight: 800; padding: 3px 12px; border-radius: 20px; margin-bottom: 10px; }
+  .toggle-group { display: flex; gap: 0; border: 1.5px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+  .toggle-btn { flex: 1; padding: 11px 8px; font-size: 13px; font-weight: 700; font-family: 'Inter', sans-serif; border: none; background: #f8fafc; color: #64748b; cursor: pointer; transition: all 0.15s; text-align: center; }
+  .toggle-btn.active { background: #0f172a; color: #fbbf24; }
+  .toggle-btn:first-child { border-right: 1px solid #e2e8f0; }
+  .tier-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+  .tier-table th { text-align: left; padding: 6px 10px; color: #94a3b8; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #f1f5f9; }
+  .tier-table td { padding: 8px 10px; border-bottom: 1px solid #f8fafc; color: #374151; font-weight: 500; }
+  .tier-table tr.selected td { background: rgba(251,191,36,0.08); color: #0f172a; font-weight: 700; }
+  .tier-table td .gold { color: #d97706; font-weight: 800; }
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 14px; }
+  .result-card { border-radius: 12px; padding: 18px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .result-card.crypto { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .result-card.cc { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .result-card.total { background: #0f172a; border: 1px solid #0f172a; }
+  .result-card.profit { background: #fffbeb; border: 1px solid #fde68a; }
+  .result-card.breakeven { background: #fdf4ff; border: 1px solid #e9d5ff; }
+  .rc-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; }
+  .result-card.total .rc-label { color: rgba(255,255,255,0.5); }
+  .rc-value { font-size: 26px; font-weight: 900; color: #0f172a; line-height: 1.1; }
+  .result-card.total .rc-value { color: #fbbf24; }
+  .rc-sub { font-size: 11px; color: #94a3b8; font-weight: 500; margin-top: 2px; }
+  .result-card.total .rc-sub { color: rgba(255,255,255,0.35); }
+  .breakdown { background: #f8fafc; border-radius: 10px; padding: 16px; font-size: 13px; }
+  .breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e2e8f0; color: #374151; }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row .lbl { color: #64748b; font-weight: 500; }
+  .breakdown-row .val { font-weight: 700; color: #0f172a; }
+  .breakdown-row .val.gold { color: #d97706; }
+  .breakdown-row .val.green { color: #16a34a; }
+  .breakdown-row .val.blue { color: #2563eb; }
+  .breakdown-row.total-row .lbl { font-weight: 800; color: #0f172a; font-size: 14px; }
+  .breakdown-row.total-row .val { font-size: 16px; color: #fbbf24; }
+  .annual-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 4px; }
+  .annual-item { background: #f8fafc; border-radius: 10px; padding: 14px 12px; text-align: center; }
+  .annual-item .a-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 4px; }
+  .annual-item .a-val { font-size: 20px; font-weight: 900; color: #0f172a; }
+  .annual-item.highlight { background: #0f172a; }
+  .annual-item.highlight .a-label { color: rgba(255,255,255,0.4); }
+  .annual-item.highlight .a-val { color: #fbbf24; }
+  .breakeven-bar-wrap { background: #f1f5f9; border-radius: 8px; height: 10px; margin-top: 12px; overflow: hidden; }
+  .breakeven-bar { height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); border-radius: 8px; transition: width 0.4s ease; max-width: 100%; }
+  .breakeven-note { font-size: 12px; color: #64748b; margin-top: 8px; font-weight: 500; text-align: center; }
+  .disclaimer-card { background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 14px; padding: 20px 22px; margin-top: 8px; }
+  .disclaimer-card h3 { font-size: 13px; font-weight: 800; color: #9a3412; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .disclaimer-card p { font-size: 12px; color: #7c2d12; line-height: 1.7; font-weight: 500; }
+  .fixed-badge { display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #64748b; font-weight: 600; margin-top: 8px; }
+  .fixed-badge strong { color: #0f172a; }
+  .fixed-badge .profit-pill { background: #dcfce7; color: #16a34a; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 20px; }
+  .section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #94a3b8; margin: 22px 0 12px; display: flex; align-items: center; gap: 10px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+  @media (max-width: 600px) {
+    .page { padding: 14px 12px 50px; }
+    .card { padding: 18px 14px; }
+    .results-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .rc-value { font-size: 22px; }
+    .annual-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .toggle-group { flex-direction: column; }
+    .toggle-btn { width: 100%; border-radius: 0; }
+  }
+  @media (max-width: 400px) { .results-grid { grid-template-columns: 1fr; } .annual-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="disclaimer-banner"><strong>For planning purposes only.</strong> All figures are estimates. There is no guarantee that any merchant account will produce any results. Past performance of other clients does not predict your results.</div>
+<div class="page">
+  <div class="hero">
+    <h1>Residual <span>Calculator</span></h1>
+    <p>Price your services, model your income, and calculate equipment breakeven. Estimates only.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot"></span> Merchant Profile</div>
+    <div class="field">
+      <label>Monthly Sales Volume <span class="sub">Total merchant sales/mo</span></label>
+      <input type="text" id="sales-input" value="$50,000" oninput="formatSales(this)" onchange="calc()">
+    </div>
+    <div class="field">
+      <label>Estimated Crypto Adoption <span class="sub">% of customers who want to pay in crypto</span></label>
+      <div class="slider-val" id="crypto-pct-label">12%</div>
+      <div class="slider-wrap">
+        <input type="range" id="crypto-pct" min="10" max="15" step="1" value="12" oninput="updateLabel('crypto-pct','crypto-pct-label','%'); calc()">
+        <div class="slider-labels"><span>10%</span><span>15%</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot"></span> Crypto Service Fee (What You Charge)</div>
+    <div class="field">
+      <label>Your Crypto Rate <span class="sub">2% is your fixed cost, everything above is profit</span></label>
+      <div class="slider-val" id="crypto-rate-label">3.0%</div>
+      <div class="slider-wrap">
+        <input type="range" id="crypto-rate" min="2.0" max="7.0" step="0.25" value="3.0" oninput="updateLabelDec('crypto-rate','crypto-rate-label','%',2); calc()">
+        <div class="slider-labels"><span>2% (break-even)</span><span>7% (max)</span></div>
+      </div>
+      <div class="fixed-badge">Your fixed cost: <strong>2.00%</strong> <span class="profit-pill" id="crypto-profit-pill">+1.00% profit</span></div>
+    </div>
+  </div>
+  <div class="card" style="padding:20px 26px;">
+    <label style="display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none;">
+      <input type="checkbox" id="cc-enabled" onchange="toggleCC()" style="width:20px;height:20px;accent-color:#fbbf24;cursor:pointer;flex-shrink:0;">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:#0f172a;">Also processing credit cards for this merchant?</div>
+        <div style="font-size:12px;color:#64748b;margin-top:2px;font-weight:500;">Check this to add CC residual income to your estimate.</div>
+      </div>
+    </label>
+  </div>
+  <div class="card" id="cc-card" style="display:none;">
+    <div class="card-title"><span class="dot"></span> Credit Card Processing</div>
+    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#c2410c;margin-bottom:4px;">Estimates Only</div>
+      <div style="font-size:12px;color:#7c2d12;line-height:1.6;">CC residual figures are estimates based on the selected processing tier. Actual residuals vary depending on the merchant processing history, chargeback rate, business type, card mix, and the final rate underwritten at approval. These figures are not a guaranteed payout.</div>
+    </div>
+    <div class="field">
+      <label>Who Bears the Processing Fee?</label>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="toggle-merchant" onclick="setChargedTo('merchant')">Charged to Merchant</button>
+        <button class="toggle-btn" id="toggle-customer" onclick="setChargedTo('customer')">Cash Discount (Customer Pays)</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Select Processing Tier <span class="sub" id="charged-to-note">Merchant absorbs the fee</span></label>
+      <select id="cc-tier" onchange="calc()">
+        <option value="0.30|2.75">2.75% rate to ~0.30% residual to you</option>
+        <option value="0.45|3.00">3.00% rate to ~0.45% residual to you</option>
+        <option value="0.60|3.25" selected>3.25% rate to ~0.60% residual to you</option>
+        <option value="0.75|3.50">3.50% rate to ~0.75% residual to you</option>
+        <option value="0.90|3.75">3.75% rate to ~0.90% residual to you</option>
+        <option value="1.05|3.90">3.90% rate to ~1.05% residual to you</option>
+        <option value="1.20|4.00">4.00% cash discount to ~1.20% residual to you</option>
+      </select>
+      <table class="tier-table" id="tier-table">
+        <thead><tr><th>Processing Rate</th><th>Model</th><th>Your Residual %</th></tr></thead>
+        <tbody>
+          <tr data-val="0.30|2.75"><td>2.75%</td><td>Standard</td><td class="gold">~0.30%</td></tr>
+          <tr data-val="0.45|3.00"><td>3.00%</td><td>Standard</td><td class="gold">~0.45%</td></tr>
+          <tr data-val="0.60|3.25" class="selected"><td>3.25%</td><td>Standard</td><td class="gold">~0.60%</td></tr>
+          <tr data-val="0.75|3.50"><td>3.50%</td><td>Standard</td><td class="gold">~0.75%</td></tr>
+          <tr data-val="0.90|3.75"><td>3.75%</td><td>Standard</td><td class="gold">~0.90%</td></tr>
+          <tr data-val="1.05|3.90"><td>3.90%</td><td>Standard</td><td class="gold">~1.05%</td></tr>
+          <tr data-val="1.20|4.00"><td>4.00%</td><td>Cash Discount</td><td class="gold">~1.20%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot"></span> Equipment Cost (Optional)</div>
+    <div class="field">
+      <label>Equipment Cost per Merchant <span class="sub">Leave 0 if not applicable</span></label>
+      <input type="text" id="equip-input" value="$0" oninput="formatEquip(this)" onchange="calc()">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot"></span> Estimated Results, Single Merchant</div>
+    <div class="results-grid">
+      <div class="result-card crypto"><div class="rc-label">Crypto Commission</div><div class="rc-value" id="r-crypto-comm">$0</div><div class="rc-sub" id="r-crypto-sub">2% fee</div></div>
+      <div class="result-card cc" id="r-cc-card" style="display:none;"><div class="rc-label">CC Residual</div><div class="rc-value" id="r-cc-comm">$0</div><div class="rc-sub" id="r-cc-sub">0.60% on CC volume</div></div>
+      <div class="result-card total"><div class="rc-label" id="r-total-label">Crypto Monthly</div><div class="rc-value" id="r-total">$0</div><div class="rc-sub" id="r-total-sub">Est. crypto residual</div></div>
+      <div class="result-card profit"><div class="rc-label">Crypto Profit Only</div><div class="rc-value" id="r-profit">$0</div><div class="rc-sub" id="r-profit-sub">Above the 2% fixed cost</div></div>
+    </div>
+    <div class="breakdown" id="breakdown">
+      <div class="breakdown-row"><span class="lbl">Total Sales Volume</span><span class="val" id="bd-sales">$50,000</span></div>
+      <div class="breakdown-row"><span class="lbl" id="bd-crypto-lbl">Crypto Volume (12%)</span><span class="val blue" id="bd-crypto-vol">$6,000</span></div>
+      <div class="breakdown-row" id="bd-cc-vol-row" style="display:none;"><span class="lbl" id="bd-cc-lbl">CC Volume (88%)</span><span class="val blue" id="bd-cc-vol">$44,000</span></div>
+      <div class="breakdown-row"><span class="lbl" id="bd-crypto-rate-lbl">Crypto Commission (3.0% charged)</span><span class="val green" id="bd-crypto-comm">$180</span></div>
+      <div class="breakdown-row"><span class="lbl" id="bd-crypto-cost-lbl">Less: Fixed Cost (2.0%)</span><span class="val" id="bd-crypto-cost" style="color:#ef4444;">-$120</span></div>
+      <div class="breakdown-row"><span class="lbl">Crypto Profit</span><span class="val gold" id="bd-crypto-profit">$60</span></div>
+      <div class="breakdown-row" id="bd-cc-comm-row" style="display:none;"><span class="lbl" id="bd-cc-rate-lbl">CC Residual (0.60%)</span><span class="val green" id="bd-cc-comm">$264</span></div>
+      <div class="breakdown-row total-row"><span class="lbl">Total Est. Monthly Residual</span><span class="val gold" id="bd-total">$324</span></div>
+    </div>
+    <div class="section-label">Annual Projection</div>
+    <div class="annual-grid">
+      <div class="annual-item"><div class="a-label">Annual Crypto</div><div class="a-val" id="ann-crypto">$0</div></div>
+      <div class="annual-item" id="ann-cc-item" style="display:none;"><div class="a-label">Annual CC</div><div class="a-val" id="ann-cc">$0</div></div>
+      <div class="annual-item highlight"><div class="a-label" id="ann-total-label">Annual Crypto</div><div class="a-val" id="ann-total">$0</div></div>
+    </div>
+    <div id="breakeven-section" style="display:none; margin-top:20px;">
+      <div class="section-label">Equipment Breakeven</div>
+      <div class="result-card breakeven" style="flex-direction:row; align-items:center; justify-content:space-between; gap:12px;">
+        <div><div class="rc-label">Breakeven Timeline</div><div class="rc-value" id="r-breakeven" style="color:#7c3aed;">0 mo</div><div class="rc-sub" id="r-breakeven-sub">Equipment cost / monthly residual</div></div>
+        <div style="text-align:right;"><div class="rc-label">Equipment Cost</div><div style="font-size:18px; font-weight:800; color:#0f172a;" id="r-equip-cost">$0</div></div>
+      </div>
+      <div class="breakeven-bar-wrap"><div class="breakeven-bar" id="breakeven-bar" style="width:0%"></div></div>
+      <div class="breakeven-note" id="breakeven-note">Enter equipment cost above to see breakeven timeline.</div>
+    </div>
+  </div>
+  <div class="disclaimer-card">
+    <h3>Important, Read Before Using These Figures</h3>
+    <p>All calculations on this page are <strong>estimates only</strong> and are provided as a planning tool. There is <strong>no guarantee</strong> that any merchant account will produce any results whatsoever. Actual crypto adoption rates, processing volumes, and residual amounts will vary based on the merchant business, customer base, location, and many other factors outside your control. The figures shown do not represent income projections, promises, or guarantees of any kind. Past results of other Dividend Shift clients do not predict your results. This tool is for educational and planning purposes only.</p>
+  </div>
+</div>
+<script>
+  var chargedTo = 'merchant';
+  var ccEnabled = false;
+  function toggleCC() {
+    ccEnabled = document.getElementById('cc-enabled').checked;
+    document.getElementById('cc-card').style.display = ccEnabled ? 'block' : 'none';
+    document.getElementById('r-cc-card').style.display = ccEnabled ? '' : 'none';
+    document.getElementById('bd-cc-vol-row').style.display = ccEnabled ? '' : 'none';
+    document.getElementById('bd-cc-comm-row').style.display = ccEnabled ? '' : 'none';
+    document.getElementById('ann-cc-item').style.display = ccEnabled ? '' : 'none';
+    document.getElementById('r-total-label').textContent = ccEnabled ? 'Total Monthly' : 'Crypto Monthly';
+    document.getElementById('r-total-sub').textContent = ccEnabled ? 'Est. combined residual' : 'Est. crypto residual';
+    document.getElementById('ann-total-label').textContent = ccEnabled ? 'Annual Total' : 'Annual Crypto';
+    calc();
+  }
+  function setChargedTo(val) {
+    chargedTo = val;
+    document.getElementById('toggle-merchant').classList.toggle('active', val === 'merchant');
+    document.getElementById('toggle-customer').classList.toggle('active', val === 'customer');
+    document.getElementById('charged-to-note').textContent = val === 'merchant' ? 'Merchant absorbs the fee' : 'Customer pays via cash discount surcharge';
+    calc();
+  }
+  function parseMoney(str) { return parseFloat(String(str).replace(/[$,]/g, '')) || 0; }
+  function fmt(n) {
+    if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
+    if (n >= 1000) return '$' + n.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+    return '$' + n.toFixed(2);
+  }
+  function fmtMo(n) { return n === 1 ? '1 month' : n.toFixed(1) + ' months'; }
+  function formatSales(el) { var num = parseFloat(el.value.replace(/[$,]/g, '')); if (!isNaN(num)) el.value = '$' + num.toLocaleString('en-US'); calc(); }
+  function formatEquip(el) { var num = parseFloat(el.value.replace(/[$,]/g, '')); if (!isNaN(num)) el.value = '$' + num.toLocaleString('en-US'); calc(); }
+  function updateLabel(id, labelId, suffix) { document.getElementById(labelId).textContent = document.getElementById(id).value + suffix; }
+  function updateLabelDec(id, labelId, suffix, dec) { document.getElementById(labelId).textContent = parseFloat(document.getElementById(id).value).toFixed(dec) + suffix; }
+  function calc() {
+    var sales = parseMoney(document.getElementById('sales-input').value);
+    var cryptoPct = parseFloat(document.getElementById('crypto-pct').value) / 100;
+    var cryptoRate = parseFloat(document.getElementById('crypto-rate').value) / 100;
+    var fixedCost = 0.02;
+    var equipCost = parseMoney(document.getElementById('equip-input').value);
+    var tierVal = document.getElementById('cc-tier').value;
+    var ccResidual = parseFloat(tierVal.split('|')[0]) / 100;
+    var cryptoVol = sales * cryptoPct;
+    var ccVol = sales * (1 - cryptoPct);
+    var cryptoGross = cryptoVol * cryptoRate;
+    var cryptoCost = cryptoVol * fixedCost;
+    var cryptoProfit = cryptoVol * (cryptoRate - fixedCost);
+    var ccComm = ccEnabled ? ccVol * ccResidual : 0;
+    var totalMonthly = cryptoGross + ccComm;
+    var totalAnnual = totalMonthly * 12;
+    var profitPct = ((cryptoRate - fixedCost) * 100).toFixed(2);
+    document.getElementById('crypto-profit-pill').textContent = profitPct > 0 ? '+' + profitPct + '% profit' : 'Break-even';
+    document.getElementById('r-crypto-comm').textContent = fmt(cryptoGross);
+    document.getElementById('r-crypto-sub').textContent = (cryptoRate*100).toFixed(2) + '% charged, ' + profitPct + '% profit margin';
+    document.getElementById('r-cc-comm').textContent = fmt(ccComm);
+    document.getElementById('r-cc-sub').textContent = (ccResidual*100).toFixed(2) + '% on CC volume';
+    document.getElementById('r-total').textContent = fmt(totalMonthly);
+    document.getElementById('r-profit').textContent = fmt(cryptoProfit);
+    document.getElementById('r-profit-sub').textContent = 'Above the 2% fixed cost (' + profitPct + '% margin)';
+    document.getElementById('bd-sales').textContent = fmt(sales);
+    document.getElementById('bd-crypto-lbl').textContent = 'Crypto Volume (' + (cryptoPct*100).toFixed(0) + '%)';
+    document.getElementById('bd-crypto-vol').textContent = fmt(cryptoVol);
+    document.getElementById('bd-cc-lbl').textContent = 'CC Volume (' + ((1-cryptoPct)*100).toFixed(0) + '%)';
+    document.getElementById('bd-cc-vol').textContent = fmt(ccVol);
+    document.getElementById('bd-crypto-rate-lbl').textContent = 'Crypto Commission (' + (cryptoRate*100).toFixed(2) + '% charged)';
+    document.getElementById('bd-crypto-comm').textContent = fmt(cryptoGross);
+    document.getElementById('bd-crypto-cost-lbl').textContent = 'Less: Fixed Cost (2.00%)';
+    document.getElementById('bd-crypto-cost').textContent = '-' + fmt(cryptoCost);
+    document.getElementById('bd-crypto-profit').textContent = fmt(cryptoProfit);
+    document.getElementById('bd-cc-rate-lbl').textContent = 'CC Residual (' + (ccResidual*100).toFixed(2) + '%)';
+    document.getElementById('bd-cc-comm').textContent = fmt(ccComm);
+    document.getElementById('bd-total').textContent = fmt(totalMonthly);
+    document.getElementById('ann-crypto').textContent = fmt(cryptoGross * 12);
+    document.getElementById('ann-cc').textContent = fmt(ccComm * 12);
+    document.getElementById('ann-total').textContent = fmt(totalAnnual);
+    var beSection = document.getElementById('breakeven-section');
+    if (equipCost > 0) {
+      beSection.style.display = 'block';
+      document.getElementById('r-equip-cost').textContent = fmt(equipCost);
+      if (totalMonthly > 0) {
+        var months = equipCost / totalMonthly;
+        document.getElementById('r-breakeven').textContent = fmtMo(months);
+        document.getElementById('r-breakeven-sub').textContent = fmt(equipCost) + ' / ' + fmt(totalMonthly) + '/mo';
+        var pct = Math.min((months / 24) * 100, 100);
+        document.getElementById('breakeven-bar').style.width = pct + '%';
+        document.getElementById('breakeven-note').textContent = months <= 1 ? 'Equipment paid off in under 1 month.' : months <= 3 ? 'Equipment paid off in ' + fmtMo(months) + ', strong return.' : months <= 6 ? 'Equipment paid off in ' + fmtMo(months) + '.' : months <= 12 ? 'Equipment paid off in ' + fmtMo(months) + ', within the year.' : 'Equipment paid off in ' + fmtMo(months) + '. Consider adjusting pricing or volume.';
+      } else {
+        document.getElementById('r-breakeven').textContent = '-';
+        document.getElementById('r-breakeven-sub').textContent = 'Enter a monthly volume to calculate.';
+        document.getElementById('breakeven-bar').style.width = '0%';
+        document.getElementById('breakeven-note').textContent = '';
+      }
+    } else { beSection.style.display = 'none'; }
+    var rows = document.querySelectorAll('#tier-table tbody tr');
+    rows.forEach(function(r){ r.classList.toggle('selected', r.dataset.val === tierVal); });
+  }
+  document.querySelectorAll('#tier-table tbody tr').forEach(function(r){
+    r.style.cursor = 'pointer';
+    r.addEventListener('click', function(){ document.getElementById('cc-tier').value = r.dataset.val; calc(); });
+  });
+  function postH(){ try{ parent.postMessage({dsResidualHeight: document.body.scrollHeight}, '*'); }catch(e){} }
+  window.addEventListener('load', function(){ calc(); postH(); setTimeout(postH,300); });
+  try{ new ResizeObserver(postH).observe(document.body); }catch(e){}
+  document.addEventListener('click', function(){ setTimeout(postH,60); });
+  document.addEventListener('input', function(){ setTimeout(postH,60); });
+  calc();
+</script>
+</body>
+</html>
