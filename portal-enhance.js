@@ -3812,3 +3812,45 @@ function render(host){ host.innerHTML='<div class="kick">SUPPORT</div><h1 class=
 function ensure(){ var h=document.getElementById('reachoutInner'); if(!h) return; if(h.querySelector('#ds-ro-send')) return; render(h); var nav=document.querySelector('.nav[data-screen="reachout"]'); if(nav) nav.addEventListener('click',function(){ setTimeout(loadRecent,300); }); }
 setInterval(ensure, 900);
 })();
+
+
+/* ---- Feature 46: Admin Console — real live metrics ---- */
+;(function(){
+if(window.__dsAdminConsole) return; window.__dsAdminConsole=1;
+var SB=window.__dsSB; if(!SB) return;
+function money(c){ return '$'+Math.round((c||0)/100).toLocaleString(); }
+async function cnt(table, build){ try{ var q=SB.from(table).select('*',{count:'exact',head:true}); if(build) q=build(q); var r=await q; return r.count||0; }catch(e){ return 0; } }
+function card(label,val,sub){ return '<div class="card pad"><div class="small mut">'+label+'</div><div class="stat">'+val+'</div>'+(sub?'<div class="small mut">'+sub+'</div>':'')+'</div>'; }
+async function load(){ var host=document.getElementById('ds-adm-metrics'); if(!host) return; host.innerHTML='<div class="mut small">Loading live metrics…</div>';
+  var now=Date.now(); var d7=new Date(now-7*86400000).toISOString(); var d30=new Date(now+30*86400000).toISOString().slice(0,10); var today=new Date().toISOString().slice(0,10);
+  var totalClients=await cnt('profiles');
+  var activeClients=await cnt('profiles',function(q){return q.eq('status','active');});
+  var pending=await cnt('profiles',function(q){return q.eq('status','pending');});
+  var logins7=await cnt('client_events',function(q){return q.gte('created_at',d7);});
+  var openTickets=await cnt('tickets',function(q){return q.eq('status','open');});
+  var reachOpen=await cnt('reach_out',function(q){return q.eq('status','open');});
+  var subs=[]; try{ subs=(await SB.from('os_subscriptions').select('monthly_price_cents,status,card_on_file')).data||[]; }catch(e){}
+  var activeSubs=subs.filter(function(s){return s.card_on_file&&(s.status==='trialing'||s.status==='active');});
+  var mrr=activeSubs.reduce(function(a,s){return a+(s.monthly_price_cents||0);},0);
+  var canceledSubs=subs.filter(function(s){return s.status==='canceled';}).length;
+  var ords=[]; try{ ords=(await SB.from('reorders').select('total_cents,amount_total,status')).data||[]; }catch(e){}
+  var paidOrds=ords.filter(function(o){return ['paid','shipped','completed'].indexOf(o.status)>=0;});
+  var rev=paidOrds.reduce(function(a,o){return a+(o.total_cents!=null?o.total_cents:(o.amount_total||0));},0);
+  var pa=[]; try{ pa=(await SB.from('program_access').select('expires_at,active')).data||[]; }catch(e){}
+  var expiring=pa.filter(function(p){return p.active&&p.expires_at&&p.expires_at>today&&p.expires_at<=d30;}).length;
+  host.innerHTML='<div class="grid" style="grid-template-columns:repeat(4,1fr);gap:12px">'
+    +card('Clients', totalClients, activeClients+' active')
+    +card('Pending approvals', pending)
+    +card('OS members', activeSubs.length, canceledSubs+' canceled')
+    +card('Est. MRR', money(mrr))
+    +card('Orders (paid)', paidOrds.length)
+    +card('Order revenue', money(rev))
+    +card('Open tickets', openTickets)
+    +card('Reach-outs open', reachOpen)
+    +card('Program windows ending ≤30d', expiring)
+    +card('Logins (7d)', logins7)
+    +'</div>';
+}
+function ensure(){ var inner=document.getElementById('adminInner'); if(!inner) return; if(document.getElementById('ds-adm-metrics')) return; var wrap=document.createElement('div'); wrap.innerHTML='<div class="kick">OVERVIEW</div><h1 class="h1">Admin Console</h1><p class="mut" style="margin-bottom:16px">Live snapshot across your clients, memberships, orders, and support.</p><div id="ds-adm-metrics"></div>'; inner.insertBefore(wrap, inner.firstChild); var nav=document.querySelector('.nav[data-screen="admin"]'); if(nav) nav.addEventListener('click',function(){ setTimeout(load,250); }); load(); }
+setInterval(ensure, 1000);
+})();
