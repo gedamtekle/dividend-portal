@@ -1125,7 +1125,7 @@ async function loadAdmin(){
   try{
     profiles=(await sb.from('profiles').select('id,full_name,email,role,status,created_at')).data||[];
     tasks=(await sb.from('client_tasks').select('id,client_id,done')).data||[];
-    calls=(await sb.from('coaching_calls').select('*').order('starts_at',{ascending:true})).data||[];
+    calls=(await sb.from('coaching_calls').gte('starts_at', new Date(Date.now()-1000*60*60*3).toISOString()).select('*').order('starts_at',{ascending:true})).data||[];
   }catch(e){host.innerHTML='<div class="card pad">Failed to load: '+esc(String(e))+'</div>';return;}
   const tByC={}; tasks.forEach(t=>{(tByC[t.client_id]=tByC[t.client_id]||{done:0,total:0});tByC[t.client_id].total++;if(t.done)tByC[t.client_id].done++;});
   const clientsList=profiles.filter(p=>p.role!=='admin');
@@ -1260,7 +1260,7 @@ function adminTextClientId(id){const to=prompt('Send SMS — recipient number (e
 async function loadLiveFromDB(){
   if(!sb||typeof liveEvents==='undefined') return;
   try{
-    const {data}=await sb.from('coaching_calls').select('*').order('starts_at',{ascending:true});
+    const {data}=await sb.from('coaching_calls').gte('starts_at', new Date(Date.now()-1000*60*60*3).toISOString()).select('*').order('starts_at',{ascending:true});
     if(data&&data.length){
       liveEvents.length=0;
       data.forEach(c=>liveEvents.push({id:c.id,title:c.title,start:c.starts_at,host:c.host||'Gedam Tekle',durMin:c.duration_min||60,link:c.link||'#',desc:c.description||''}));
