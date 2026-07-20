@@ -4044,3 +4044,39 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   setInterval(function(){ if(!P){ if(tries++<25) loadP().then(apply); } else apply(); }, 1200);
   try{ new MutationObserver(function(){ if(P) apply(); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 50) __dsUserChip - bind the sidebar account chip (.userchip: avatar,
+ *     name, role) to the logged-in profile. The base app hardcoded it
+ *     to the owner, so every user saw the owner's name. Now each user
+ *     sees their own name/initials/role.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsUserChip) return; window.__dsUserChip=true;
+  var P=null, tries=0;
+  async function loadP(){
+    var s=window.__dsSB; if(!s) return;
+    try{
+      var r=await s.auth.getSession(); var sess=r&&r.data&&r.data.session; if(!sess) return;
+      var q=await s.from('profiles').select('full_name,first_name,last_name,email,role').eq('id',sess.user.id).maybeSingle();
+      if(q&&q.data) P=q.data;
+    }catch(e){}
+  }
+  function fullName(){ if(!P) return null; return (P.full_name||'').trim() || [P.first_name,P.last_name].filter(Boolean).join(' ').trim() || ((P.email||'').split('@')[0]) || null; }
+  function initials(n){ n=(n||'').trim(); if(!n) return ''; var p=n.split(' ').filter(Boolean); return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase(); }
+  function roleLabel(){ var r=String((P&&P.role)||'').toLowerCase(); if(r==='admin') return 'Admin'; if(r==='owner') return 'Owner'; if(r==='team'||r==='staff') return 'Team'; return 'Member'; }
+  function apply(){
+    var fn=fullName(); if(!fn) return;
+    var chips=document.querySelectorAll('.userchip');
+    for(var i=0;i<chips.length;i++){ var chip=chips[i];
+      var av=chip.querySelector('.avatar'); if(av && av.children.length===0) av.textContent=initials(fn);
+      var nameEl=chip.querySelector('div[style*="font-weight:600"]'); if(nameEl) nameEl.textContent=fn;
+      var roleEl=chip.querySelector('.small.mut') || chip.querySelector('.mut'); if(roleEl) roleEl.textContent=roleLabel();
+    }
+  }
+  loadP().then(apply);
+  setInterval(function(){ if(!P){ if(tries++<25) loadP().then(apply); } else apply(); }, 1200);
+  try{ new MutationObserver(function(){ if(P) apply(); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
+})();
