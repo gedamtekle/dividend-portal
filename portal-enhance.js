@@ -3854,3 +3854,13 @@ async function load(){ var host=document.getElementById('ds-adm-metrics'); if(!h
 function ensure(){ var inner=document.getElementById('adminInner'); if(!inner) return; if(document.getElementById('ds-adm-metrics')) return; var wrap=document.createElement('div'); wrap.innerHTML='<div class="kick">OVERVIEW</div><h1 class="h1">Admin Console</h1><p class="mut" style="margin-bottom:16px">Live snapshot across your clients, memberships, orders, and support.</p><div id="ds-adm-metrics"></div>'; inner.insertBefore(wrap, inner.firstChild); var nav=document.querySelector('.nav[data-screen="admin"]'); if(nav) nav.addEventListener('click',function(){ setTimeout(load,250); }); load(); }
 setInterval(ensure, 1000);
 })();
+
+
+/* ---- Feature 47: wire the global 'Ask the team' modal (openAsk/sendAsk) to reach-out ---- */
+;(function(){
+if(window.__dsAskWire) return; window.__dsAskWire=1;
+var SB=window.__dsSB; if(!SB) return;
+function api(fn,body){ var H=window.__dsOS; if(H&&H.api) return H.api(fn,body); return (async function(){ var s=await SB.auth.getSession(); var t=s&&s.data&&s.data.session?s.data.session.access_token:''; var r=await fetch(SB.functionsUrl+'/'+fn,{method:'POST',headers:{'Authorization':'Bearer '+t,'apikey':SB.supabaseKey,'Content-Type':'application/json'},body:JSON.stringify(body||{})}); return await r.json().catch(function(){return{};}); })(); }
+function wire(){ if(typeof window.sendAsk!=='function' || window.sendAsk.__dsWired) return; var realSend=async function(){ var ctxEl=document.getElementById('askCtx'); var txtEl=document.getElementById('askText'); var ctx=ctxEl?String(ctxEl.value||''):''; var text=txtEl?String(txtEl.value||'').trim():''; var m=document.getElementById('askModal'); if(text.length<5){ if(txtEl){ txtEl.focus(); txtEl.style.borderColor='#b42318'; } return; } if(m) m.innerHTML='<div class="pad" style="text-align:center;padding:46px"><div class="typing" style="font-size:0"><span></span><span></span><span></span></div><p class="note" style="margin-top:14px">Posting to Slack…</p></div>'; try{ var kind=/coach/i.test(ctx)?'coach':'message'; var msg=(ctx?'['+ctx+'] ':'')+text; await api('reach-out',{kind:kind,message:msg}); }catch(e){} setTimeout(function(){ try{ if(m&&typeof window.askSent==='function') m.innerHTML=window.askSent(ctx); }catch(e){} },500); }; realSend.__dsWired=true; window.sendAsk=realSend; }
+var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.sendAsk.__dsWired)||n>80) clearInterval(iv); },500);
+})();
