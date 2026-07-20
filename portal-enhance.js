@@ -4080,3 +4080,46 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   setInterval(function(){ if(!P){ if(tries++<25) loadP().then(apply); } else apply(); }, 1200);
   try{ new MutationObserver(function(){ if(P) apply(); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 51) __dsReplays - Live screen: upcoming trainings + 2 most recent past
+ *     calls as replays + 'More Live Replays' button. Owns #liveInner.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsReplays) return; window.__dsReplays=true;
+  function sb(){ return window.__dsSB; }
+  var esc=(window.__dsOS&&window.__dsOS.esc)||function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];}); };
+  var CACHE=null, lastLoad=0, showMore=false;
+  function fmt(dt,tz){ try{ var o={weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}; if(tz) o.timeZone=tz; var t=new Date(dt).toLocaleString(undefined,o); return t+(tz?(' '+String(tz).split('/').pop().replace('_',' ')):''); }catch(e){ return String(dt); } }
+  function card(ev,replay){
+    var when=fmt(ev.starts_at,ev.tz);
+    var badge=replay?'<span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:9px;font-size:11px;margin-left:6px">Replay</span>':'<span style="background:#2f6bff;color:#fff;padding:2px 8px;border-radius:9px;font-size:11px;margin-left:6px">Upcoming</span>';
+    var btn=ev.link?('<a class="btn'+(replay?' ghost':'')+'" href="'+esc(ev.link)+'" target="_blank" rel="noopener" style="padding:6px 14px;white-space:nowrap">'+(replay?'Watch replay':'Join live')+'</a>'):'';
+    return '<div class="card" style="padding:12px;margin-bottom:8px"><div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><div style="font-weight:700">'+esc(ev.title||'Live training')+badge+'</div><div class="muted" style="font-size:12.5px">'+esc(when)+(ev.host?(' &middot; '+esc(ev.host)):'')+'</div>'+(ev.description?('<div class="muted" style="font-size:12.5px;margin-top:3px">'+esc(ev.description)+'</div>'):'')+'</div>'+btn+'</div></div>';
+  }
+  async function load(){ var s=sb(); if(!s) return []; try{ var q=await s.from('coaching_calls').select('*').order('starts_at',{ascending:false}); return q.data||[]; }catch(e){ return []; } }
+  function render(){
+    var host=document.getElementById('liveInner'); if(!host) return;
+    var live=document.getElementById('live'); if(!live||!live.classList.contains('show')) return;
+    if(!CACHE){ if(Date.now()-lastLoad<8000) return; lastLoad=Date.now(); load().then(function(d){ CACHE=d||[]; render(); }); return; }
+    var cut=Date.now()-1000*60*60*3;
+    var up=CACHE.filter(function(e){return new Date(e.starts_at).getTime()>=cut;}).sort(function(a,b){return new Date(a.starts_at)-new Date(b.starts_at);});
+    var past=CACHE.filter(function(e){return new Date(e.starts_at).getTime()<cut;}).sort(function(a,b){return new Date(b.starts_at)-new Date(a.starts_at);});
+    var recent=past.slice(0,2), older=past.slice(2);
+    var sig=up.length+'/'+recent.length+'/'+older.length+'/'+showMore;
+    var marker=document.getElementById('ds-live-marker');
+    if(marker&&host.contains(marker)&&host.__dssig===sig) return;
+    var html='<span id="ds-live-marker" hidden></span>';
+    if(up.length){ html+='<div class="navlbl" style="margin:2px 0 6px">Upcoming live trainings</div>'+up.map(function(e){return card(e,false);}).join(''); }
+    if(recent.length){ html+='<div class="navlbl" style="margin:14px 0 6px">Live replays</div>'+recent.map(function(e){return card(e,true);}).join(''); }
+    if(older.length){ if(showMore){ html+=older.map(function(e){return card(e,true);}).join('')+'<button class="btn ghost" id="ds-less-replays" style="padding:6px 14px">Show fewer</button>'; } else { html+='<button class="btn ghost" id="ds-more-replays" style="padding:6px 14px">More Live Replays ('+older.length+')</button>'; } }
+    if(!up.length&&!past.length){ html+='<div class="muted" style="padding:16px">No live trainings scheduled yet.</div>'; }
+    host.innerHTML=html; host.__dssig=sig;
+    var mb=document.getElementById('ds-more-replays'); if(mb) mb.onclick=function(){ showMore=true; render(); };
+    var lb=document.getElementById('ds-less-replays'); if(lb) lb.onclick=function(){ showMore=false; render(); };
+  }
+  setInterval(function(){ var live=document.getElementById('live'); if(live&&live.classList.contains('show')) render(); }, 1200);
+  setInterval(function(){ CACHE=null; }, 60000);
+})();
