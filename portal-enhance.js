@@ -4001,3 +4001,46 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(clientShipments,1500);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 49) __dsRealName - replace leftover "Marcus Bell" mockup placeholders
+ *     with the logged-in user's real profile name/email (dashboard
+ *     greeting, profile card, settings fields, avatar initials).
+ *     Runs on an interval + throttled observer so it survives re-renders.
+ *     Skips admin demo tables (fake client list / session log).
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsRealName) return; window.__dsRealName=true;
+  var P=null, tries=0;
+  async function loadP(){
+    var s=window.__dsSB; if(!s) return;
+    try{
+      var r=await s.auth.getSession(); var sess=r&&r.data&&r.data.session; if(!sess) return;
+      var q=await s.from('profiles').select('full_name,first_name,last_name,email').eq('id',sess.user.id).maybeSingle();
+      if(q&&q.data) P=q.data;
+    }catch(e){}
+  }
+  function firstName(){ if(!P) return null; return (P.first_name||'').trim() || ((P.full_name||'').trim().split(' ')[0]) || ((P.email||'').split('@')[0]) || null; }
+  function fullName(){ if(!P) return null; return (P.full_name||'').trim() || [P.first_name,P.last_name].filter(Boolean).join(' ').trim() || ((P.email||'').split('@')[0]) || null; }
+  function initials(n){ n=(n||'').trim(); if(!n) return ''; var p=n.split(' ').filter(Boolean); return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase(); }
+  function apply(){
+    var fn=fullName(); if(!fn) return; var first=firstName();
+    var all=document.querySelectorAll('body *');
+    for(var i=0;i<all.length;i++){ var el=all[i];
+      if(el.children.length) continue;
+      if(el.closest('table')) continue;
+      var t=(el.textContent||'').trim();
+      if(t==='Marcus Bell') el.textContent=fn;
+      else if(t==='Welcome back, Marcus') el.textContent='Welcome back, '+first;
+      else if(t==='marcus.bell@gmail.com') el.textContent=P.email||'';
+      else if(t==='MB' && el.classList && el.classList.contains('avatar')) el.textContent=initials(fn);
+    }
+    var ins=document.querySelectorAll('input');
+    for(var j=0;j<ins.length;j++){ if(ins[j].value==='Marcus Bell') ins[j].value=fn; else if(ins[j].value==='marcus.bell@gmail.com') ins[j].value=P.email||''; }
+  }
+  loadP().then(apply);
+  setInterval(function(){ if(!P){ if(tries++<25) loadP().then(apply); } else apply(); }, 1200);
+  try{ new MutationObserver(function(){ if(P) apply(); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
+})();
