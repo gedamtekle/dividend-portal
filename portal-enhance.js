@@ -3864,3 +3864,140 @@ function api(fn,body){ var H=window.__dsOS; if(H&&H.api) return H.api(fn,body); 
 function wire(){ if(typeof window.sendAsk!=='function' || window.sendAsk.__dsWired) return; var realSend=async function(){ var ctxEl=document.getElementById('askCtx'); var txtEl=document.getElementById('askText'); var ctx=ctxEl?String(ctxEl.value||''):''; var text=txtEl?String(txtEl.value||'').trim():''; var m=document.getElementById('askModal'); if(text.length<5){ if(txtEl){ txtEl.focus(); txtEl.style.borderColor='#b42318'; } return; } if(m) m.innerHTML='<div class="pad" style="text-align:center;padding:46px"><div class="typing" style="font-size:0"><span></span><span></span><span></span></div><p class="note" style="margin-top:14px">Posting to Slack…</p></div>'; try{ var kind=/coach/i.test(ctx)?'coach':'message'; var msg=(ctx?'['+ctx+'] ':'')+text; await api('reach-out',{kind:kind,message:msg}); }catch(e){} setTimeout(function(){ try{ if(m&&typeof window.askSent==='function') m.innerHTML=window.askSent(ctx); }catch(e){} },500); }; realSend.__dsWired=true; window.sendAsk=realSend; }
 var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.sendAsk.__dsWired)||n>80) clearInterval(iv); },500);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 48) __dsFulfil — Admin Order Fulfillment console (assign to client +
+ *     shipping status / tracking #, each firing the client Slack bot msg
+ *     via order-admin), plus a client-facing "Your shipments" panel.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsFulfil) return; window.__dsFulfil=true;
+  var FKEY='fulfil';
+  function sb(){ return window.__dsSB; }
+  var OSx = window.__dsOS||{};
+  function money(c){ return OSx.money? OSx.money(c) : ('$'+(((c||0)/100).toFixed(2))); }
+  function esc(s){ if(OSx.esc) return OSx.esc(s); return String(s==null?'':s).replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];}); }
+  function fmtDate(s){ try{ return new Date(s).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return s||''; } }
+  var STCOLORS={unfulfilled:'#b45309',processing:'#2563eb',shipped:'#7c3aed',delivered:'#059669'};
+  var STATE={orders:[],clients:[],filter:'all',loaded:false};
+  var FILTERS=[['all','All'],['unassigned','Unassigned'],['unfulfilled','Unfulfilled'],['shipped','Shipped'],['delivered','Delivered']];
+
+  function itemsText(o){ try{ var its=o.order_items; if(Array.isArray(its)&&its.length) return its.map(function(i){return (i.qty||i.quantity||1)+'× '+(i.name||i.item_name||'item');}).join(', '); }catch(e){} return o.item_name||o.items||'Order'; }
+  function shipTo(o){ return [o.ship_line1,o.ship_line2,[o.ship_city,o.ship_state].filter(Boolean).join(', '),o.ship_zip].filter(Boolean).join(', '); }
+  function clientOf(o){ return o.client_id? STATE.clients.find(function(x){return x.id===o.client_id;}) : null; }
+
+  async function callFn(name,body){
+    var s=sb(); var res=await s.functions.invoke(name,{body:body});
+    if(res.error){ var m=res.error.message||'error'; try{ var j=await res.error.context.json(); if(j&&j.error) m=j.error; }catch(e){} throw m; }
+    if(res.data&&res.data.error) throw res.data.error; return res.data;
+  }
+
+  function inject(){
+    var aside=document.querySelector('aside.side'), content=document.querySelector('div.content');
+    if(!aside||!content) return false;
+    if(!document.querySelector('aside.side [data-screen="'+FKEY+'"]')){
+      var nav=document.createElement('div');
+      nav.className='nav admin-only'; nav.setAttribute('data-screen',FKEY);
+      nav.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span>Fulfillment</span>';
+      var ref=document.querySelector('aside.side [data-screen="osbilling"]');
+      if(ref&&ref.parentElement===aside) aside.insertBefore(nav,ref); else aside.appendChild(nav);
+    }
+    if(!document.getElementById(FKEY)){
+      var sec=document.createElement('section'); sec.className='screen'; sec.id=FKEY;
+      sec.innerHTML='<div class="head"><div><h1 style="margin:0">Order Fulfillment</h1><div class="muted" id="ff-sub">Assign orders to a client, then mark shipping.</div></div></div><div class="row" id="ff-filters" style="gap:6px;flex-wrap:wrap;margin:10px 0"></div><div id="ff-list"></div>';
+      content.appendChild(sec);
+    }
+    return true;
+  }
+
+  function renderFilters(){
+    var c=document.getElementById('ff-filters'); if(!c) return;
+    c.innerHTML=FILTERS.map(function(f){ var on=STATE.filter===f[0]; return '<button class="btn '+(on?'':'ghost')+'" data-f="'+f[0]+'" style="padding:5px 12px;font-size:13px">'+f[1]+'</button>'; }).join('');
+    Array.prototype.forEach.call(c.querySelectorAll('button'),function(b){ b.onclick=function(){ STATE.filter=b.getAttribute('data-f'); renderFilters(); renderList(); }; });
+  }
+  function matchFilter(o){ var st=o.shipping_status||'unfulfilled'; if(STATE.filter==='all') return true; if(STATE.filter==='unassigned') return !o.client_id; if(STATE.filter==='unfulfilled') return st==='unfulfilled'; if(STATE.filter==='shipped') return st==='shipped'; if(STATE.filter==='delivered') return st==='delivered'; return true; }
+
+  function orderRow(o){
+    var st=o.shipping_status||'unfulfilled'; var cl=clientOf(o); var assigned=!!o.client_id;
+    var opts=STATE.clients.map(function(c){return '<option value="'+c.id+'">'+esc(c.full_name||c.email)+'</option>';}).join('');
+    var stOpts=['unfulfilled','processing','shipped','delivered'].map(function(x){return '<option value="'+x+'"'+(x===st?' selected':'')+'>'+x+'</option>';}).join('');
+    var chanOk=cl&&cl.slack_channel_id;
+    return '<div class="card" data-id="'+o.id+'" style="margin-bottom:10px;padding:12px">'+
+      '<div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><div><strong>'+esc(itemsText(o))+'</strong> · '+money(o.total_cents||o.amount_total)+'<div class="muted" style="font-size:12px">'+fmtDate(o.created_at)+' · '+esc(o.payment_method||'card')+' · '+esc(o.full_name||o.email||'')+'</div></div><span style="background:'+(STCOLORS[st]||'#666')+';color:#fff;padding:3px 9px;border-radius:10px;font-size:12px;height:fit-content">'+st+'</span></div>'+
+      (shipTo(o)?'<div class="muted" style="font-size:12px;margin-top:4px">Ship to: '+esc(shipTo(o))+'</div>':'')+
+      '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line,#eee)">'+
+        (assigned? '<div style="font-size:13px">Client: <strong>'+esc(cl?(cl.full_name||cl.email):'(client)')+'</strong> '+(chanOk?'<span class="muted">(Slack ✓)</span>':'<span class="muted">(no Slack channel)</span>')+'</div>'
+                 : '<div class="row" style="gap:6px;align-items:center;flex-wrap:wrap"><span class="muted" style="font-size:13px">Unassigned —</span><select class="ff-assign" style="font-size:14px;padding:5px"><option value="">Choose client…</option>'+opts+'</select><button class="btn ff-assign-btn" style="padding:5px 12px">Assign &amp; notify</button></div>')+
+      '</div>'+
+      '<div class="row" style="gap:6px;margin-top:8px;align-items:flex-end;flex-wrap:wrap">'+
+        '<label style="font-size:12px">Status<br><select class="ff-st" style="font-size:14px;padding:5px">'+stOpts+'</select></label>'+
+        '<label style="font-size:12px">Carrier<br><input class="ff-car" value="'+esc(o.carrier||'')+'" placeholder="USPS" style="font-size:16px;padding:5px;width:110px"></label>'+
+        '<label style="font-size:12px">Tracking #<br><input class="ff-trk" value="'+esc(o.tracking_number||'')+'" placeholder="9400…" style="font-size:16px;padding:5px;width:170px"></label>'+
+        '<label style="font-size:12px;display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="checkbox" class="ff-notify" checked> notify client</label>'+
+        '<button class="btn ff-save" style="padding:6px 14px">Save</button>'+
+        '<span class="ff-msg muted" style="font-size:12px"></span>'+
+      '</div></div>';
+  }
+
+  function renderList(){
+    var c=document.getElementById('ff-list'); if(!c) return;
+    var sub=document.getElementById('ff-sub'); if(sub) sub.textContent=STATE.orders.length+' orders · '+STATE.orders.filter(function(o){return !o.client_id;}).length+' unassigned · '+STATE.orders.filter(function(o){return (o.shipping_status||'unfulfilled')==='unfulfilled';}).length+' unfulfilled';
+    var rows=STATE.orders.filter(matchFilter);
+    if(!rows.length){ c.innerHTML='<div class="muted" style="padding:20px">No orders in this view.</div>'; return; }
+    c.innerHTML=rows.map(orderRow).join('');
+    Array.prototype.forEach.call(c.querySelectorAll('.card[data-id]'),function(card){
+      var id=card.getAttribute('data-id'); var msg=card.querySelector('.ff-msg');
+      var abtn=card.querySelector('.ff-assign-btn');
+      if(abtn) abtn.onclick=function(){ var sel=card.querySelector('.ff-assign'); var cid=sel&&sel.value; if(!cid){ alert('Pick a client first'); return; } abtn.disabled=true; abtn.textContent='Assigning…'; callFn('order-admin',{action:'assign',order_id:id,client_id:cid}).then(function(){ load(true); }).catch(function(e){ abtn.disabled=false; abtn.textContent='Assign & notify'; alert('Failed: '+e); }); };
+      var sbtn=card.querySelector('.ff-save');
+      if(sbtn) sbtn.onclick=function(){ var body={action:'fulfill',order_id:id,shipping_status:card.querySelector('.ff-st').value,carrier:card.querySelector('.ff-car').value,tracking_number:card.querySelector('.ff-trk').value,notify:card.querySelector('.ff-notify').checked}; sbtn.disabled=true; sbtn.textContent='Saving…'; if(msg) msg.textContent=''; callFn('order-admin',body).then(function(r){ sbtn.disabled=false; sbtn.textContent='Save'; if(msg){ var n=r&&r.notify; msg.textContent='Saved'+(n&&n.ok?' · client notified':(n&&n.skipped?' · '+n.skipped:'')); } load(true,true); }).catch(function(e){ sbtn.disabled=false; sbtn.textContent='Save'; if(msg) msg.textContent='Error: '+e; }); };
+    });
+  }
+
+  async function load(force,quiet){
+    var s=sb(); if(!s) return; if(STATE.loaded&&!force) return;
+    var lc=document.getElementById('ff-list'); if(lc&&!quiet&&!STATE.loaded) lc.innerHTML='<div class="muted" style="padding:20px">Loading…</div>';
+    try{
+      var oq=await s.from('reorders').select('*').order('created_at',{ascending:false}).limit(500);
+      var cq=await s.from('profiles').select('id,full_name,email,slack_channel_id,role').order('full_name');
+      STATE.orders=oq.data||[];
+      var all=cq.data||[];
+      STATE.clients=all.filter(function(p){ return ['admin','team','owner','staff'].indexOf(String(p.role||'').toLowerCase())<0; });
+      if(!STATE.clients.length) STATE.clients=all;
+      STATE.loaded=true; renderFilters(); renderList();
+    }catch(e){ if(lc) lc.innerHTML='<div class="muted" style="padding:20px">Could not load orders.</div>'; }
+  }
+
+  function watch(){ var sec=document.getElementById(FKEY); if(sec&&sec.classList.contains('show')) load(false); }
+  function ensure(){
+    if(!inject()) return;
+    var sec=document.getElementById(FKEY);
+    if(sec&&!sec.__ffMo){ sec.__ffMo=1; try{ new MutationObserver(watch).observe(sec,{attributes:true,attributeFilter:['class']}); }catch(e){} }
+    var nav=document.querySelector('aside.side [data-screen="'+FKEY+'"]');
+    if(nav&&!nav.__ffClick){ nav.__ffClick=1; nav.addEventListener('click',function(){ setTimeout(function(){ load(false); },150); }); }
+    watch();
+  }
+  setInterval(ensure,2000); ensure();
+
+  /* client "Your shipments" panel on #reorders */
+  var lastShip=0;
+  async function clientShipments(){
+    var sec=document.getElementById('reorders'); if(!sec||!sec.classList.contains('show')) return;
+    var host=document.getElementById('ds-shipments');
+    if(host && (Date.now()-lastShip)<15000) return;
+    var s=sb(); if(!s) return;
+    var sess=(await s.auth.getSession()).data.session; var uid=sess&&sess.user&&sess.user.id; if(!uid) return;
+    var q=await s.from('reorders').select('id,item_name,order_items,total_cents,amount_total,shipping_status,carrier,tracking_number,tracking_url,created_at').eq('client_id',uid).order('created_at',{ascending:false}).limit(50);
+    lastShip=Date.now();
+    var rows=q.data||[]; if(!rows.length){ if(host) host.remove(); return; }
+    if(!host){ host=document.createElement('div'); host.id='ds-shipments'; host.style.margin='12px 0'; var anchor=sec.querySelector('.head'); if(anchor&&anchor.nextSibling) sec.insertBefore(host,anchor.nextSibling); else sec.insertBefore(host,sec.firstChild); }
+    host.innerHTML='<div class="card" style="padding:12px"><strong>Your shipments</strong>'+rows.map(function(o){
+      var st=o.shipping_status||'unfulfilled';
+      var it=(function(){ try{ if(Array.isArray(o.order_items)&&o.order_items.length) return o.order_items.map(function(i){return (i.qty||i.quantity||1)+'× '+(i.name||i.item_name||'item');}).join(', ');}catch(e){} return o.item_name||'Order'; })();
+      return '<div style="border-top:1px solid var(--line,#eee);margin-top:8px;padding-top:8px;font-size:13px"><div><strong>'+esc(it)+'</strong> · '+money(o.total_cents||o.amount_total)+' · '+fmtDate(o.created_at)+'</div><div style="margin-top:2px">Status: <span style="color:'+(STCOLORS[st]||'#666')+';font-weight:600">'+st+'</span>'+(o.tracking_number?(' · '+esc(o.carrier||'')+' Tracking: '+(o.tracking_url?('<a href="'+esc(o.tracking_url)+'" target="_blank" rel="noopener">'+esc(o.tracking_number)+'</a>'):esc(o.tracking_number))):'')+'</div></div>';
+    }).join('')+'</div>';
+  }
+  setInterval(clientShipments,1500);
+})();
