@@ -817,16 +817,9 @@ const stages=[
 const statusMeta={completed:{lbl:'Completed',cls:'green'},active:{lbl:'In progress',cls:'blue'},upnext:{lbl:'Up next',cls:'gold'},locked:{lbl:'Locked',cls:'mut'}};
 let currentStageKey='sprint';
 
-const continueVids=[{t:'Day 1–3: Merchant Targeting Framework',ph:'14-Day Sprint',dur:'14:20',pct:71,c:'#203058'},{t:'Day 4–7: The First-Call Script',ph:'14-Day Sprint',dur:'9:18',pct:20,c:'#192848'},{t:'The RRS Mindset',ph:'Foundations',dur:'11:42',pct:100,c:'#1b2a4d'}];
-const upnext=[{t:'Day 1–3: Merchant Targeting',dur:'14:20',pct:71,c:'#203058'},{t:'Day 4–7: First-Call Script',dur:'9:18',pct:20,c:'#192848'},{t:'Day 8–11: Handling Objections',dur:'12:03',pct:0,c:'#1d2e54'},{t:'Day 12–14: Onboarding',dur:'10:47',pct:0,c:'#22335c'}];
-const clients=[
-  {n:'Marcus Bell',i:'MB',email:'marcus.bell@gmail.com',plan:'Digital Partner',status:'Active',joined:'Mar 8, 2026',setupDone:3,lesson:'Sprint · Day 1–3',w:71,comp:62,last:'2h ago',st:'On track',col:'blue'},
-  {n:'Priya Shah',i:'PS',email:'priya@shahco.com',plan:'Digital Elite',status:'Active',joined:'Jan 22, 2026',setupDone:6,lesson:'Scaling · M2',w:94,comp:88,last:'1d ago',st:'Top watcher',col:'green'},
-  {n:'Carlos Diaz',i:'CD',email:'carlos.diaz@outlook.com',plan:'Digital Starter',status:'Active',joined:'Apr 30, 2026',setupDone:1,lesson:'Foundations · M3',w:38,comp:24,last:'15d ago',st:'At-risk',col:'gold'},
-  {n:'Nadia Cole',i:'NC',email:'nadia.cole@gmail.com',plan:'Digital Partner',status:'Active',joined:'Feb 14, 2026',setupDone:4,lesson:'Autonomy · M1',w:66,comp:58,last:'4h ago',st:'On track',col:'blue'},
-  {n:'Ryan Brooks',i:'RB',email:'ryan.b@gmail.com',plan:'Digital Starter',status:'Suspended',joined:'May 2, 2026',setupDone:1,lesson:'Foundations · M1',w:12,comp:8,last:'21d ago',st:'At-risk',col:'gold'},
-  {n:'Aaron Cho',i:'AC',email:'aaron.cho@gmail.com',plan:'Digital Limitless',status:'Active',joined:'Dec 11, 2025',setupDone:6,lesson:'Scaling · M1',w:81,comp:79,last:'6h ago',st:'On track',col:'blue'}
-];
+const continueVids=[];
+const upnext=[];
+const clients=[];
 const setupSteps=['Application Approved','LLC Formed','EIN Obtained','Business Bank Opened','Payment Processor Approved','First Terminal Placed'];
 const colMap={blue:'var(--blue)',green:'var(--green)',gold:'var(--gold)'};
 
@@ -921,13 +914,7 @@ function renderClientRows(){document.getElementById('clientRows').innerHTML=clie
 renderClientRows();
 
 /* access & session log (chargeback proof) */
-const sessions=[
-  {n:'Marcus Bell',dt:'Jun 21, 1:42 PM',ip:'73.118.42.19',loc:'Oakland, CA · US',dev:'iPhone 15 · Safari',acc:'Sprint · Day 1–3 (71% watched)'},
-  {n:'Priya Shah',dt:'Jun 20, 9:14 AM',ip:'24.55.10.204',loc:'Austin, TX · US',dev:'MacBook · Chrome',acc:'Scaling · M2 (94%)'},
-  {n:'Carlos Diaz',dt:'Jun 06, 6:33 PM',ip:'98.207.88.3',loc:'Phoenix, AZ · US',dev:'Windows 11 · Edge',acc:'Foundations · M3 (38%)'},
-  {n:'Aaron Cho',dt:'Jun 21, 7:05 AM',ip:'47.149.22.87',loc:'San Jose, CA · US',dev:'Android · Chrome',acc:'Scaling · M1 (81%)'},
-  {n:'Nadia Cole',dt:'Jun 21, 11:20 AM',ip:'66.27.144.9',loc:'San Diego, CA · US',dev:'iPad · Safari',acc:'Autonomy · M1 (66%)'},
-];
+const sessions=[];
 document.getElementById('sessionRows').innerHTML=sessions.map(s=>`<tr><td><b>${s.n}</b></td><td class="mut">${s.dt}</td><td style="font-variant-numeric:tabular-nums">${s.ip}</td><td class="mut">${s.loc}</td><td class="mut">${s.dev}</td><td class="small">${s.acc}</td></tr>`).join('');
 
 /* ---------- CLIENT DETAIL (admin drilldown) ---------- */
@@ -935,11 +922,7 @@ function fmtSecs(s){const m=Math.floor(s/60),r=s%60;return m>0?(m+'m '+String(r)
 function clientSessions(c,idx){
   const devices=['iPhone 15 · Safari','MacBook Pro · Chrome','Windows 11 · Edge','iPad · Safari','Android · Chrome'];
   const ips=['73.118.42.19','24.55.10.204','98.207.88.3','47.149.22.87','66.27.144.9','12.88.214.7'];
-  const base=[
-    {when:'Today · 1:42 PM',pages:[['Dashboard',74],['14-Day Sprint',128],['Lesson: Merchant Targeting',612],['AI Coach',96]]},
-    {when:'Yesterday · 8:10 PM',pages:[['Dashboard',41],['My Journey',55],['Lesson: First-Call Script',338],['Resources',60]]},
-    {when:'Jun 18 · 7:22 AM',pages:[['Live Training',47],['Replay: Operator Q&A',915],['Dashboard',33]]}
-  ];
+  const base=[];
   return base.map((s,k)=>({id:'ss_'+(idx+1)+(k+1)+Math.random().toString(36).slice(2,8),when:s.when,dev:devices[(idx+k)%devices.length],ip:ips[(idx+k)%ips.length],pages:s.pages,total:s.pages.reduce((a,p)=>a+p[1],0)}));
 }
 function openClientLegacy(i){
@@ -1059,13 +1042,7 @@ function generateLegalExport(i){
 /* ---------- TEAM & ACCESS LEVELS ---------- */
 const ROLES=['Owner','Admin','Manager','CES'];
 const roleDesc={Owner:'Full control — team, billing, data, everything.',Admin:'Manage clients, tools, legal exports & settings.',Manager:'Manage assigned clients — plans, suspends, unlocks, milestones.',CES:'Client Experience Specialist — support clients, respond, update progress.'};
-let teamMembers=[
-  {n:'Gedam Tekle',email:'gedam@dividendshift.com',role:'Owner',i:'GT'},
-  {n:'Nikolas Kountouriotis',email:'nik@dividendshift.com',role:'Admin',i:'NK'},
-  {n:'Miles Choong',email:'miles@dividendshift.com',role:'Manager',i:'MC'},
-  {n:'Zack Tharp',email:'zack@dividendshift.com',role:'Manager',i:'ZT'},
-  {n:'Elona Spahiu',email:'elona@dividendshift.com',role:'CES',i:'ES'}
-];
+let teamMembers=[];
 const perms=[
   ['Manage team & roles',[1,0,0,0]],
   ['Billing & account settings',[1,1,0,0]],
@@ -2171,11 +2148,7 @@ let toastT=null;
 function toast(msg){const el=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2800);}
 
 /* ---------- LIVE TRAINING ---------- */
-const liveEvents=[
-  {id:'operator-qa',title:'Weekly Operator Q&A',host:'Gedam Tekle',start:'2026-06-24T18:00:00',durMin:60,link:'https://streamyard.com/watch/dividendshift-qa',desc:'Live Q&A with Gedam — bring your merchant questions, deal blockers, and wins.'},
-  {id:'merchant-workshop',title:'Merchant Acquisition Workshop',host:'Gedam Tekle',start:'2026-07-01T18:00:00',durMin:90,link:'https://streamyard.com/watch/dividendshift-acquisition',desc:'Hands-on workshop: build your target list and run the first-call script live.'},
-  {id:'settlement-deepdive',title:'Fiat Settlement Deep-Dive',host:'Gedam Tekle',start:'2026-07-08T18:00:00',durMin:60,link:'https://streamyard.com/watch/dividendshift-settlement',desc:'Exactly how settlement works and how to explain it to merchants in 30 seconds.'},
-];
+const liveEvents=[];
 function icsStamp(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'T'+p(d.getHours())+p(d.getMinutes())+'00';}
 function fmtDate(iso){const d=new Date(iso);return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});}
 function joinLive(link){window.open(link,'_blank','noopener');}
@@ -2465,14 +2438,7 @@ window.addEventListener('hashchange',handleClientHash);
 renderLive();tickCountdown();setInterval(tickCountdown,1000);loadReplays();
 
 /* ---------- DELIVERY PROGRESS (synced from Monday) ---------- */
-const delivery=[
-  {t:'Application Approved',done:true,date:'Mar 12'},
-  {t:'LLC Formed',done:true,date:'Mar 20'},
-  {t:'EIN Obtained',done:true,date:'Mar 26'},
-  {t:'Business Bank Opened',active:true},
-  {t:'Payment Processor Approved'},
-  {t:'First Terminal Placed'},
-];
+const delivery=[];
 function renderDelivery(){
   const doneItems=delivery.filter(d=>d.done);
   const pending=delivery.filter(d=>!d.done);
@@ -2511,12 +2477,7 @@ function renderScouter(){
     <div class="pin" style="left:70%;top:58%"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg></div>
     <div class="pin" style="left:42%;top:68%"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg></div>
   </div>`;
-  const targets=[
-    {n:'Riverside Car Wash',ty:'Auto services · high cash volume',tx:'~420 txns/day · avg ticket $38',m:'94'},
-    {n:'El Patron Taqueria',ty:'Restaurant · cash-heavy',tx:'~310 txns/day · avg ticket $24',m:'89'},
-    {n:'Gold Coast Smoke Shop',ty:'Convenience · high frequency',tx:'~560 txns/day · avg ticket $19',m:'87'},
-    {n:'Westside Barber Co.',ty:'Personal care · on-site owner',tx:'~140 txns/day · avg ticket $32',m:'81'},
-  ];
+  const targets=[];
   if(!scouterUnlocked){
     document.getElementById('scouterInner').innerHTML=`
       <div class="h-eyebrow">Tools</div>
@@ -2555,12 +2516,7 @@ function renderScouter(){
 renderScouter();
 
 /* ---------- NOTIFICATIONS ---------- */
-let notifs=[
-  {icon:'🔓',title:'Website Builder unlocked',body:'You can now build your site — it replaces the old intake form.',time:'2m ago'},
-  {icon:'💬',title:'The team replied to your question',body:'Re: 14-Day Sprint — Merchant Targeting',time:'1h ago'},
-  {icon:'▶️',title:'New module available',body:'Autonomy · Fiat Settlement Explained',time:'3h ago'},
-  {icon:'✅',title:'Milestone completed',body:'EIN Obtained — your setup is 50% done',time:'1d ago'}
-];
+let notifs=[];
 function renderNotif(){
   const list=document.getElementById('notifList');const badge=document.getElementById('notifBadge');
   if(!list)return;
