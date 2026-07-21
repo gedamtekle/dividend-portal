@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dividend Shift — System Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F7F8FB;--card:#fff;--line:#E7EAF1;--txt:#14161D;--mut:#5C6577;--green:#1FA463;--red:#E5484D;--amber:#d97706;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;padding:32px 16px}
+  .wrap{max-width:640px;margin:0 auto}
+  h1{font-size:22px;margin-bottom:4px}
+  .sub{color:var(--mut);font-size:13.5px;margin-bottom:20px}
+  .banner{padding:14px 16px;border-radius:12px;font-weight:600;margin-bottom:16px;font-size:15px}
+  .banner.ok{background:#e8f7ee;color:#0a7a3d;border:1px solid #b5e3c8}
+  .banner.bad{background:#fdecec;color:#b42318;border:1px solid #f5c2c0}
+  .banner.load{background:#eef2f9;border:1px solid var(--line);color:#3b4256}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-top:1px solid var(--line);font-size:14.5px}
+  .row:first-child{border-top:none}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:10px}
+  .ok .dot{background:var(--green)} .bad .dot{background:var(--red)}
+  .lat{color:var(--mut);font-size:12px}
+  .pill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px}
+  .ok .pill{background:#e8f7ee;color:#0a7a3d} .bad .pill{background:#fdecec;color:#b42318}
+  .foot{color:var(--mut);font-size:12px;margin-top:16px;text-align:center}
+  button{margin-top:14px;width:100%;padding:11px;border:1px solid var(--line);background:#fff;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dividend Shift — System Status</h1>
+  <div class="sub" id="sub">Checking integrations…</div>
+  <div class="banner load" id="banner">Running live checks…</div>
+  <div class="card" id="list"></div>
+  <button onclick="load(true)">Re-check now</button>
+  <div class="foot">Checks run live against each provider. Results cache for ~60s.<br>If something is DOWN here, it is a system issue — no need to report individual client errors for that feature.</div>
+</div>
+<script>
+const API='https://dehttbxrkeqhsfkfpfwt.functions.supabase.co/status-health';
+async function load(force){
+  const b=document.getElementById('banner'), list=document.getElementById('list'), sub=document.getElementById('sub');
+  b.className='banner load'; b.textContent='Running live checks…';
+  try{
+    const r=await fetch(API+(force?('?t='+Date.now()):''),{cache:'no-store'});
+    const j=await r.json();
+    sub.textContent='Last checked: '+new Date(j.checked_at).toLocaleString();
+    const bad=j.checks.filter(c=>!c.ok);
+    if(j.ok){ b.className='banner ok'; b.textContent='All systems operational'; }
+    else{ b.className='banner bad'; b.textContent=bad.length+' issue'+(bad.length>1?'s':'')+' detected: '+bad.map(c=>c.name).join(', '); }
+    list.innerHTML=j.checks.map(c=>'<div class="row '+(c.ok?'ok':'bad')+'"><span><span class="dot"></span>'+c.name+'</span><span style="display:flex;gap:10px;align-items:center"><span class="lat">'+c.ms+'ms</span><span class="pill">'+(c.ok?'UP':'DOWN')+'</span></span></div>').join('');
+  }catch(e){
+    b.className='banner bad'; b.textContent='Could not reach the health service — the backend may be down.';
+    list.innerHTML='';
+  }
+}
+load();
+setInterval(function(){load();},120000);
+</script>
+</body>
+</html>
