@@ -4123,3 +4123,73 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   setInterval(function(){ var live=document.getElementById('live'); if(live&&live.classList.contains('show')) render(); }, 1200);
   setInterval(function(){ CACHE=null; }, 60000);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 52) __dsLoginFeedback - guarantee visible feedback on sign-in:
+ *     wraps doSignIn so failures ALWAYS show a red banner (wrong
+ *     password, network error, rate limit), adds Enter-to-submit on
+ *     the login fields, and recovers if signed in but UI is stuck.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsLoginFeedback) return; window.__dsLoginFeedback=true;
+  function banner(msg,kind){
+    var card=document.querySelector('.authcard'); if(!card) return;
+    var el=document.getElementById('ds-login-banner');
+    if(!el){ el=document.createElement('div'); el.id='ds-login-banner'; el.style.cssText='margin:10px 0;padding:10px 12px;border-radius:10px;font-size:13.5px;line-height:1.35;display:none'; var btn=card.querySelector('button'); card.insertBefore(el, card.firstChild); }
+    el.style.display='block';
+    if(kind==='ok'){ el.style.background='#e8f7ee'; el.style.color='#0a7a3d'; el.style.border='1px solid #b5e3c8'; }
+    else{ el.style.background='#fdecec'; el.style.color='#b42318'; el.style.border='1px solid #f5c2c0'; }
+    el.textContent=msg;
+  }
+  function hideBanner(){ var el=document.getElementById('ds-login-banner'); if(el) el.style.display='none'; }
+  function friendly(m){
+    m=String(m||'');
+    if(/invalid login credentials/i.test(m)) return 'Wrong email or password. Try again, or tap \u201CForgot password?\u201D';
+    if(/email not confirmed/i.test(m)) return 'Your email isn\u2019t confirmed yet \u2014 check your inbox for the confirmation link.';
+    if(/rate limit/i.test(m)) return 'Too many attempts \u2014 wait a minute, then try again.';
+    if(/failed to fetch|network|load failed/i.test(m)) return 'Connection problem \u2014 check your internet and try again.';
+    return 'Sign-in failed: '+m;
+  }
+  function wrap(){
+    var orig=window.doSignIn;
+    if(typeof orig!=='function' || orig.__dsWrapped) return;
+    var w=async function(){
+      hideBanner();
+      try{ await orig.apply(this,arguments); }
+      catch(e){ banner(friendly(e&&e.message||e)); return; }
+      setTimeout(async function(){
+        try{
+          var s=window.__dsSB; if(!s) return;
+          var r=await s.auth.getSession(); var has=!!(r&&r.data&&r.data.session);
+          var auth=document.querySelector('.authcard');
+          var visible=auth && auth.offsetParent!==null;
+          if(!has && visible){
+            var am=document.getElementById('authMsg');
+            var shown=am && am.style.display!=='none' && am.textContent.trim();
+            if(shown){ banner(friendly(am.textContent.trim())); }
+            else{ banner('Sign-in didn\u2019t go through. Double-check your email and password, or tap \u201CForgot password?\u201D'); }
+          }
+          if(has && visible){
+            banner('Signed in \u2014 loading your portal\u2026','ok');
+            if(!sessionStorage.getItem('dsLoginKick')){ sessionStorage.setItem('dsLoginKick','1'); setTimeout(function(){ location.reload(); },800); }
+          } else { sessionStorage.removeItem('dsLoginKick'); }
+        }catch(e){}
+      },900);
+    };
+    w.__dsWrapped=true; window.doSignIn=w;
+  }
+  function enterKeys(){
+    var card=document.querySelector('.authcard'); if(!card||card.__dsEnter) return; card.__dsEnter=1;
+    card.addEventListener('keydown',function(ev){
+      if(ev.key!=='Enter') return;
+      var t=ev.target; if(!t||!t.matches('input')) return;
+      var panel=t.closest('[id^="ap"]')||card;
+      var btn=panel.querySelector('button[onclick]');
+      if(btn){ ev.preventDefault(); btn.click(); }
+    });
+  }
+  setInterval(function(){ wrap(); enterKeys(); },800);
+  wrap(); enterKeys();
+})();
