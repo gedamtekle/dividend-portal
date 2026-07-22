@@ -4157,8 +4157,22 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     if(typeof orig!=='function' || orig.__dsWrapped) return;
     var w=async function(){
       hideBanner();
-      try{ await orig.apply(this,arguments); }
-      catch(e){ banner(friendly(e&&e.message||e)); return; }
+      var attempt=0;
+      while(true){
+        try{ await orig.apply(this,arguments); break; }
+        catch(e){
+          var m=String(e&&e.message||e);
+          if(/before initialization|sb is not defined/i.test(m) && attempt<20){
+            attempt++;
+            banner('Connecting\u2026 signing you in automatically','ok');
+            await new Promise(function(res){ setTimeout(res,700); });
+            continue;
+          }
+          if(/before initialization|sb is not defined/i.test(m)){ banner('Connection problem \u2014 refresh this page and try again.'); }
+          else{ banner(friendly(m)); }
+          return;
+        }
+      }
       setTimeout(async function(){
         try{
           var s=window.__dsSB; if(!s) return;
