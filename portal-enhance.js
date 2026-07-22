@@ -4168,7 +4168,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
             await new Promise(function(res){ setTimeout(res,700); });
             continue;
           }
-          if(/before initialization|sb is not defined/i.test(m)){ banner('Connection problem \u2014 refresh this page and try again.'); }
+          if(/before initialization|sb is not defined/i.test(m)){ var resc=false; try{ if(window.__dsBootRescue) resc=await window.__dsBootRescue(); }catch(_e){} if(resc){ banner('Signed in \u2014 loading your portal\u2026','ok'); setTimeout(function(){ location.reload(); },700); return; } banner('Connection problem \u2014 refresh this page and try again. Our team has been notified automatically.'); }
           else{ banner(friendly(m)); }
           return;
         }
@@ -4206,4 +4206,53 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(function(){ wrap(); enterKeys(); },800);
   wrap(); enterKeys();
+})();
+
+
+/* ------------------------------------------------------------------ *
+ * 53) __dsBootWatch - detects when the base app's boot script crashed
+ *     on this device (app globals stuck in TDZ), locates roughly where,
+ *     auto-reports it to the team Slack via client-error, and exposes
+ *     __dsBootRescue(): a fallback sign-in that uses the enhancement's
+ *     own Supabase client so login works even when app boot is dead.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsBootWatch) return; window.__dsBootWatch=true;
+  var NAMES=['stages','continueVids','upnext','clients','sessions','base','teamMembers','PROGRAM_FALLBACK','HELP','liveEvents','delivery','targets','notifs','sb'];
+  function alive(name){ try{ return (0,eval)('typeof '+name+';')!==void 0 || true; }catch(e){ return false; } }
+  function scan(){
+    var lastOk=null, firstDead=null;
+    for(var i=0;i<NAMES.length;i++){ if(alive(NAMES[i])) lastOk=NAMES[i]; else { firstDead=NAMES[i]; break; } }
+    return {lastOk:lastOk, firstDead:firstDead};
+  }
+  var reported=false;
+  function report(extra){
+    if(reported||sessionStorage.getItem('dsBootReported')) return; reported=true;
+    try{ sessionStorage.setItem('dsBootReported','1'); }catch(e){}
+    var s=scan();
+    var em=''; try{ var ei=document.querySelector('.authcard input[type=email]'); em=(ei&&ei.value)||''; }catch(e){}
+    var payload={ message:'App boot halted: last-initialized "'+(s.lastOk||'(none)')+'", first-dead "'+(s.firstDead||'?')+'"'+(extra?(' | '+extra):''), source:'portal boot probe', line:'', ua:navigator.userAgent, email:em };
+    try{ fetch('https://dehttbxrkeqhsfkfpfwt.functions.supabase.co/client-error',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); }catch(e){}
+  }
+  window.addEventListener('error',function(ev){ try{ if(ev&&ev.filename&&String(ev.filename).indexOf('portal-enhance')<0){ report(String(ev.message||'').slice(0,120)+' @ '+String(ev.filename||'').split('/').pop()+':'+(ev.lineno||'')); } }catch(e){} });
+  setTimeout(function(){ try{ if(!alive('sb')){ report(''); } }catch(e){} }, 6000);
+  window.__dsBootRescue=async function(){
+    try{
+      var s=window.__dsSB; if(!s) return false;
+      var ei=document.querySelector('.authcard input[type=email]');
+      var pi=document.querySelector('.authcard input[type=password]');
+      var email=ei&&ei.value&&ei.value.trim(); var pw=pi&&pi.value;
+      if(!email||!pw) return false;
+      report('rescue sign-in attempted');
+      var r=await s.auth.signInWithPassword({email:email,password:pw});
+      if(r&&r.error){
+        var msg=String(r.error.message||'');
+        var el=document.getElementById('ds-login-banner');
+        if(el){ el.style.display='block'; el.style.background='#fdecec'; el.style.color='#b42318'; el.style.border='1px solid #f5c2c0'; el.textContent=/invalid login credentials/i.test(msg)?'Wrong email or password. Try again, or tap \u201CForgot password?\u201D':('Sign-in failed: '+msg); }
+        return false;
+      }
+      return !!(r&&r.data&&r.data.session);
+    }catch(e){ return false; }
+  };
 })();
