@@ -2435,7 +2435,7 @@ async function textResetLink(id,btn){const orig=btn?btn.textContent:'';if(btn){b
 function handleClientHash(){const m=(location.hash||'').match(/#\/client\/([0-9a-f-]{8,})/i);if(m&&_me&&_me.role==='admin'&&m[1]!==window._curClient){openClient(m[1]);}}
 window.addEventListener('hashchange',handleClientHash);
 
-renderLive();tickCountdown();setInterval(tickCountdown,1000);loadReplays();
+try{renderLive()}catch(e){console.warn("renderLive:",e)};try{tickCountdown()}catch(e){};setInterval(function(){try{tickCountdown()}catch(e){}},1000);try{loadReplays()}catch(e){console.warn("loadReplays:",e)};
 
 /* ---------- DELIVERY PROGRESS (synced from Monday) ---------- */
 const delivery=[];
