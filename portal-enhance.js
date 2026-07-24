@@ -4256,3 +4256,61 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     }catch(e){ return false; }
   };
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 54) __dsVideoIntel - admin panel (top of Content Admin screen):
+ *     AI-suggested video titles + summaries from video_transcripts.
+ *     Accept pushes the title to Bunny via video-admin; Reject dismisses.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsVideoIntel) return; window.__dsVideoIntel=true;
+  function sb(){ return window.__dsSB; }
+  var esc=(window.__dsOS&&window.__dsOS.esc)||function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];}); };
+  var CACHE=null, lastLoad=0, isStaff=false, roleChecked=false;
+  async function checkRole(){ try{ var s=sb(); var r=await s.auth.getSession(); var uid=r&&r.data&&r.data.session&&r.data.session.user.id; if(!uid){roleChecked=true;return;} var q=await s.from('profiles').select('role').eq('id',uid).maybeSingle(); isStaff=q.data&&['admin','team'].indexOf(String(q.data.role||'').toLowerCase())>=0; roleChecked=true; }catch(e){ roleChecked=true; } }
+  async function callFn(body){ var s=sb(); var r=await s.functions.invoke('video-admin',{body:body}); if(r.error) throw (r.error.message||'error'); if(r.data&&r.data.error) throw r.data.error; return r.data; }
+  function mdList(md){ return String(md||'').split(/\n/).filter(function(x){return x.trim();}).map(function(x){return '<div style="font-size:12.5px;margin:2px 0">'+esc(x.replace(/^[-*]\s*/,'\u2022 '))+'</div>';}).join(''); }
+  function render(){
+    var host=document.getElementById('ds-vi-host'); if(!host||!CACHE) return;
+    var pend=CACHE.filter(function(r){return r.title_status==='suggested' && r.suggested_title && r.suggested_title!==r.current_title;});
+    var rest=CACHE.filter(function(r){return pend.indexOf(r)<0;});
+    var html='<div class="card" style="padding:12px;margin-bottom:14px"><div class="row" style="justify-content:space-between;align-items:center"><strong>AI video suggestions</strong><span class="muted" style="font-size:12px">'+CACHE.length+' videos analyzed \u00b7 '+pend.length+' pending title'+(pend.length===1?'':'s')+'</span></div>';
+    if(!CACHE.length) html+='<div class="muted" style="padding:10px 0;font-size:13px">No videos analyzed yet \u2014 the worker runs hourly (and instantly after new uploads).</div>';
+    pend.forEach(function(r){
+      html+='<div style="border-top:1px solid var(--line,#eee);margin-top:10px;padding-top:10px" data-guid="'+esc(r.video_guid)+'">'
+        +'<div class="muted" style="font-size:12px">Current: '+esc(r.current_title||r.video_guid)+'</div>'
+        +'<div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px">'
+        +'<input class="vi-title" value="'+esc(r.suggested_title)+'" style="font-size:16px;padding:6px;flex:1;min-width:220px">'
+        +'<button class="btn vi-accept" style="padding:6px 14px">Accept title</button>'
+        +'<button class="btn ghost vi-reject" style="padding:6px 12px">Dismiss</button>'
+        +'<span class="vi-msg muted" style="font-size:12px"></span></div>'
+        +(r.summary_md?('<div style="margin-top:6px">'+mdList(r.summary_md)+'</div>'):'')
+        +'</div>';
+    });
+    if(rest.length){ html+='<div class="muted" style="font-size:12px;margin-top:10px">'+rest.length+' video'+(rest.length===1?'':'s')+' up to date (titles accepted or unchanged).</div>'; }
+    html+='</div>';
+    host.innerHTML=html;
+    Array.prototype.forEach.call(host.querySelectorAll('[data-guid]'),function(rowEl){
+      var guid=rowEl.getAttribute('data-guid'); var msg=rowEl.querySelector('.vi-msg');
+      var acc=rowEl.querySelector('.vi-accept');
+      if(acc) acc.onclick=function(){ acc.disabled=true; acc.textContent='Saving\u2026'; callFn({action:'accept',video_guid:guid,title:rowEl.querySelector('.vi-title').value}).then(function(){ if(msg) msg.textContent='Accepted \u2713'; CACHE=null; setTimeout(load,600); }).catch(function(e){ acc.disabled=false; acc.textContent='Accept title'; if(msg) msg.textContent='Error: '+e; }); };
+      var rej=rowEl.querySelector('.vi-reject');
+      if(rej) rej.onclick=function(){ rej.disabled=true; callFn({action:'reject',video_guid:guid}).then(function(){ CACHE=null; setTimeout(load,400); }).catch(function(e){ rej.disabled=false; if(msg) msg.textContent='Error: '+e; }); };
+    });
+  }
+  async function load(){ if(Date.now()-lastLoad<5000&&CACHE) {render();return;} lastLoad=Date.now(); try{ var d=await callFn({action:'list'}); CACHE=d.rows||[]; render(); }catch(e){} }
+  function ensure(){
+    if(!roleChecked){ checkRole(); return; }
+    if(!isStaff) return;
+    var secContent=document.getElementById('content'); if(!secContent) return;
+    if(!document.getElementById('ds-vi-host')){
+      var host=document.createElement('div'); host.id='ds-vi-host';
+      var head=secContent.querySelector('.head');
+      if(head&&head.nextSibling) secContent.insertBefore(host,head.nextSibling); else secContent.insertBefore(host,secContent.firstChild);
+    }
+    if(secContent.classList.contains('show')) load();
+  }
+  setInterval(ensure,1800); ensure();
+})();
