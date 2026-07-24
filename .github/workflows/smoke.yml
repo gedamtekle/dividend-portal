@@ -1,0 +1,22 @@
+name: smoke
+
+# Runs whenever Vercel finishes a deployment (preview or production).
+# Loads the deployed URL in headless Chrome and verifies the app boots.
+# With branch protection requiring this check, broken previews cannot merge.
+on:
+  deployment_status:
+
+jobs:
+  smoke:
+    name: smoke
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install puppeteer
+        run: npm init -y >/dev/null 2>&1 && npm i --no-audit --no-fund puppeteer@22
+      - name: Smoke test deployed URL
+        run: node scripts/smoke.mjs "${{ github.event.deployment_status.environment_url }}"
