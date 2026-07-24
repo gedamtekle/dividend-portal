@@ -37,3 +37,9 @@ jobs:
         run: |
           sleep 300
           python transcribe_worker.py
+      - name: Video intel (summaries, transcripts, suggested titles)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python video_intel.py
