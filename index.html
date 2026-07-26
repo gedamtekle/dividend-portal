@@ -1146,7 +1146,7 @@ async function loadAdmin(){
   if(pending.length){
     pendingHtml=`<div class="card" style="margin-bottom:20px;border:1px solid #F4E2B6">
       <div class="pad" style="padding-bottom:6px;display:flex;align-items:center;gap:8px"><span style="font-size:15px;font-weight:700">⏳ Access requests</span><span class="pill" style="background:#FFF3D9;color:#9A6B0E;border-color:#F4E2B6">${pending.length} waiting</span></div>
-      <div class="pad" style="padding-top:0;display:flex;flex-direction:column;gap:8px">${pending.map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><b>${esc(p.full_name||p.email)}</b><div class="small mut">${esc(p.email)}</div></div><button class="btn primary" style="padding:7px 14px" onclick="approveClient('${p.id}')">Approve</button><button class="btn" style="padding:7px 12px" onclick="suspendClient('${p.id}')">Deny</button></div>`).join('')}</div></div>`;
+      <div class="pad" style="padding-top:0;display:flex;flex-direction:column;gap:8px">${pending.map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><b>${esc(p.full_name||p.email||p.phone||'(no contact info)')}</b><div class="small mut">${esc(p.email||p.phone||'signup not completed')}</div></div><button class="btn primary" style="padding:7px 14px" onclick="approveClient('${p.id}')">Approve</button><button class="btn" style="padding:7px 12px" onclick="suspendClient('${p.id}')">Deny</button></div>`).join('')}</div></div>`;
   }
 
   const nowMs=Date.now();
@@ -2746,7 +2746,7 @@ async function doMagic(){
   if(!sb)return authMsg('Auth is still loading.');
   const email=val('mlEmail');if(!email)return authMsg('Enter your email.');
   busy('mlBtn',true);
-  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});
+  const {error}=await sb.auth.signInWithOtp({email,options:{ shouldCreateUser:false,emailRedirectTo:location.origin}});
   busy('mlBtn',false);
   if(error)return authMsg(error.message);
   authMsg('Login link sent — check your email.',true);
@@ -2773,7 +2773,7 @@ async function doPhoneSend(){
   const phone=normalizePhone(val('phNumber'));
   if(phone.replace(/\D/g,'').length<11)return authMsg('Enter a valid mobile number, including area code.');
   busy('phSendBtn',true);
-  const {error}=await sb.auth.signInWithOtp({phone});
+  const {error}=await sb.auth.signInWithOtp({phone, options:{ shouldCreateUser:false }});
   busy('phSendBtn',false);
   if(error)return authMsg(error.message);
   window._phone=phone;
