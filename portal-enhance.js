@@ -4708,3 +4708,47 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(function(){ renderLog(); }, 2000);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 60) __dsEvidencePdf - 'Export evidence PDF' on the client profile:
+ *     category checkboxes -> evidence-report edge fn -> resume-style
+ *     PDF download (photo, billing summary, selected sections).
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsEvidencePdf) return; window.__dsEvidencePdf=true;
+  var CATS=[['access','Access & logins'],['orders','Orders & payments'],['subscription','Subscription'],['quizzes','Quizzes'],['ai','AI usage'],['feedback','Feedback'],['support','Support'],['retention','Retention']];
+  function ensure(){
+    var secC=document.getElementById('client'); if(!secC||!secC.classList.contains('show')) return;
+    var anchor=document.getElementById('ds-al-card'); if(!anchor) return;
+    if(document.getElementById('ds-ev-card')) return;
+    var box=document.createElement('div'); box.id='ds-ev-card';
+    var cbs=CATS.map(function(c){ return '<label style="font-size:12.5px;display:inline-flex;align-items:center;gap:5px;margin:3px 10px 3px 0"><input type="checkbox" class="ds-ev-cat" value="'+c[0]+'" checked> '+c[1]+'</label>'; }).join('');
+    box.innerHTML='<div class="card" style="padding:14px;margin-top:12px"><div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><strong>Evidence report</strong><button class="btn" id="ds-ev-go" style="padding:7px 16px">Export evidence PDF</button></div>'
+      +'<div style="margin-top:8px">'+cbs+'</div>'
+      +'<div id="ds-ev-msg" class="muted" style="font-size:12px;margin-top:6px"></div></div>';
+    anchor.parentElement.insertBefore(box, anchor);
+    document.getElementById('ds-ev-go').onclick=async function(){
+      var btn=this, msg=document.getElementById('ds-ev-msg');
+      var cid=window.curClient; if(!cid){ msg.textContent='Open a client first.'; return; }
+      var cats=Array.prototype.map.call(document.querySelectorAll('.ds-ev-cat:checked'),function(x){return x.value;});
+      if(!cats.length){ msg.textContent='Pick at least one category.'; return; }
+      btn.disabled=true; btn.textContent='Building\u2026'; msg.textContent='';
+      try{
+        var s=window.__dsSB;
+        var sess=(await s.auth.getSession()).data.session;
+        var r=await fetch(s.functionsUrl+'/evidence-report',{method:'POST',headers:{'Authorization':'Bearer '+sess.access_token,'apikey':s.supabaseKey,'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,categories:cats})});
+        if(!r.ok){ var j=await r.json().catch(function(){return {};}); throw (j.error||('HTTP '+r.status)); }
+        var blob=await r.blob();
+        var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+        var cd=r.headers.get('Content-Disposition')||''; var m=cd.match(/filename="([^"]+)"/);
+        a.download=(m&&m[1])||'evidence-report.pdf'; a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+        msg.textContent='Downloaded.';
+      }catch(e){ msg.textContent='Failed: '+e; }
+      btn.disabled=false; btn.textContent='Export evidence PDF';
+    };
+  }
+  setInterval(ensure, 1500);
+})();
