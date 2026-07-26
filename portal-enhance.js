@@ -4467,11 +4467,27 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     el.textContent=msg;
   }
   function hideNote(){ var el=document.getElementById('ds-pv-note'); if(el) el.style.display='none'; }
+  function shrink(dataUrl){
+    return new Promise(function(res){
+      if(dataUrl.length<1200000) return res(dataUrl);
+      var img=new Image();
+      img.onload=function(){
+        var max=900, w=img.width, h=img.height;
+        var sc=Math.min(1, max/Math.max(w,h));
+        var c=document.createElement('canvas'); c.width=Math.round(w*sc); c.height=Math.round(h*sc);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        try{ res(c.toDataURL('image/jpeg',0.82)); }catch(e){ res(dataUrl); }
+      };
+      img.onerror=function(){ res(dataUrl); };
+      img.src=dataUrl;
+    });
+  }
   async function verify(dataUrl){
     if(CACHE.key===dataUrl) return CACHE.person;
     try{
       var s=window.__dsSB;
-      var r=await fetch((s&&s.functionsUrl?s.functionsUrl:'https://dehttbxrkeqhsfkfpfwt.functions.supabase.co')+'/photo-verify',{method:'POST',headers:{'Content-Type':'application/json','apikey':s?s.supabaseKey:''},body:JSON.stringify({image:dataUrl})});
+      var toSend=await shrink(dataUrl);
+      var r=await fetch((s&&s.functionsUrl?s.functionsUrl:'https://dehttbxrkeqhsfkfpfwt.functions.supabase.co')+'/photo-verify',{method:'POST',headers:{'Content-Type':'application/json','apikey':s?s.supabaseKey:''},body:JSON.stringify({image:toSend})});
       var j=await r.json();
       if(!j || j.ok!==true) return true; // fail-open
       CACHE.key=dataUrl; CACHE.person=!!j.person;
