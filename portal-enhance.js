@@ -4428,11 +4428,9 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       +'<h2 style="margin:0 0 10px;font-size:24px;line-height:1.2;color:#14161D;font-family:Poppins,Inter,sans-serif">Your Access is Pending</h2>'
       +'<p style="margin:0 0 6px;font-size:14px;line-height:1.55;color:#5C6577">Your account has been created and is in review by our team. You\u2019ll receive an email the moment your access is approved.</p>'
       +(em?('<p style="margin:0 0 18px;font-size:13px;color:#9AA3B4">'+em.replace(/</g,'&lt;')+'</p>'):'<div style="height:12px"></div>')
-      +'<button id="ds-pb-check" style="width:100%;padding:13px;border:0;border-radius:11px;background:linear-gradient(135deg,#F2B33D,#EBA32C);color:#1d1503;font-weight:700;font-size:15px;cursor:pointer">Check approval status</button>'
       +'<div style="margin-top:14px"><a href="#" id="ds-pb-out" style="font-size:12.5px;color:#9AA3B4">Sign out</a></div>'
       +'</div>';
     document.body.appendChild(root);
-    document.getElementById('ds-pb-check').onclick=function(){ this.textContent='Checking\u2026'; location.reload(); };
     document.getElementById('ds-pb-out').onclick=function(e){ e.preventDefault(); forget(); try{ window.__dsSB.auth.signOut().then(function(){ location.reload(); }); }catch(_e){ location.reload(); } };
   }
   function unmount(){ css(false); var r=document.getElementById('ds-pb-root'); if(r) r.remove(); }
