@@ -4769,3 +4769,235 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   window.addEventListener('hashchange', sync);
   setInterval(sync, 800);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ *  62) __dsAdminGate - chronology + evidence cards: admin role ONLY  *
+ *      (hidden by default; unhidden only after role check = admin)   *
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsAdminGate) return; window.__dsAdminGate=true;
+  var st=document.createElement('style'); st.id='ds-admin-gate';
+  st.textContent='#ds-al-card,#ds-ev-card{display:none !important}';
+  (document.head||document.documentElement).appendChild(st);
+  var tries=0;
+  (function go(){
+    var s=window.__dsSB;
+    if(!s){ if(tries++<40) setTimeout(go,700); return; }
+    s.auth.getSession().then(function(g){
+      var u=g&&g.data&&g.data.session&&g.data.session.user;
+      if(!u){ if(tries++<40) setTimeout(go,1500); return; }
+      s.from('profiles').select('role').eq('id',u.id).maybeSingle().then(function(r){
+        var role=r&&r.data&&r.data.role;
+        if(role==='admin'){ var e2=document.getElementById('ds-admin-gate'); if(e2) e2.remove(); }
+      });
+    });
+  })();
+})();
+
+/* ------------------------------------------------------------------ *
+ *  63) __dsAddress - billing + shipping address on the client profile.
+ *      Shipping is onboarding STEP 2 (right after approval): verified
+ *      against Google like a shipping provider, with a suggested
+ *      correction. Declining requires a checkbox confirming their
+ *      version is correct.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsAddress) return; window.__dsAddress=true;
+  var FN='https://dehttbxrkeqhsfkfpfwt.supabase.co/functions/v1/address-verify';
+  var ME=null, PROF=null, MODE='ship';
+  function sb(){ return window.__dsSB; }
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function fmt(a){
+    if(!a) return '';
+    var parts=[a.line1, a.line2, [a.city,a.state].filter(Boolean).join(', ')+(a.zip?(' '+a.zip):'')];
+    return parts.filter(function(x){ return x && String(x).trim(); }).join(', ');
+  }
+
+  function closeModal(){ var m=document.getElementById('ds-addr-modal'); if(m) m.remove(); }
+  function openModal(mode, onboard, pre){
+    MODE=mode; closeModal(); pre=pre||{};
+    var wrap=document.createElement('div'); wrap.id='ds-addr-modal';
+    wrap.style.cssText='position:fixed;inset:0;background:rgba(10,14,25,.55);z-index:99990;display:flex;align-items:center;justify-content:center;padding:18px;';
+    var title = mode==='bill' ? 'Billing address' : (onboard ? 'Step 2 of onboarding - Shipping address' : 'Shipping address');
+    var sub = mode==='bill' ? 'Used on invoices and receipts.' : 'We verify this against the postal map so your orders arrive without delays.';
+    function inp(id,ph,val){ return '<input id="'+id+'" placeholder="'+ph+'" value="'+esc(val||'')+'" style="width:100%;padding:10px;border:1px solid #E2E5EC;border-radius:9px;font-size:14px;box-sizing:border-box" />'; }
+    wrap.innerHTML='<div style="background:#fff;border-radius:14px;max-width:460px;width:100%;padding:22px;box-shadow:0 18px 60px rgba(10,14,25,.28)">'
+      +'<div style="font-size:11px;letter-spacing:.12em;color:#C99A2C;font-weight:700">DIVIDEND SHIFT</div>'
+      +'<h3 style="margin:6px 0 4px;font-size:19px">'+esc(title)+'</h3>'
+      +'<div style="font-size:12.5px;color:#6B7280;margin-bottom:12px">'+esc(sub)+'</div>'
+      +'<div style="display:grid;gap:8px">'
+      + inp('ds-ad-l1','Street address', pre.line1)
+      + inp('ds-ad-l2','Apt / suite (optional)', pre.line2)
+      +'<div style="display:grid;grid-template-columns:1fr 80px 105px;gap:8px">'
+      + inp('ds-ad-city','City', pre.city)
+      + inp('ds-ad-state','State', pre.state)
+      + inp('ds-ad-zip','ZIP', pre.zip)
+      +'</div></div>'
+      +'<div id="ds-ad-sug" style="display:none;margin-top:12px;border:1px solid #F2D9A0;background:#FFF8E8;border-radius:10px;padding:12px;font-size:13px"></div>'
+      +'<div id="ds-ad-msg" style="font-size:12.5px;color:#B4232A;margin-top:10px;min-height:16px"></div>'
+      +'<div style="display:flex;gap:12px;align-items:center;margin-top:10px">'
+      +'<button id="ds-ad-go" class="btn" style="padding:10px 18px">'+(mode==='bill'?'Save billing address':'Verify address')+'</button>'
+      +(onboard?'<a href="#" id="ds-ad-skip" style="font-size:12.5px;color:#6B7280">Skip for now</a>':'<a href="#" id="ds-ad-cancel" style="font-size:12.5px;color:#6B7280">Cancel</a>')
+      +'</div></div>';
+    document.body.appendChild(wrap);
+    var skip=document.getElementById('ds-ad-skip');
+    if(skip) skip.onclick=function(e){ e.preventDefault(); try{sessionStorage.setItem('dsAddrSkip','1');}catch(_e){} closeModal(); };
+    var can=document.getElementById('ds-ad-cancel');
+    if(can) can.onclick=function(e){ e.preventDefault(); closeModal(); };
+    document.getElementById('ds-ad-go').onclick=submit;
+  }
+  function readForm(){
+    function v(id){ var e2=document.getElementById(id); return e2?String(e2.value||'').trim():''; }
+    return { line1:v('ds-ad-l1'), line2:v('ds-ad-l2'), city:v('ds-ad-city'), state:v('ds-ad-state'), zip:v('ds-ad-zip') };
+  }
+  function save(addr, how){
+    var upd={};
+    if(MODE==='bill'){ upd.billing_address=addr; }
+    else { upd.shipping_address=addr; upd.shipping_verified=how||null; upd.shipping_verified_at=new Date().toISOString(); }
+    return sb().from('profiles').update(upd).eq('id',ME.id).then(function(r){
+      if(r.error) throw r.error;
+      PROF=Object.assign({},PROF,upd);
+      closeModal(); renderCards();
+    });
+  }
+  function submit(){
+    var msg=document.getElementById('ds-ad-msg');
+    var a=readForm();
+    if(!a.line1||!a.city||!a.state){ msg.textContent='Street, city and state are required.'; return; }
+    var btn=document.getElementById('ds-ad-go'); btn.disabled=true; btn.textContent=(MODE==='bill'?'Saving...':'Verifying...');
+    var done=function(){ var b=document.getElementById('ds-ad-go'); if(b){ b.disabled=false; b.textContent=(MODE==='bill'?'Save billing address':'Verify address'); } };
+    if(MODE==='bill'){ save(a).then(done).catch(function(e){ done(); if(msg) msg.textContent='Could not save: '+(e.message||e); }); return; }
+    sb().auth.getSession().then(function(g){
+      var tok=g.data.session.access_token;
+      return fetch(FN,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(a)}).then(function(r){ return r.json(); });
+    }).then(function(j){
+      if(!j||!j.ok) throw new Error((j&&j.error)||'verify_failed');
+      if(j.verdict==='match') return save(j.suggested||a,'google');
+      showSuggestion(a,j);
+    }).catch(function(){
+      showSuggestion(a,{verdict:'unconfirmed',suggested:null,note:'Address check is temporarily unavailable.'});
+    }).then(done);
+  }
+  function showSuggestion(entered, j){
+    var box=document.getElementById('ds-ad-sug'); if(!box) return;
+    var sug=j.suggested, html='';
+    if(j.verdict==='corrected' && sug){
+      html='<div style="font-weight:700;margin-bottom:6px">We found a standardized version of your address</div>'
+        +'<div style="margin-bottom:4px"><span style="color:#6B7280">Suggested:</span> '+esc(fmt(sug))+'</div>'
+        +'<div style="margin-bottom:10px"><span style="color:#6B7280">You typed:</span> '+esc(fmt(entered))+'</div>'
+        +'<button id="ds-ad-use" class="btn" style="padding:8px 14px">Use suggested address</button>'
+        +'<div style="margin-top:10px;font-size:12.5px"><label style="display:flex;gap:7px;align-items:flex-start"><input type="checkbox" id="ds-ad-ok" style="margin-top:2px" /><span>I confirm the address I typed is correct and deliverable as written.</span></label>'
+        +'<button id="ds-ad-keep" disabled style="padding:7px 12px;margin-top:8px;opacity:.5;border:1px solid #C9CDD6;background:#fff;border-radius:8px;cursor:pointer">Keep my version</button></div>';
+    } else {
+      html='<div style="font-weight:700;margin-bottom:6px">We could not fully confirm this address</div>'
+        +(j.note?('<div style="margin-bottom:8px;color:#6B7280">'+esc(j.note)+'</div>'):'')
+        +'<div style="margin-bottom:10px"><span style="color:#6B7280">You typed:</span> '+esc(fmt(entered))+'</div>'
+        +'<label style="display:flex;gap:7px;align-items:flex-start;font-size:12.5px"><input type="checkbox" id="ds-ad-ok" style="margin-top:2px" /><span>I confirm the address I typed is correct and deliverable as written.</span></label>'
+        +'<button id="ds-ad-keep" disabled style="padding:8px 14px;margin-top:8px;opacity:.5;border:1px solid #C9CDD6;background:#fff;border-radius:8px;cursor:pointer">Save my address</button>';
+    }
+    box.innerHTML=html; box.style.display='block';
+    var use=document.getElementById('ds-ad-use');
+    if(use) use.onclick=function(){ save(Object.assign({},sug),'google').catch(function(e){ var m=document.getElementById('ds-ad-msg'); if(m) m.textContent='Could not save: '+(e.message||e); }); };
+    var cb=document.getElementById('ds-ad-ok'), keep=document.getElementById('ds-ad-keep');
+    if(cb&&keep){
+      cb.onchange=function(){ keep.disabled=!cb.checked; keep.style.opacity=cb.checked?'1':'.5'; };
+      keep.onclick=function(){ if(cb.checked) save(entered,'manual').catch(function(e){ var m=document.getElementById('ds-ad-msg'); if(m) m.textContent='Could not save: '+(e.message||e); }); };
+    }
+  }
+
+  function cardHtml(){
+    var shipA=PROF&&PROF.shipping_address, billA=PROF&&PROF.billing_address;
+    var badge = PROF&&PROF.shipping_verified==='google' ? '<span style="font-size:11px;background:#E8F6EC;color:#1D7A38;border-radius:20px;padding:2px 9px;margin-left:8px">Verified</span>'
+      : (PROF&&PROF.shipping_verified==='manual' ? '<span style="font-size:11px;background:#FFF3E0;color:#9A6A00;border-radius:20px;padding:2px 9px;margin-left:8px">Confirmed by you</span>' : '');
+    return '<div style="display:grid;gap:12px">'
+      +'<div><div style="font-weight:700;font-size:13.5px">Shipping address'+badge+'</div>'
+      +'<div style="font-size:13px;color:#6B7280;margin:3px 0 6px">'+(shipA?esc(fmt(shipA)):'Not on file yet')+'</div>'
+      +'<button class="btn secondary" id="ds-addr-edit-ship" style="padding:6px 12px;font-size:12.5px">'+(shipA?'Edit':'Add')+'</button></div>'
+      +'<div><div style="font-weight:700;font-size:13.5px">Billing address</div>'
+      +'<div style="font-size:13px;color:#6B7280;margin:3px 0 6px">'+(billA?esc(fmt(billA)):'Not on file yet')+'</div>'
+      +'<button class="btn secondary" id="ds-addr-edit-bill" style="padding:6px 12px;font-size:12.5px">'+(billA?'Edit':'Add')+'</button></div>'
+      +'</div>';
+  }
+  function wireCard(){
+    var a=document.getElementById('ds-addr-edit-ship');
+    if(a) a.onclick=function(){ openModal('ship', false, PROF&&PROF.shipping_address||{}); };
+    var b=document.getElementById('ds-addr-edit-bill');
+    if(b) b.onclick=function(){ openModal('bill', false, PROF&&PROF.billing_address||{}); };
+  }
+  function renderCards(){
+    var host=document.getElementById('ds-addr-card-body');
+    if(host){ host.innerHTML=cardHtml(); wireCard(); }
+  }
+  function ensureMemberCard(){
+    if(!ME||!PROF) return;
+    var role=PROF.role||'client';
+    if(role==='admin'||role==='team') return;
+    var sec=document.getElementById('osmembership');
+    if(!sec||!sec.classList.contains('show')) return;
+    if(document.getElementById('ds-addr-card')) return;
+    var card=document.createElement('div'); card.className='card'; card.id='ds-addr-card';
+    card.style.cssText='padding:16px;margin-top:12px';
+    card.innerHTML='<strong>Addresses</strong><div id="ds-addr-card-body" style="margin-top:10px"></div>';
+    var inner=sec.querySelector('.card');
+    if(inner&&inner.parentElement) inner.parentElement.appendChild(card); else sec.appendChild(card);
+    renderCards();
+  }
+
+  var ADM_LAST='';
+  function ensureAdminCard(){
+    var cid=window.curClient;
+    var sec=document.getElementById('client');
+    if(!cid||!sec||!sec.classList.contains('show')){ ADM_LAST=''; var old=document.getElementById('ds-addr-admin'); if(old) old.remove(); return; }
+    if(!PROF||['admin','team'].indexOf(PROF.role)<0) return;
+    if(ADM_LAST===cid && document.getElementById('ds-addr-admin')) return;
+    var anchor=document.getElementById('ds-ev-card')||document.getElementById('ds-al-card')||document.getElementById('clientInner');
+    if(!anchor) return;
+    ADM_LAST=cid;
+    sb().from('profiles').select('shipping_address,billing_address,shipping_verified').eq('id',cid).maybeSingle().then(function(r){
+      var d=r&&r.data||{};
+      var old2=document.getElementById('ds-addr-admin'); if(old2) old2.remove();
+      var card=document.createElement('div'); card.className='card'; card.id='ds-addr-admin'; card.style.cssText='padding:14px;margin-top:12px';
+      card.innerHTML='<strong>Addresses</strong>'
+        +'<div style="font-size:13px;margin-top:8px"><span style="color:#6B7280">Shipping:</span> '+(d.shipping_address?esc(fmt(d.shipping_address)):'-')
+        +(d.shipping_verified==='google'?' <span style="color:#1D7A38">(verified)</span>':(d.shipping_verified==='manual'?' <span style="color:#9A6A00">(client-confirmed)</span>':''))+'</div>'
+        +'<div style="font-size:13px;margin-top:4px"><span style="color:#6B7280">Billing:</span> '+(d.billing_address?esc(fmt(d.billing_address)):'-')+'</div>';
+      if(anchor.id==='clientInner') anchor.appendChild(card);
+      else anchor.parentElement.insertBefore(card, anchor);
+    });
+  }
+
+  function maybeOnboard(){
+    if(!ME||!PROF) return;
+    if(PROF.role==='admin'||PROF.role==='team') return;
+    if(String(PROF.status||'')!=='active') return;
+    if(PROF.shipping_address) return;
+    try{ if(sessionStorage.getItem('dsAddrSkip')) return; }catch(e){}
+    if(document.getElementById('ds-addr-modal')) return;
+    if(document.getElementById('ds-pb-root')) return;
+    sb().from('reorders').select('ship_line1,ship_line2,ship_city,ship_state,ship_zip').eq('client_id',ME.id).order('created_at',{ascending:false}).limit(1).then(function(r){
+      var d=r.data&&r.data[0], pre={};
+      if(d&&d.ship_line1) pre={line1:d.ship_line1,line2:d.ship_line2,city:d.ship_city,state:d.ship_state,zip:d.ship_zip};
+      openModal('ship', true, pre);
+    }).catch(function(){ openModal('ship', true, {}); });
+  }
+
+  var tries=0;
+  function boot(){
+    var s=sb();
+    if(!s){ if(tries++<40) setTimeout(boot,700); return; }
+    s.auth.getSession().then(function(g){
+      var u=g.data.session&&g.data.session.user;
+      if(!u){ if(tries++<40) setTimeout(boot,1800); return; }
+      ME=u;
+      return s.from('profiles').select('role,status,shipping_address,billing_address,shipping_verified').eq('id',u.id).maybeSingle().then(function(r){
+        PROF=r.data||{};
+        maybeOnboard();
+        setInterval(function(){ ensureMemberCard(); try{ensureAdminCard();}catch(e){} }, 1200);
+      });
+    }).catch(function(){ if(tries++<40) setTimeout(boot,1800); });
+  }
+  boot();
+})();
