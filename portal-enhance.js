@@ -4375,3 +4375,62 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   setInterval(wire,1500);
   try{ new MutationObserver(function(){ Array.prototype.forEach.call((document.getElementById('cm_videos_list')||{children:[]}).children,function(r){ r.__dsVp=0; }); wire(); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 56) __dsPendingBlur - 'Your Access is Pending' gate. When the app's
+ *     pending-approval panel is active, show a blurred portal preview
+ *     behind a dark overlay with a centered popup (igpdf-style gate).
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsPendingBlur) return; window.__dsPendingBlur=true;
+  function pendingActive(){
+    var p=document.getElementById('apPending');
+    return p && p.offsetParent!==null;
+  }
+  function email(){
+    var e=document.getElementById('pendingEmail');
+    return (e&&e.textContent.trim())||'';
+  }
+  function skeleton(){
+    var cards='';
+    for(var i=0;i<6;i++){ cards+='<div style="background:#fff;border-radius:14px;height:'+(120+((i*37)%80))+'px;box-shadow:0 8px 24px rgba(20,40,90,.06)"></div>'; }
+    return '<div style="display:flex;height:100%;background:#F7F8FB">'
+      +'<div style="width:230px;background:#fff;border-right:1px solid #E7EAF1;padding:20px 14px">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:26px"><div style="width:38px;height:38px;border-radius:11px;background:radial-gradient(circle at 35% 30%,#F8C861,#EBA32C)"></div><div style="height:12px;width:110px;border-radius:6px;background:#E7EAF1"></div></div>'
+      +Array.from({length:8}).map(function(_,i){return '<div style="height:12px;border-radius:6px;background:#EDF0F6;margin:16px 6px;width:'+(60+((i*23)%35))+'%"></div>';}).join('')
+      +'</div>'
+      +'<div style="flex:1;padding:26px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-content:start">'
+      +'<div style="grid-column:1/-1;height:64px;background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(20,40,90,.06)"></div>'
+      +cards+'</div></div>';
+  }
+  function mount(){
+    if(document.getElementById('ds-pb-root')) return;
+    var root=document.createElement('div'); root.id='ds-pb-root';
+    root.style.cssText='position:fixed;inset:0;z-index:99990;overflow:hidden';
+    var em=email();
+    root.innerHTML=
+      '<div style="position:absolute;inset:-14px;filter:blur(9px) saturate(.92);pointer-events:none">'+skeleton()+'</div>'
+      +'<div style="position:absolute;inset:0;background:rgba(10,17,33,.55)"></div>'
+      +'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px">'
+      +'<div style="background:#fff;border-radius:18px;max-width:440px;width:100%;padding:34px 30px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.35)">'
+      +'<div style="width:56px;height:56px;border-radius:16px;margin:0 auto 16px;background:radial-gradient(circle at 35% 30%,#F8C861,#EBA32C);display:flex;align-items:center;justify-content:center;font-size:26px">\uD83D\uDD12</div>'
+      +'<div style="font-size:11px;letter-spacing:2.2px;font-weight:700;color:#B98A22;text-transform:uppercase;margin-bottom:8px">Dividend Shift \u2014 Client Portal</div>'
+      +'<h2 style="margin:0 0 10px;font-size:24px;line-height:1.2;color:#14161D">Your Access is Pending</h2>'
+      +'<p style="margin:0 0 6px;font-size:14px;line-height:1.55;color:#5C6577">Your account has been created and is in review by our team. You\u2019ll receive an email the moment your access is approved.</p>'
+      +(em?('<p style="margin:0 0 18px;font-size:13px;color:#9AA3B4">'+em.replace(/</g,'&lt;')+'</p>'):'<div style="height:12px"></div>')
+      +'<button id="ds-pb-check" style="width:100%;padding:13px;border:0;border-radius:11px;background:linear-gradient(135deg,#F2B33D,#EBA32C);color:#1d1503;font-weight:700;font-size:15px;cursor:pointer">Check approval status</button>'
+      +'<div style="margin-top:14px"><a href="#" id="ds-pb-out" style="font-size:12.5px;color:#9AA3B4">Sign out</a></div>'
+      +'</div></div>';
+    document.body.appendChild(root);
+    document.getElementById('ds-pb-check').onclick=function(){ this.textContent='Checking\u2026'; location.reload(); };
+    document.getElementById('ds-pb-out').onclick=function(e){ e.preventDefault(); try{ window.__dsSB.auth.signOut().then(function(){ location.reload(); }); }catch(_e){ location.reload(); } };
+  }
+  function tick(){
+    var r=document.getElementById('ds-pb-root');
+    if(pendingActive()){ mount(); }
+    else if(r){ r.remove(); }
+  }
+  setInterval(tick,900); tick();
+})();
