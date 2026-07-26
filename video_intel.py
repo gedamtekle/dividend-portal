@@ -10,7 +10,7 @@ video that has an English caption:
      (video_transcripts) for AI scanning + admin title approval.
 Titles are NEVER changed here - admin approves suggestions in the portal.
 """
-import os, json, re, urllib.request
+import os, json, re, time, urllib.request
 
 def get(k, d=""):
     v = os.environ.get(k)
@@ -133,6 +133,7 @@ def main():
         sb_req("/video_transcripts", "POST", row, prefer="resolution=merge-duplicates")
         done += 1
         print(f"  processed: {guid}")
+        time.sleep(65)  # stay under Groq free-tier per-minute limits on batch runs
     print(f"video_intel: done, {done} processed")
 
 if __name__ == "__main__":
