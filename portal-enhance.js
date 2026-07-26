@@ -4752,3 +4752,20 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(ensure, 1500);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ *  61) __dsCurClient - keep window.curClient synced with #/client/{id}
+ *      so the chronology + evidence cards can find the open client.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsCurClient) return; window.__dsCurClient=true;
+  function sync(){
+    var m=(location.hash||'').match(/#\/client\/([0-9a-f-]{36})/i);
+    window.curClient = m ? m[1] : null;
+  }
+  sync();
+  window.addEventListener('hashchange', sync);
+  setInterval(sync, 800);
+})();
