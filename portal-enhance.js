@@ -4512,3 +4512,135 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(wrap, 900); wrap();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 58) __dsPartner - spouse/business-partner account linking.
+ *     - Members transparently operate AS the primary account: queries
+ *       on shared tables have client_id rewritten to the primary's id
+ *       (both supabase clients are wrapped), matching the DB-side RLS
+ *       + triggers + pooled credits.
+ *     - Membership screen: invite ONE partner by email (free, admin
+ *       approval via the normal access queue), see status, remove.
+ *     - Admin access queue rows get a 'Partner of ...' tag.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsPartner) return; window.__dsPartner=true;
+  var SHARED={merchant_applications:1,search_history:1,client_tasks:1,milestones:1,client_stages:1,residual_scenarios:1,intake_submissions:1,client_events:1,reorders:1,os_subscriptions:1,program_access:1,ai_credits:1,ai_credit_ledger:1,tickets:1};
+  var UID=null, EFF=null;
+  function sb(){ return window.__dsSB; }
+  var esc=(window.__dsOS&&window.__dsOS.esc)||function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];}); };
+  async function resolve(){
+    try{
+      var s=sb(); if(!s) return;
+      var r=await s.auth.getSession(); var sess=r&&r.data&&r.data.session; if(!sess){ UID=EFF=null; return; }
+      UID=sess.user.id;
+      var q=await s.rpc('my_effective_id');
+      if(q && !q.error && q.data) EFF=q.data;
+    }catch(e){}
+  }
+  function swap(val){ return (EFF && UID && EFF!==UID && val===UID) ? EFF : val; }
+  function fixPayload(p){
+    if(!EFF || EFF===UID) return p;
+    function one(o){ if(o && typeof o==='object' && o.client_id===UID) o.client_id=EFF; return o; }
+    return Array.isArray(p)? p.map(one) : one(p);
+  }
+  function patchFilters(fb){
+    if(!fb || fb.__dsPw) return fb; fb.__dsPw=1;
+    var oe=fb.eq;
+    if(oe) fb.eq=function(col,val){ if(col==='client_id') val=swap(val); return oe.call(this,col,val); };
+    return fb;
+  }
+  function wrapClient(c){
+    if(!c || !c.from || c.__dsPw) return; c.__dsPw=1;
+    var of_=c.from.bind(c);
+    c.from=function(t){
+      var b=of_(t);
+      if(!SHARED[t]) return b;
+      var os_=b.select&&b.select.bind(b), oi=b.insert&&b.insert.bind(b), ou=b.upsert&&b.upsert.bind(b), oup=b.update&&b.update.bind(b), od=b.delete&&b.delete.bind(b);
+      if(os_) b.select=function(){ return patchFilters(os_.apply(null,arguments)); };
+      if(oi) b.insert=function(p,o){ return oi(fixPayload(p),o); };
+      if(ou) b.upsert=function(p,o){ return patchFilters(ou(fixPayload(p),o)); };
+      if(oup) b.update=function(p,o){ return patchFilters(oup(fixPayload(p),o)); };
+      if(od) b.delete=function(o){ return patchFilters(od(o)); };
+      return b;
+    };
+  }
+  function wrapAll(){
+    wrapClient(window.__dsSB);
+    try{ var base=(0,eval)('typeof sb!=="undefined" ? sb : null'); wrapClient(base); }catch(e){}
+  }
+  resolve().then(wrapAll);
+  setInterval(function(){ resolve().then(wrapAll); }, 15000);
+  setInterval(wrapAll, 2000);
+
+  /* ---- Membership screen: partner card ---- */
+  async function renderCard(){
+    var secM=document.getElementById('osmembership'); if(!secM||!secM.classList.contains('show')) return;
+    if(!UID) return;
+    if(EFF && EFF!==UID) { var hostM=document.getElementById('ds-partner-card'); if(hostM){hostM.innerHTML='<div class="card" style="padding:14px"><strong>Linked account</strong><div class="muted" style="font-size:13px;margin-top:4px">You\u2019re a linked partner on a primary membership \u2014 access, pipeline and AI credits are shared.</div></div>';} else { hostM=document.createElement('div'); hostM.id='ds-partner-card'; secM.appendChild(hostM); } return; }
+    var s=sb();
+    var q=await s.from('account_links').select('id,invited_email,member_id,status,relationship').eq('primary_id',UID).neq('status','revoked').maybeSingle();
+    var host=document.getElementById('ds-partner-card');
+    if(!host){ host=document.createElement('div'); host.id='ds-partner-card'; secM.appendChild(host); }
+    var link=q&&q.data;
+    var html='<div class="card" style="padding:14px;margin-top:14px"><div class="row" style="justify-content:space-between;align-items:center"><strong>Partner account</strong><span class="muted" style="font-size:12px">1 free seat \u00b7 shares everything</span></div>';
+    if(!link){
+      html+='<div class="muted" style="font-size:13px;margin:6px 0 10px">Add your spouse or business partner. They get their own login and share your program access, merchant pipeline and AI credits. Requires team approval.</div>'
+        +'<div class="row" style="gap:6px;flex-wrap:wrap"><input id="ds-pt-email" type="email" placeholder="partner@email.com" style="font-size:16px;padding:8px;flex:1;min-width:220px"><button class="btn" id="ds-pt-invite" style="padding:8px 16px">Invite partner</button></div>'
+        +'<div id="ds-pt-msg" class="muted" style="font-size:12px;margin-top:6px"></div>';
+    } else {
+      var stmap={invited:'Invited \u2014 waiting for them to sign up with this email', pending:'Signed up \u2014 waiting for team approval', approved:'Active \u2713 \u2014 sharing your membership'};
+      html+='<div style="font-size:14px;margin:8px 0 2px"><strong>'+esc(link.invited_email||'Linked member')+'</strong></div>'
+        +'<div class="muted" style="font-size:12.5px">'+ (stmap[link.status]||esc(link.status)) +'</div>'
+        +'<button class="btn ghost" id="ds-pt-remove" style="padding:5px 12px;margin-top:10px">Remove partner</button>'
+        +'<div id="ds-pt-msg" class="muted" style="font-size:12px;margin-top:6px"></div>';
+    }
+    html+='</div>';
+    if(host.__dsSig===html) return; host.__dsSig=html; host.innerHTML=html;
+    var inv=document.getElementById('ds-pt-invite');
+    if(inv) inv.onclick=async function(){
+      var em=(document.getElementById('ds-pt-email').value||'').trim().toLowerCase();
+      var msg=document.getElementById('ds-pt-msg');
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ msg.textContent='Enter a valid email.'; return; }
+      inv.disabled=true; inv.textContent='Inviting\u2026';
+      var r=await s.from('account_links').insert({primary_id:UID, invited_email:em, status:'invited'});
+      if(r.error){ msg.textContent = /duplicate|unique/i.test(r.error.message)?'You already have a partner seat in use.':('Error: '+r.error.message); inv.disabled=false; inv.textContent='Invite partner'; return; }
+      msg.textContent='Invited! Have them create an account at portal.dividendshift.com using exactly this email.';
+      host.__dsSig=null; setTimeout(renderCard,800);
+    };
+    var rm=document.getElementById('ds-pt-remove');
+    if(rm) rm.onclick=async function(){
+      if(!confirm('Remove your linked partner? They lose access immediately.')) return;
+      await s.from('account_links').update({status:'revoked'}).eq('id',link.id);
+      host.__dsSig=null; setTimeout(renderCard,500);
+    };
+  }
+  setInterval(renderCard, 1800);
+
+  /* ---- Admin queue: 'Partner of' tag ---- */
+  var TAGS=null;
+  async function loadTags(){
+    try{ var s=sb();
+      var q=await s.from('account_links').select('invited_email,status,primary_id').in('status',['invited','pending']);
+      if(q.error){ TAGS={}; return; }
+      TAGS={};
+      for(var i=0;i<(q.data||[]).length;i++){ var l=q.data[i];
+        var p=await s.from('profiles').select('full_name,email').eq('id',l.primary_id).maybeSingle();
+        if(l.invited_email) TAGS[l.invited_email.toLowerCase()]=(p.data&&(p.data.full_name||p.data.email))||'primary member';
+      }
+    }catch(e){ TAGS={}; }
+  }
+  function tagQueue(){
+    if(!TAGS) return;
+    var secA=document.getElementById('admin')||document.getElementById('adminHome'); if(!secA) return;
+    var els=document.querySelectorAll('.small.mut, .muted');
+    Array.prototype.forEach.call(els,function(el){
+      if(el.__dsPt) return;
+      var t=(el.textContent||'').trim().toLowerCase();
+      if(TAGS[t]){ el.__dsPt=1; var b=document.createElement('span'); b.style.cssText='background:#EAF0FF;color:#2257E6;border-radius:9px;padding:1px 8px;font-size:11px;margin-left:6px;font-weight:600'; b.textContent='Partner of '+TAGS[t]; el.appendChild(b); }
+    });
+  }
+  setInterval(function(){ if(TAGS===null) loadTags(); tagQueue(); }, 2500);
+})();
