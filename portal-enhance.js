@@ -4443,3 +4443,56 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   setInterval(function(){ check().then(tick); }, 5000);
   setInterval(tick, 500);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 57) __dsPhotoVerify - signup selfie must show a real person.
+ *     Wraps finishSignup: before creating the account, the captured
+ *     photo (avatarData) is checked by the photo-verify edge function
+ *     (Claude vision). Non-person photos block with a friendly message
+ *     and require a retake. Fails open if the verifier is unreachable.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsPhotoVerify) return; window.__dsPhotoVerify=true;
+  var CACHE={key:null, person:null};
+  function getPhoto(){ try{ return (0,eval)('typeof avatarData!=="undefined" ? avatarData : null'); }catch(e){ return null; } }
+  function note(msg, ok){
+    var card=document.querySelector('.authcard'); if(!card) return;
+    var el=document.getElementById('ds-pv-note');
+    if(!el){ el=document.createElement('div'); el.id='ds-pv-note'; el.style.cssText='margin:10px 0;padding:10px 12px;border-radius:10px;font-size:13.5px;line-height:1.4;display:none'; card.insertBefore(el, card.firstChild); }
+    el.style.display='block';
+    if(ok){ el.style.background='#e8f7ee'; el.style.color='#0a7a3d'; el.style.border='1px solid #b5e3c8'; }
+    else{ el.style.background='#fdecec'; el.style.color='#b42318'; el.style.border='1px solid #f5c2c0'; }
+    el.textContent=msg;
+  }
+  function hideNote(){ var el=document.getElementById('ds-pv-note'); if(el) el.style.display='none'; }
+  async function verify(dataUrl){
+    if(CACHE.key===dataUrl) return CACHE.person;
+    try{
+      var s=window.__dsSB;
+      var r=await fetch((s&&s.functionsUrl?s.functionsUrl:'https://dehttbxrkeqhsfkfpfwt.functions.supabase.co')+'/photo-verify',{method:'POST',headers:{'Content-Type':'application/json','apikey':s?s.supabaseKey:''},body:JSON.stringify({image:dataUrl})});
+      var j=await r.json();
+      if(!j || j.ok!==true) return true; // fail-open
+      CACHE.key=dataUrl; CACHE.person=!!j.person;
+      return CACHE.person;
+    }catch(e){ return true; }
+  }
+  function wrap(){
+    var orig=window.finishSignup;
+    if(typeof orig!=='function' || orig.__dsPv) return;
+    var w=async function(){
+      hideNote();
+      var photo=getPhoto();
+      if(photo && typeof photo==='string' && photo.indexOf('data:image')===0){
+        note('Checking your photo\u2026', true);
+        var okP=await verify(photo);
+        if(!okP){ note('We couldn\u2019t see a person in your photo. Please retake it with your face clearly visible \u2014 it helps our team verify your account.'); return; }
+        hideNote();
+      }
+      return orig.apply(this, arguments);
+    };
+    w.__dsPv=true; window.finishSignup=w;
+  }
+  setInterval(wrap, 900); wrap();
+})();
