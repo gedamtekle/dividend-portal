@@ -57,19 +57,27 @@ def vtt_to_text(vtt):
         out.append(t)
     return " ".join(out)
 
+GROQ_MODELS = ["llama-3.3-70b-versatile", "meta-llama/llama-4-scout-17b-16e-instruct",
+               "openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.1-8b-instant", "gemma2-9b-it"]
+
 def groq_json(system, user):
-    s, b = http("https://api.groq.com/openai/v1/chat/completions", "POST",
-                {"Authorization": f"Bearer {GROQ}"},
-                {"model": "llama-3.3-70b-versatile",
-                 "response_format": {"type": "json_object"},
-                 "messages": [{"role": "system", "content": system},
-                               {"role": "user", "content": user}]})
-    if s != 200:
-        return None
-    try:
-        return json.loads(json.loads(b)["choices"][0]["message"]["content"])
-    except Exception:
-        return None
+    for model in GROQ_MODELS:
+        payload = {"model": model,
+                   "messages": [{"role": "system", "content": system},
+                                 {"role": "user", "content": user}]}
+        s, b = http("https://api.groq.com/openai/v1/chat/completions", "POST",
+                    {"Authorization": f"Bearer {GROQ}"}, payload)
+        if s != 200:
+            print(f"    groq {model} -> {s}: {(b or b'')[:100]!r}")
+            continue
+        try:
+            txt = json.loads(b)["choices"][0]["message"]["content"]
+            m = re.search(r"\{.*\}", txt, re.S)
+            return json.loads(m.group(0)) if m else None
+        except Exception as e:
+            print(f"    groq {model} parse error: {e}")
+            continue
+    return None
 
 def sb_req(path, method="GET", data=None, prefer=None):
     h = {"apikey": SBKEY, "Authorization": f"Bearer {SBKEY}"}
