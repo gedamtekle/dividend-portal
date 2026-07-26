@@ -4314,3 +4314,64 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(ensure,1800); ensure();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 55) __dsVideoPreview - makes rows in the Content admin video list
+ *     (#cm_videos_list) clickable: opens a player modal (Bunny embed)
+ *     with the AI summary underneath. Non-invasive: matches rows to
+ *     video ids by title via bunny-upload action:list.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsVideoPreview) return; window.__dsVideoPreview=true;
+  var LIB='688516';
+  function sb(){ return window.__dsSB; }
+  var esc=(window.__dsOS&&window.__dsOS.esc)||function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];}); };
+  var MAP=null, fetching=false;
+  async function loadMap(){
+    if(fetching) return; fetching=true;
+    try{ var s=sb(); var r=await s.functions.invoke('bunny-upload',{body:{action:'list'}});
+      var items=(r.data&&r.data.items)||[]; MAP={};
+      items.forEach(function(v){ MAP[String(v.title||'').trim()]=v.id; });
+    }catch(e){ MAP=MAP||{}; }
+    fetching=false;
+  }
+  function modal(id,title){
+    var old=document.getElementById('ds-vp-overlay'); if(old) old.remove();
+    var ov=document.createElement('div'); ov.id='ds-vp-overlay';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(10,14,25,.78);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML='<div style="background:#fff;border-radius:16px;max-width:860px;width:100%;max-height:92vh;overflow:auto;padding:16px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px"><strong style="font-size:15px">'+esc(title)+'</strong><button id="ds-vp-close" class="btn ghost" style="padding:4px 12px">Close</button></div>'
+      +'<div style="position:relative;padding-top:56.25%;border-radius:12px;overflow:hidden;background:#000"><iframe src="https://iframe.mediadelivery.net/embed/'+LIB+'/'+encodeURIComponent(id)+'?autoplay=true" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="autoplay;fullscreen" allowfullscreen></iframe></div>'
+      +'<div id="ds-vp-summary" class="muted" style="font-size:13px;margin-top:10px">Loading summary\u2026</div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+    document.getElementById('ds-vp-close').onclick=function(){ ov.remove(); };
+    (async function(){
+      try{ var s=sb(); var q=await s.from('video_transcripts').select('summary_md,suggested_title,title_status').eq('video_guid',id).maybeSingle();
+        var el=document.getElementById('ds-vp-summary'); if(!el) return;
+        if(q.data&&q.data.summary_md){ el.innerHTML='<strong style="color:var(--txt,#222)">Key takeaways</strong><br>'+q.data.summary_md.split(/\n/).filter(function(x){return x.trim();}).map(function(x){return esc(x.replace(/^[-*]\s*/,'\u2022 '));}).join('<br>'); }
+        else{ el.textContent='No AI summary yet \u2014 it will appear after the next processing run.'; }
+      }catch(e){}
+    })();
+  }
+  function wire(){
+    var list=document.getElementById('cm_videos_list'); if(!list||!list.children.length) return;
+    if(!MAP){ loadMap(); return; }
+    Array.prototype.forEach.call(list.children,function(row){
+      if(row.__dsVp) return; row.__dsVp=1;
+      row.style.cursor='pointer';
+      row.addEventListener('click',function(e){
+        if(e.target.closest('button')) return;
+        var t=(row.querySelector('strong, b, .small')||row).textContent.trim();
+        var full=row.textContent||'';
+        var id=null;
+        for(var k in MAP){ if(k && full.indexOf(k)>=0){ id=MAP[k]; t=k; break; } }
+        if(id) modal(id,t);
+      });
+    });
+  }
+  setInterval(wire,1500);
+  try{ new MutationObserver(function(){ Array.prototype.forEach.call((document.getElementById('cm_videos_list')||{children:[]}).children,function(r){ r.__dsVp=0; }); wire(); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
+})();
