@@ -4378,10 +4378,12 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
 
 
 /* ------------------------------------------------------------------ *
- * 56) __dsPendingBlur v3 - 'Your Access is Pending' gate.
- *     v3: mounts INSTANTLY on load for accounts previously seen as
- *     pending (localStorage memory) - no clickable gap - then confirms
- *     with the server and lifts the moment the account is approved.
+ * 56) __dsPendingBlur v4 - standalone 'Your Access is Pending' screen.
+ *     Non-active accounts see ONLY a clean blank screen with the
+ *     pending card - the portal is fully hidden (display:none), and
+ *     content tables are additionally locked server-side (RLS).
+ *     Mounts instantly via localStorage memory; lifts within ~5s of
+ *     approval. Staff never see it.
  * ------------------------------------------------------------------ */
 (function(){
   'use strict';
@@ -4391,6 +4393,13 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   function remembered(){ try{ return localStorage.getItem(KEY); }catch(e){ return null; } }
   function remember(em){ try{ localStorage.setItem(KEY, em||'1'); }catch(e){} }
   function forget(){ try{ localStorage.removeItem(KEY); }catch(e){} }
+  function css(on){
+    var el=document.getElementById('ds-pb-css');
+    if(on && !el){ el=document.createElement('style'); el.id='ds-pb-css';
+      el.textContent='body>*:not(#ds-pb-root):not(script):not(style){display:none !important} body{background:#F7F8FB !important}';
+      document.head.appendChild(el);
+    } else if(!on && el){ el.remove(); }
+  }
   async function check(){
     try{
       var s=window.__dsSB; if(!s) return;
@@ -4398,7 +4407,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       if(!sess){ STATE.pending=false; STATE.confirmed=true; forget(); return; }
       STATE.email=sess.user.email||'';
       var q=await s.from('profiles').select('status,role').eq('id',sess.user.id).maybeSingle();
-      if(!q||q.error) return; // keep current state on transient errors
+      if(!q||q.error) return;
       var st=String((q.data&&q.data.status)||'').toLowerCase();
       var role=String((q.data&&q.data.role)||'').toLowerCase();
       STATE.pending = (st==='pending'||st==='suspended') && role!=='admin' && role!=='team';
@@ -4407,31 +4416,29 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     }catch(e){}
   }
   function mount(){
+    css(true);
     if(document.getElementById('ds-pb-root')) return;
     var root=document.createElement('div'); root.id='ds-pb-root';
-    root.style.cssText='position:fixed;inset:0;z-index:2147483000';
-    var em=STATE.email||remembered()||'';
-    if(em==='1') em='';
+    root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#F7F8FB;display:flex;align-items:center;justify-content:center;padding:20px';
+    var em=STATE.email||remembered()||''; if(em==='1') em='';
     root.innerHTML=
-      '<div style="position:absolute;inset:0;background:rgba(12,18,34,.45);backdrop-filter:blur(10px) saturate(.9);-webkit-backdrop-filter:blur(10px) saturate(.9)"></div>'
-      +'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px">'
-      +'<div style="background:#fff;border-radius:18px;max-width:440px;width:100%;padding:34px 30px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.35)">'
+      '<div style="background:#fff;border-radius:18px;max-width:440px;width:100%;padding:36px 30px;text-align:center;box-shadow:0 18px 50px rgba(20,40,90,.10);border:1px solid #EDF0F6">'
       +'<div style="width:56px;height:56px;border-radius:16px;margin:0 auto 16px;background:radial-gradient(circle at 35% 30%,#F8C861,#EBA32C);display:flex;align-items:center;justify-content:center;font-size:26px">\uD83D\uDD12</div>'
       +'<div style="font-size:11px;letter-spacing:2.2px;font-weight:700;color:#B98A22;text-transform:uppercase;margin-bottom:8px">Dividend Shift \u2014 Client Portal</div>'
-      +'<h2 style="margin:0 0 10px;font-size:24px;line-height:1.2;color:#14161D">Your Access is Pending</h2>'
+      +'<h2 style="margin:0 0 10px;font-size:24px;line-height:1.2;color:#14161D;font-family:Poppins,Inter,sans-serif">Your Access is Pending</h2>'
       +'<p style="margin:0 0 6px;font-size:14px;line-height:1.55;color:#5C6577">Your account has been created and is in review by our team. You\u2019ll receive an email the moment your access is approved.</p>'
       +(em?('<p style="margin:0 0 18px;font-size:13px;color:#9AA3B4">'+em.replace(/</g,'&lt;')+'</p>'):'<div style="height:12px"></div>')
       +'<button id="ds-pb-check" style="width:100%;padding:13px;border:0;border-radius:11px;background:linear-gradient(135deg,#F2B33D,#EBA32C);color:#1d1503;font-weight:700;font-size:15px;cursor:pointer">Check approval status</button>'
       +'<div style="margin-top:14px"><a href="#" id="ds-pb-out" style="font-size:12.5px;color:#9AA3B4">Sign out</a></div>'
-      +'</div></div>';
+      +'</div>';
     document.body.appendChild(root);
     document.getElementById('ds-pb-check').onclick=function(){ this.textContent='Checking\u2026'; location.reload(); };
     document.getElementById('ds-pb-out').onclick=function(e){ e.preventDefault(); forget(); try{ window.__dsSB.auth.signOut().then(function(){ location.reload(); }); }catch(_e){ location.reload(); } };
   }
-  function unmount(){ var r=document.getElementById('ds-pb-root'); if(r) r.remove(); }
+  function unmount(){ css(false); var r=document.getElementById('ds-pb-root'); if(r) r.remove(); }
   function tick(){
     if(STATE.confirmed){ if(STATE.pending) mount(); else unmount(); }
-    else if(remembered()) mount(); // instant gate while server confirms
+    else if(remembered()) mount();
   }
   function boot(){ if(document.body){ tick(); } else { setTimeout(boot,30); return; } check().then(tick); }
   boot();
