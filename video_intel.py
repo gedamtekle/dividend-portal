@@ -25,6 +25,7 @@ SBKEY = get("SUPABASE_SERVICE_ROLE_KEY")
 
 def http(url, method="GET", headers=None, data=None, timeout=60):
     req = urllib.request.Request(url, method=method)
+    req.add_header("User-Agent", "Mozilla/5.0 (compatible; ds-video-intel/1.0)")
     for k, v in (headers or {}).items():
         req.add_header(k, v)
     body = None
@@ -125,7 +126,7 @@ def main():
         # 2) upsert into Supabase (never clobber an accepted title)
         row = {"video_guid": guid, "current_title": title, "summary_md": summary,
                "transcript": text, "duration_seconds": v.get("length"),
-               "updated_at": "now()"}
+               "updated_at": __import__("datetime").datetime.utcnow().isoformat() + "Z"}
         if not rows or rows[0].get("title_status") != "accepted":
             row["suggested_title"] = sug
             row["title_status"] = "suggested"
