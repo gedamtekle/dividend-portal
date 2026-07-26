@@ -4644,3 +4644,67 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(function(){ if(TAGS===null) loadTags(); tagQueue(); }, 2500);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ * 59) __dsAccessLog - dispute-evidence trail.
+ *     - Logs every login session (once per browser session) via the
+ *       log-access edge fn: server-recorded IP + user agent + device.
+ *     - Admin: 'Access log' card on the client profile screen showing
+ *       the full chronology (created -> approved -> first login -> ...).
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsAccessLog) return; window.__dsAccessLog=true;
+  function sb(){ return window.__dsSB; }
+  var esc=(window.__dsOS&&window.__dsOS.esc)||function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];}); };
+  /* ---- log this session's access ---- */
+  async function logSession(){
+    try{
+      if(sessionStorage.getItem('dsAccessLogged')) return;
+      var s=sb(); if(!s) return;
+      var r=await s.auth.getSession(); if(!(r&&r.data&&r.data.session)) return;
+      sessionStorage.setItem('dsAccessLogged','1');
+      await s.functions.invoke('log-access',{body:{
+        tz: (Intl.DateTimeFormat().resolvedOptions()||{}).timeZone||'',
+        language: navigator.language||'',
+        platform: navigator.platform||'',
+        screen: (screen&&(screen.width+'x'+screen.height))||'',
+        touch: ('ontouchstart' in window)?'yes':'no',
+        referrer: document.referrer||''
+      }});
+    }catch(e){ try{ sessionStorage.removeItem('dsAccessLogged'); }catch(_e){} }
+  }
+  setInterval(logSession, 4000); logSession();
+  /* ---- admin: access log card on client profile ---- */
+  var lastGuid=null;
+  async function renderLog(){
+    var secC=document.getElementById('client'); if(!secC||!secC.classList.contains('show')) return;
+    var cid=window.curClient; if(!cid) return;
+    var host=document.getElementById('ds-al-card');
+    if(!host){ host=document.createElement('div'); host.id='ds-al-card'; secC.appendChild(host); }
+    if(lastGuid===cid && host.innerHTML) return;
+    lastGuid=cid;
+    var s=sb();
+    var q=await s.rpc('client_timeline',{p_client:cid});
+    if(q.error){ host.innerHTML=''; return; }
+    var rows=q.data||[];
+    var html='<div class="card" style="padding:14px;margin-top:14px"><div class="row" style="justify-content:space-between;align-items:center"><strong>Client chronology</strong><span class="muted" style="font-size:12px">server-recorded \u00b7 dispute evidence</span></div>';
+    if(!rows.length){ html+='<div class="muted" style="font-size:13px;padding:8px 0">No events recorded yet.</div>'; }
+    else{
+      html+='<div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;margin-top:8px"><tr style="text-align:left;color:#8a93a6"><th style="padding:4px 8px">When (UTC)</th><th style="padding:4px 8px">Event</th><th style="padding:4px 8px">Detail</th><th style="padding:4px 8px">IP</th></tr>';
+      rows.forEach(function(x){
+        var bold=/FIRST LOGIN|Order placed|subscription/.test(x.event);
+        html+='<tr style="border-top:1px solid #EDF0F6'+(x.event==='FIRST LOGIN'?';background:#FFF8E8':'')+'">'
+          +'<td style="padding:5px 8px;white-space:nowrap">'+esc(new Date(x.at).toISOString().replace('T',' ').slice(0,19))+'</td>'
+          +'<td style="padding:5px 8px;'+(bold?'font-weight:700':'')+'">'+esc(x.event)+'</td>'
+          +'<td style="padding:5px 8px;max-width:340px">'+esc(x.detail||'\u2014')+'</td>'
+          +'<td style="padding:5px 8px;font-family:monospace">'+esc(x.ip||'\u2014')+'</td></tr>';
+      });
+      html+='</table></div>';
+    }
+    html+='</div>';
+        host.innerHTML=html;
+  }
+  setInterval(function(){ renderLog(); }, 2000);
+})();
