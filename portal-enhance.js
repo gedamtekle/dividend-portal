@@ -5394,8 +5394,8 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     box.id='ds-eotp-box';
     box.style.cssText='margin-top:12px;border:1px solid #E2E5EC;border-radius:12px;padding:14px;background:#FAFBFF';
     box.innerHTML='<div style="font-weight:700;font-size:13.5px">Enter your sign-in code</div>'
-      +'<div style="font-size:12px;color:#6B7280;margin:3px 0 8px">We emailed a 6-digit code to '+email.replace(/</g,'&lt;')+'. It expires in about an hour.</div>'
-      +'<div style="display:flex;gap:8px"><input id="ds-eotp-code" inputmode="numeric" maxlength="6" placeholder="123456" style="flex:1;padding:10px;border:1px solid #E2E5EC;border-radius:9px;font-size:18px;letter-spacing:6px;text-align:center" />'
+      +'<div style="font-size:12px;color:#6B7280;margin:3px 0 8px">We emailed a one-time code to '+email.replace(/</g,'&lt;')+'. It expires in about an hour.</div>'
+      +'<div style="display:flex;gap:8px"><input id="ds-eotp-code" inputmode="numeric" maxlength="10" placeholder="123456" style="flex:1;padding:10px;border:1px solid #E2E5EC;border-radius:9px;font-size:18px;letter-spacing:6px;text-align:center" />'
       +'<button class="btn" id="ds-eotp-go" style="padding:10px 16px">Verify</button></div>'
       +'<div id="ds-eotp-msg" style="font-size:12px;color:#B4232A;margin-top:6px;min-height:14px"></div>';
     card.appendChild(box);
@@ -5404,7 +5404,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     var go=function(){
       var code=(inp.value||'').replace(/[^\d]/g,'');
       var msg=box.querySelector('#ds-eotp-msg');
-      if(code.length<6){ msg.textContent='Enter the 6-digit code from the email.'; return; }
+      if(code.length<6){ msg.textContent='Enter the code from the email.'; return; }
       var b=box.querySelector('#ds-eotp-go'); b.disabled=true; b.textContent='Verifying\u2026';
       sb().auth.verifyOtp({ email:email, token:code, type:'email' }).then(function(r){
         if(r.error){ msg.textContent=/expired|invalid/i.test(r.error.message)?'That code is invalid or expired \u2014 request a new one.':('Could not verify: '+r.error.message); b.disabled=false; b.textContent='Verify'; return; }
