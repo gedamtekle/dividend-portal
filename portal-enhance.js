@@ -5018,7 +5018,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
   function links(){
     var code=(PROF&&PROF.bitflow_referral_id?String(PROF.bitflow_referral_id).trim():'')||HOUSE;
-    var name=(PROF&&PROF.full_name)||'';
+    var name=(((PROF&&PROF.first_name)||'')+' '+((PROF&&PROF.last_name)||'')).trim()||((PROF&&PROF.full_name)||'');
     var share='https://portal.dividendshift.com/apply?ref='+encodeURIComponent(code)+(name?('&rep='+encodeURIComponent(name)):'');
     var internal='https://portal.dividendshift.com/#/merchant';
     return {code:code, share:share, internal:internal, house:code===HOUSE};
@@ -5062,11 +5062,375 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       var u=g.data.session&&g.data.session.user;
       if(!u){ if(tries++<40) setTimeout(boot,1800); return; }
       ME=u;
-      return s.from('profiles').select('role,full_name,bitflow_referral_id').eq('id',u.id).maybeSingle().then(function(r){
+      return s.from('profiles').select('role,full_name,first_name,last_name,bitflow_referral_id').eq('id',u.id).maybeSingle().then(function(r){
         PROF=r.data||{};
         setInterval(ensure, 1200); ensure();
       });
     }).catch(function(){ if(tries++<40) setTimeout(boot,1800); });
   }
   boot();
+})();
+
+
+/* ------------------------------------------------------------------ *
+ *  65) __dsCommunity - Skool-style Community screen.
+ *      Admin-only posts (rich text, images, Bunny video, polls, pin).
+ *      Clients: like posts, vote in polls, comment (comments require
+ *      admin approval before anyone else sees them).
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsCommunity) return; window.__dsCommunity=true;
+  var BUNNY_LIB='688516';
+  var ME=null, PROF=null, ADMIN=false;
+  function sb(){ return window.__dsSB; }
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function when(s){ try{ var d=new Date(s), diff=(Date.now()-d)/1000; if(diff<3600) return Math.max(1,Math.round(diff/60))+'m ago'; if(diff<86400) return Math.round(diff/3600)+'h ago'; if(diff<604800) return Math.round(diff/86400)+'d ago'; return d.toLocaleDateString(); }catch(e){ return ''; } }
+  var css=document.createElement('style');
+  css.textContent='.screen.active{display:block}'
+    +'#community .cm-post{background:#fff;border:1px solid #E6E8EF;border-radius:14px;padding:18px;margin-bottom:14px}'
+    +'#community .cm-pin{font-size:11px;background:#FFF3D6;color:#8a6510;border-radius:20px;padding:2px 10px;font-weight:700;margin-left:8px}'
+    +'#community .cm-body{font-size:14px;line-height:1.6;margin-top:8px;overflow-wrap:break-word}'
+    +'#community .cm-body ul{padding-left:22px}'
+    +'#community .cm-body img{max-width:100%;border-radius:10px}'
+    +'#community .cm-imgs img{max-width:100%;border-radius:10px;margin-top:10px;display:block}'
+    +'#community .cm-vid{position:relative;padding-top:56.25%;margin-top:10px;border-radius:10px;overflow:hidden}'
+    +'#community .cm-vid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}'
+    +'#community .cm-like{cursor:pointer;user-select:none;font-size:13px;padding:6px 12px;border-radius:20px;border:1px solid #E2E5EC;background:#fff;display:inline-flex;gap:6px;align-items:center}'
+    +'#community .cm-like.on{background:#FFF0F0;border-color:#F3B6B6;color:#B4232A}'
+    +'#community .cm-poll-opt{display:block;width:100%;text-align:left;margin-top:8px;padding:10px 12px;border:1px solid #E2E5EC;border-radius:10px;background:#fff;cursor:pointer;position:relative;overflow:hidden;font-size:13.5px}'
+    +'#community .cm-poll-opt .bar{position:absolute;inset:0;background:#F5EDDA;z-index:0}'
+    +'#community .cm-poll-opt span{position:relative;z-index:1}'
+    +'#community .cm-cmt{border-top:1px solid #F0F1F5;padding:10px 0 0;margin-top:10px;font-size:13px}'
+    +'#community .cm-tb button{border:1px solid #E2E5EC;background:#fff;border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12.5px;margin-right:6px}'
+    +'#community [contenteditable]{border:1px solid #E2E5EC;border-radius:10px;padding:12px;min-height:120px;font-size:14px;background:#fff;outline:none}'
+    +'#community input[type=text],#community textarea{width:100%;padding:9px 11px;border:1px solid #E2E5EC;border-radius:9px;font-size:13.5px;box-sizing:border-box;background:#fff}';
+  document.head.appendChild(css);
+
+  function activate(nav, sec){
+    [].forEach.call(document.querySelectorAll('.screen'), function(s){ s.classList.remove('active'); s.classList.remove('show'); });
+    [].forEach.call(document.querySelectorAll('.nav'), function(n){ n.classList.remove('active'); });
+    sec.classList.add('active'); nav.classList.add('active');
+    try{ window.scrollTo(0,0); }catch(e){}
+    load();
+  }
+  var ICON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-4px;margin-right:9px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+
+  function mount(){
+    var settingsNav=document.querySelector('.nav[data-screen="settings"]');
+    if(!settingsNav) return false;
+    if(document.querySelector('.nav[data-screen="community"]')) return true;
+    var side=settingsNav.parentElement;
+    var screenParent=(document.querySelector('section.screen')||{}).parentElement;
+    if(!side||!screenParent) return false;
+    var nav=document.createElement('div');
+    nav.className='nav'; nav.setAttribute('data-screen','community');
+    nav.innerHTML=ICON+'Community';
+    side.insertBefore(nav, settingsNav);
+    var sec=document.createElement('section');
+    sec.className='screen'; sec.id='community';
+    sec.innerHTML='<h2 style="margin:0 0 4px">Community</h2>'
+      +'<div class="muted" style="font-size:13px;margin-bottom:14px">Announcements, wins and updates from the Dividend Shift team.</div>'
+      +'<div id="cm-admin"></div><div id="cm-mod"></div><div id="cm-feed" class="muted" style="font-size:13px">Loading\u2026</div>';
+    screenParent.appendChild(sec);
+    nav.addEventListener('click', function(){ activate(nav, sec); });
+    if(typeof window.show==='function' && !window.show.__dsCommWrapped){
+      var orig=window.show;
+      var wrapped=function(screen){ var out=orig.apply(this,arguments); if(screen!=='community'){ var e2=document.getElementById('community'); if(e2) e2.classList.remove('active'); } return out; };
+      wrapped.__dsCommWrapped=true; window.show=wrapped;
+    }
+    return true;
+  }
+
+  /* ---------- composer (admin) ---------- */
+  var IMGS=[];
+  function composer(){
+    if(!ADMIN) return '';
+    return '<div class="cm-post" style="border-color:#F2D9A0;background:#FFFDF6">'
+      +'<strong>New post</strong>'
+      +'<div style="display:grid;gap:10px;margin-top:10px">'
+      +'<input type="text" id="cm-title" placeholder="Title" />'
+      +'<div class="cm-tb">'
+      +'<button data-cmd="bold"><b>B</b></button><button data-cmd="italic"><i>I</i></button>'
+      +'<button data-cmd="insertUnorderedList">\u2022 List</button><button data-cmd="insertOrderedList">1. List</button>'
+      +'<button data-cmd="formatBlock" data-val="h3">Heading</button><button data-cmd="createLink">Link</button>'
+      +'</div>'
+      +'<div contenteditable="true" id="cm-editor" data-ph="Write your post\u2026"></div>'
+      +'<div><input type="file" id="cm-imgs" accept="image/*" multiple style="font-size:12.5px" /> <span id="cm-img-note" class="muted" style="font-size:12px"></span></div>'
+      +'<input type="text" id="cm-video" placeholder="Video: Bunny video ID or embed URL (optional)" />'
+      +'<input type="text" id="cm-poll-q" placeholder="Poll question (optional)" />'
+      +'<div id="cm-poll-opts" style="display:none;gap:8px"><input type="text" class="cm-poll-o" placeholder="Option 1" /><input type="text" class="cm-poll-o" placeholder="Option 2" /></div>'
+      +'<div style="display:flex;gap:14px;align-items:center">'
+      +'<label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cm-pin" /> Pin this post</label>'
+      +'<button class="btn" id="cm-publish" style="padding:9px 18px">Publish</button>'
+      +'<span id="cm-msg" style="font-size:12.5px;color:#B4232A"></span>'
+      +'</div></div></div>';
+  }
+  function wireComposer(host){
+    if(!ADMIN) return;
+    host.querySelectorAll('.cm-tb button').forEach(function(b){
+      b.onclick=function(){
+        var cmd=b.getAttribute('data-cmd'), val=b.getAttribute('data-val')||null;
+        document.getElementById('cm-editor').focus();
+        if(cmd==='createLink'){ var u=prompt('Link URL:'); if(u) document.execCommand('createLink', false, u); return; }
+        document.execCommand(cmd, false, val);
+      };
+    });
+    var pq=host.querySelector('#cm-poll-q');
+    pq.oninput=function(){ host.querySelector('#cm-poll-opts').style.display=pq.value.trim()?'grid':'none'; maybeAddOpt(host); };
+    host.querySelector('#cm-poll-opts').addEventListener('input', function(){ maybeAddOpt(host); });
+    host.querySelector('#cm-publish').onclick=function(){ publish(host); };
+  }
+  function maybeAddOpt(host){
+    var wrap=host.querySelector('#cm-poll-opts');
+    var opts=[].slice.call(wrap.querySelectorAll('.cm-poll-o'));
+    if(opts.length<8 && opts[opts.length-1].value.trim()!==''){
+      var inp=document.createElement('input'); inp.type='text'; inp.className='cm-poll-o'; inp.placeholder='Option '+(opts.length+1);
+      wrap.appendChild(inp);
+    }
+  }
+  function publish(host){
+    var msg=host.querySelector('#cm-msg'); msg.textContent='';
+    var title=host.querySelector('#cm-title').value.trim();
+    var body=host.querySelector('#cm-editor').innerHTML;
+    if(!title){ msg.textContent='Add a title.'; return; }
+    var btn=host.querySelector('#cm-publish'); btn.disabled=true; btn.textContent='Publishing\u2026';
+    var files=[].slice.call((host.querySelector('#cm-imgs')||{files:[]}).files||[]);
+    var media=[];
+    var up=Promise.resolve();
+    files.slice(0,6).forEach(function(f){
+      up=up.then(function(){
+        var path=Date.now()+'-'+Math.random().toString(36).slice(2,8)+'-'+f.name.replace(/[^a-zA-Z0-9._-]/g,'');
+        return sb().storage.from('community').upload(path, f).then(function(r){
+          if(r.error) throw r.error;
+          var pub=sb().storage.from('community').getPublicUrl(path);
+          media.push({type:'image', url:pub.data.publicUrl});
+        });
+      });
+    });
+    up.then(function(){
+      var v=host.querySelector('#cm-video').value.trim();
+      if(v){
+        var embed=v.indexOf('http')===0 ? v : ('https://iframe.mediadelivery.net/embed/'+BUNNY_LIB+'/'+encodeURIComponent(v));
+        media.push({type:'video', embed:embed});
+      }
+      var poll=null, pq=host.querySelector('#cm-poll-q').value.trim();
+      if(pq){
+        var opts=[].slice.call(host.querySelectorAll('.cm-poll-o')).map(function(o){ return o.value.trim(); }).filter(Boolean);
+        if(opts.length>=2) poll={question:pq, options:opts};
+      }
+      var name=(((PROF&&PROF.first_name)||'')+' '+((PROF&&PROF.last_name)||'')).trim()||((PROF&&PROF.full_name)||'Dividend Shift');
+      return sb().from('community_posts').insert({ author_id:ME.id, author_name:name, title:title, body_html:body, media:media, poll:poll, pinned:!!host.querySelector('#cm-pin').checked });
+    }).then(function(r){
+      if(r&&r.error) throw r.error;
+      load();
+    }).catch(function(e){ msg.textContent='Could not publish: '+(e.message||e); })
+    .then(function(){ btn.disabled=false; btn.textContent='Publish'; });
+  }
+
+  /* ---------- feed ---------- */
+  function load(){
+    var s=sb(); if(!s||!ME) return;
+    var feed=document.getElementById('cm-feed'); if(!feed) return;
+    var admin=document.getElementById('cm-admin');
+    if(admin && !admin.innerHTML){ admin.innerHTML=composer(); wireComposer(admin); }
+    Promise.all([
+      s.from('community_posts').select('*').order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(30),
+      ADMIN ? s.from('community_comments').select('*').eq('status','pending').order('created_at',{ascending:true}).limit(50) : Promise.resolve({data:[]})
+    ]).then(function(res){
+      var posts=res[0].data||[], pend=res[1].data||[];
+      renderMod(pend, posts);
+      if(!posts.length){ feed.innerHTML='<div class="cm-post muted" style="font-size:13.5px">No posts yet \u2014 check back soon.</div>'; return; }
+      var ids=posts.map(function(p){ return p.id; });
+      return Promise.all([
+        s.from('community_likes').select('post_id,user_id').in('post_id',ids),
+        s.from('community_comments').select('*').in('post_id',ids).order('created_at',{ascending:true}),
+        s.from('community_poll_votes').select('post_id,option_idx,user_id').in('post_id',ids)
+      ]).then(function(r2){
+        render(posts, r2[0].data||[], r2[1].data||[], r2[2].data||[]);
+      });
+    }).catch(function(e){ feed.innerHTML='<div class="cm-post" style="font-size:13px;color:#B4232A">Could not load the community feed. Pull to refresh or try again shortly.</div>'; });
+  }
+  function renderMod(pend, posts){
+    var box=document.getElementById('cm-mod'); if(!box) return;
+    if(!ADMIN||!pend.length){ box.innerHTML=''; return; }
+    var titles={}; posts.forEach(function(p){ titles[p.id]=p.title; });
+    box.innerHTML='<div class="cm-post" style="border-color:#F3B6B6;background:#FFF9F9"><strong>Comments awaiting approval ('+pend.length+')</strong>'
+      + pend.map(function(c){
+        return '<div class="cm-cmt"><b>'+esc(c.author_name||'Client')+'</b> on \u201c'+esc(titles[c.post_id]||'post')+'\u201d \u00b7 '+when(c.created_at)
+          +'<div style="margin:4px 0 6px">'+esc(c.body)+'</div>'
+          +'<button class="btn" data-appr="'+c.id+'" style="padding:5px 12px;font-size:12px;margin-right:8px">Approve</button>'
+          +'<button data-rej="'+c.id+'" style="padding:5px 12px;font-size:12px;border:1px solid #E2E5EC;background:#fff;border-radius:8px;cursor:pointer">Reject</button></div>';
+      }).join('')+'</div>';
+    box.onclick=function(ev){
+      var a=ev.target.closest('[data-appr]'), r=ev.target.closest('[data-rej]');
+      if(!a&&!r) return;
+      var id=(a||r).getAttribute(a?'data-appr':'data-rej');
+      sb().from('community_comments').update({status:a?'approved':'rejected'}).eq('id',id).then(load);
+    };
+  }
+  function render(posts, likes, comments, votes){
+    var feed=document.getElementById('cm-feed');
+    var html=posts.map(function(p){
+      var pl=likes.filter(function(l){ return l.post_id===p.id; });
+      var mine=pl.some(function(l){ return l.user_id===ME.id; });
+      var pc=comments.filter(function(c){ return c.post_id===p.id && (c.status==='approved' || c.author_id===ME.id); });
+      var pv=votes.filter(function(v){ return v.post_id===p.id; });
+      var myVote=pv.find(function(v){ return v.user_id===ME.id; });
+      var media=Array.isArray(p.media)?p.media:[];
+      var imgs=media.filter(function(m){ return m.type==='image'; }).map(function(m){ return '<img src="'+esc(m.url)+'" loading="lazy" />'; }).join('');
+      var vids=media.filter(function(m){ return m.type==='video'; }).map(function(m){ return '<div class="cm-vid"><iframe src="'+esc(m.embed)+'" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe></div>'; }).join('');
+      var pollHtml='';
+      if(p.poll&&p.poll.question){
+        var total=pv.length||0;
+        pollHtml='<div style="margin-top:12px;border:1px solid #EDE3C8;background:#FFFDF6;border-radius:12px;padding:12px">'
+          +'<b style="font-size:13.5px">\uD83D\uDCCA '+esc(p.poll.question)+'</b>'
+          +(p.poll.options||[]).map(function(o,i){
+            var n=pv.filter(function(v){ return v.option_idx===i; }).length;
+            var pct=total?Math.round(n*100/total):0;
+            if(myVote){
+              return '<div class="cm-poll-opt" style="cursor:default"><div class="bar" style="width:'+pct+'%"></div><span>'+esc(o)+' \u2014 '+pct+'% ('+n+')'+(myVote.option_idx===i?' \u2713':'')+'</span></div>';
+            }
+            return '<button class="cm-poll-opt" data-vote="'+p.id+'" data-idx="'+i+'"><span>'+esc(o)+'</span></button>';
+          }).join('')
+          +'<div class="muted" style="font-size:11.5px;margin-top:6px">'+total+' vote'+(total===1?'':'s')+'</div></div>';
+      }
+      var cmts=pc.map(function(c){
+        return '<div class="cm-cmt"><b>'+esc(c.author_name||'Client')+'</b> \u00b7 '+when(c.created_at)
+          +(c.status!=='approved'?' \u00b7 <span style="color:#9A6A00">awaiting approval</span>':'')
+          +'<div style="margin-top:3px">'+esc(c.body)+'</div></div>';
+      }).join('');
+      var adminCtl=ADMIN?('<span style="float:right"><button data-pin="'+p.id+'" data-to="'+(!p.pinned)+'" style="border:0;background:none;cursor:pointer;font-size:12px;color:#6B7280">'+(p.pinned?'Unpin':'Pin')+'</button> <button data-del="'+p.id+'" style="border:0;background:none;cursor:pointer;font-size:12px;color:#B4232A">Delete</button></span>'):'';
+      return '<div class="cm-post">'+adminCtl
+        +'<div class="muted" style="font-size:12px">'+esc(p.author_name||'Dividend Shift')+' \u00b7 '+when(p.created_at)+(p.pinned?'<span class="cm-pin">\uD83D\uDCCC Pinned</span>':'')+'</div>'
+        +'<h3 style="margin:6px 0 0;font-size:17px">'+esc(p.title)+'</h3>'
+        +'<div class="cm-body">'+(p.body_html||'')+'</div>'
+        +'<div class="cm-imgs">'+imgs+'</div>'+vids+pollHtml
+        +'<div style="margin-top:12px;display:flex;gap:10px;align-items:center">'
+        +'<span class="cm-like'+(mine?' on':'')+'" data-like="'+p.id+'" data-on="'+(mine?'1':'0')+'">\u2764 '+pl.length+'</span>'
+        +'<span class="muted" style="font-size:12.5px">'+pc.filter(function(c){return c.status==='approved';}).length+' comments</span>'
+        +'</div>'
+        +cmts
+        +'<div style="display:flex;gap:8px;margin-top:12px">'
+        +'<input type="text" data-cbox="'+p.id+'" placeholder="Write a comment (posted after approval)\u2026" style="flex:1" />'
+        +'<button class="btn secondary" data-csend="'+p.id+'" style="padding:8px 14px;font-size:12.5px">Comment</button>'
+        +'</div></div>';
+    }).join('');
+    feed.innerHTML=html;
+    feed.onclick=function(ev){
+      var like=ev.target.closest('[data-like]');
+      if(like){
+        var id=like.getAttribute('data-like'), on=like.getAttribute('data-on')==='1';
+        var q=on ? sb().from('community_likes').delete().eq('post_id',id).eq('user_id',ME.id)
+                 : sb().from('community_likes').insert({post_id:id,user_id:ME.id});
+        q.then(load); return;
+      }
+      var vote=ev.target.closest('[data-vote]');
+      if(vote){ sb().from('community_poll_votes').insert({post_id:vote.getAttribute('data-vote'),user_id:ME.id,option_idx:parseInt(vote.getAttribute('data-idx'),10)}).then(load); return; }
+      var send=ev.target.closest('[data-csend]');
+      if(send){
+        var pid=send.getAttribute('data-csend');
+        var box=feed.querySelector('[data-cbox="'+pid+'"]');
+        var body=(box.value||'').trim(); if(!body) return;
+        var name=(((PROF&&PROF.first_name)||'')+' '+((PROF&&PROF.last_name)||'')).trim()||((PROF&&PROF.full_name)||'Client');
+        send.disabled=true;
+        sb().from('community_comments').insert({post_id:pid,author_id:ME.id,author_name:name,body:body.slice(0,1000)}).then(function(r){
+          send.disabled=false;
+          if(!r.error){ box.value=''; load(); }
+        });
+        return;
+      }
+      var pin=ev.target.closest('[data-pin]');
+      if(pin){ sb().from('community_posts').update({pinned:pin.getAttribute('data-to')==='true'}).eq('id',pin.getAttribute('data-pin')).then(load); return; }
+      var del=ev.target.closest('[data-del]');
+      if(del){ if(confirm('Delete this post?')) sb().from('community_posts').delete().eq('id',del.getAttribute('data-del')).then(load); return; }
+    };
+  }
+
+  var tries=0;
+  function boot(){
+    var s=sb();
+    if(!s){ if(tries++<40) setTimeout(boot,700); return; }
+    s.auth.getSession().then(function(g){
+      var u=g.data.session&&g.data.session.user;
+      if(!u){ if(tries++<40) setTimeout(boot,1800); return; }
+      ME=u;
+      return s.from('profiles').select('role,full_name,first_name,last_name').eq('id',u.id).maybeSingle().then(function(r){
+        PROF=r.data||{};
+        ADMIN=(PROF.role==='admin');
+        (function wait(){ if(mount()) return; if(++tries>120) return; setTimeout(wait,300); })();
+      });
+    }).catch(function(){ if(tries++<40) setTimeout(boot,1800); });
+  }
+  boot();
+})();
+
+/* ------------------------------------------------------------------ *
+ *  66) __dsEmailOtp - "Email me a code" sign-in (in addition to SMS).
+ *      signInWithOtp (no account creation) -> 6-digit code entry ->
+ *      verifyOtp(type email). NOTE: the Supabase "Magic Link" email
+ *      template must include {{ .Token }} for the code to appear.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsEmailOtp) return; window.__dsEmailOtp=true;
+  function sb(){ return window.__dsSB; }
+  function findEmailInput(card){
+    return card.querySelector('input[type=email]')||[].slice.call(card.querySelectorAll('input')).find(function(i){ return /mail/i.test(i.placeholder||i.id||i.name||''); });
+  }
+  function ensure(){
+    var card=document.querySelector('.authcard');
+    if(!card||document.getElementById('ds-eotp-link')) return;
+    var row=document.createElement('div');
+    row.id='ds-eotp-link';
+    row.style.cssText='margin-top:10px;font-size:12.5px;text-align:center';
+    row.innerHTML='<a href="#" style="color:#6B7280;text-decoration:underline">Email me a sign-in code instead</a>';
+    card.appendChild(row);
+    row.querySelector('a').onclick=function(ev){ ev.preventDefault(); start(card); };
+  }
+  function ui(card, email){
+    var old=document.getElementById('ds-eotp-box'); if(old) old.remove();
+    var box=document.createElement('div');
+    box.id='ds-eotp-box';
+    box.style.cssText='margin-top:12px;border:1px solid #E2E5EC;border-radius:12px;padding:14px;background:#FAFBFF';
+    box.innerHTML='<div style="font-weight:700;font-size:13.5px">Enter your sign-in code</div>'
+      +'<div style="font-size:12px;color:#6B7280;margin:3px 0 8px">We emailed a 6-digit code to '+email.replace(/</g,'&lt;')+'. It expires in about an hour.</div>'
+      +'<div style="display:flex;gap:8px"><input id="ds-eotp-code" inputmode="numeric" maxlength="6" placeholder="123456" style="flex:1;padding:10px;border:1px solid #E2E5EC;border-radius:9px;font-size:18px;letter-spacing:6px;text-align:center" />'
+      +'<button class="btn" id="ds-eotp-go" style="padding:10px 16px">Verify</button></div>'
+      +'<div id="ds-eotp-msg" style="font-size:12px;color:#B4232A;margin-top:6px;min-height:14px"></div>';
+    card.appendChild(box);
+    var inp=box.querySelector('#ds-eotp-code');
+    inp.focus();
+    var go=function(){
+      var code=(inp.value||'').replace(/[^\d]/g,'');
+      var msg=box.querySelector('#ds-eotp-msg');
+      if(code.length<6){ msg.textContent='Enter the 6-digit code from the email.'; return; }
+      var b=box.querySelector('#ds-eotp-go'); b.disabled=true; b.textContent='Verifying\u2026';
+      sb().auth.verifyOtp({ email:email, token:code, type:'email' }).then(function(r){
+        if(r.error){ msg.textContent=/expired|invalid/i.test(r.error.message)?'That code is invalid or expired \u2014 request a new one.':('Could not verify: '+r.error.message); b.disabled=false; b.textContent='Verify'; return; }
+        msg.style.color='#1D7A38'; msg.textContent='Signed in \u2014 loading your portal\u2026';
+        setTimeout(function(){ location.reload(); }, 600);
+      });
+    };
+    box.querySelector('#ds-eotp-go').onclick=go;
+    inp.addEventListener('keydown', function(e){ if(e.key==='Enter') go(); });
+  }
+  function start(card){
+    var inp=findEmailInput(card);
+    var email=inp?(inp.value||'').trim():'';
+    var link=document.getElementById('ds-eotp-link');
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ if(link) link.innerHTML='<span style="color:#B4232A">Type your email above first, then tap \u201cEmail me a sign-in code\u201d.</span><br/><a href="#" style="color:#6B7280;text-decoration:underline">Email me a sign-in code instead</a>'; wire(card); return; }
+    if(link) link.innerHTML='<span style="color:#6B7280">Sending code\u2026</span>';
+    sb().auth.signInWithOtp({ email:email, options:{ shouldCreateUser:false } }).then(function(r){
+      if(r.error){
+        if(link) link.innerHTML='<span style="color:#B4232A">'+(/rate/i.test(r.error.message)?'Too many requests \u2014 wait a minute and try again.':'Could not send the code: '+r.error.message.replace(/</g,'&lt;'))+'</span><br/><a href="#" style="color:#6B7280;text-decoration:underline">Try again</a>';
+        wire(card); return;
+      }
+      if(link) link.innerHTML='<a href="#" style="color:#6B7280;text-decoration:underline">Resend code</a>';
+      wire(card);
+      ui(card, email);
+    });
+  }
+  function wire(card){ var a=document.querySelector('#ds-eotp-link a'); if(a) a.onclick=function(ev){ ev.preventDefault(); start(card); }; }
+  setInterval(ensure, 1000); ensure();
 })();
