@@ -5001,3 +5001,72 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   boot();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ *  64) __dsRefLinks - BitFlow referral links card on the Merchant
+ *      Application screen. Two links per client:
+ *        1) INTERNAL  - bookmark the portal form and fill it yourself
+ *        2) SHAREABLE - public /apply?ref=<code>&rep=<name> the
+ *           merchant fills out directly (no login required)
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsRefLinks) return; window.__dsRefLinks=true;
+  var HOUSE='NC-3B2087';
+  var ME=null, PROF=null;
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function links(){
+    var code=(PROF&&PROF.bitflow_referral_id?String(PROF.bitflow_referral_id).trim():'')||HOUSE;
+    var name=(PROF&&PROF.full_name)||'';
+    var share='https://portal.dividendshift.com/apply?ref='+encodeURIComponent(code)+(name?('&rep='+encodeURIComponent(name)):'');
+    var internal='https://portal.dividendshift.com/#/merchant';
+    return {code:code, share:share, internal:internal, house:code===HOUSE};
+  }
+  function copyBtn(id){ return '<button class="btn secondary" data-copy="'+id+'" style="padding:6px 12px;font-size:12px;white-space:nowrap">Copy</button>'; }
+  function ensure(){
+    if(!ME||!PROF) return;
+    var role=PROF.role||'client';
+    if(role==='admin'||role==='team') return;
+    var sec=document.getElementById('merchant');
+    if(!sec||!sec.classList.contains('show')) return;
+    if(document.getElementById('ds-ref-card')) return;
+    var L=links();
+    var card=document.createElement('div'); card.className='card'; card.id='ds-ref-card';
+    card.style.cssText='padding:16px;margin-bottom:14px;border:1px solid #F2D9A0;background:#FFFDF6';
+    card.innerHTML='<strong>Your BitFlow referral links</strong>'
+      +'<div style="margin-top:12px;display:grid;gap:14px">'
+      +'<div><div style="font-weight:700;font-size:13px">1. Send to a merchant (they fill it out)</div>'
+      +'<div class="muted" style="font-size:12px;margin:2px 0 6px">Share or bookmark this link. It carries your referral code'+(L.house?'':' and shows "Referred by '+esc((PROF&&PROF.full_name)||'')+'"')+'.</div>'
+      +'<div style="display:flex;gap:8px;align-items:center"><input readonly id="ds-ref-share" value="'+esc(L.share)+'" style="flex:1;padding:8px 10px;border:1px solid #E2E5EC;border-radius:8px;font-size:12.5px;background:#fff" />'+copyBtn('ds-ref-share')+'</div></div>'
+      +'<div><div style="font-weight:700;font-size:13px">2. Fill it out yourself (internal)</div>'
+      +'<div class="muted" style="font-size:12px;margin:2px 0 6px">Bookmark this page and submit the application on the merchant&#39;s behalf below.</div>'
+      +'<div style="display:flex;gap:8px;align-items:center"><input readonly id="ds-ref-int" value="'+esc(L.internal)+'" style="flex:1;padding:8px 10px;border:1px solid #E2E5EC;border-radius:8px;font-size:12.5px;background:#fff" />'+copyBtn('ds-ref-int')+'</div></div>'
+      +(L.house?'<div style="font-size:12px;color:#9A6A00;background:#FFF3D6;border-radius:8px;padding:8px 10px">You are currently on the house code ('+esc(HOUSE)+'). Message us to add your personal BitFlow referral ID so sign-ups credit directly to you.</div>':'')
+      +'</div>';
+    var inner=sec.querySelector('.card');
+    if(inner&&inner.parentElement) inner.parentElement.insertBefore(card, inner); else sec.appendChild(card);
+    card.addEventListener('click',function(ev){
+      var b=ev.target.closest('[data-copy]'); if(!b) return;
+      var inp=document.getElementById(b.getAttribute('data-copy')); if(!inp) return;
+      var done=function(){ b.textContent='Copied!'; setTimeout(function(){ b.textContent='Copy'; },1600); };
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(inp.value).then(done).catch(function(){ inp.select(); document.execCommand('copy'); done(); }); }
+      else { inp.select(); document.execCommand('copy'); done(); }
+    });
+  }
+  var tries=0;
+  function boot(){
+    var s=window.__dsSB;
+    if(!s){ if(tries++<40) setTimeout(boot,700); return; }
+    s.auth.getSession().then(function(g){
+      var u=g.data.session&&g.data.session.user;
+      if(!u){ if(tries++<40) setTimeout(boot,1800); return; }
+      ME=u;
+      return s.from('profiles').select('role,full_name,bitflow_referral_id').eq('id',u.id).maybeSingle().then(function(r){
+        PROF=r.data||{};
+        setInterval(ensure, 1200); ensure();
+      });
+    }).catch(function(){ if(tries++<40) setTimeout(boot,1800); });
+  }
+  boot();
+})();

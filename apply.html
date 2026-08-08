@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Merchant Application - Dividend Shift</title>
+<meta name="robots" content="noindex" />
+<style>
+  :root{--gold:#F2B33D;--gold2:#C99A2C;--ink:#14161D;--mut:#6B7280;--line:#E2E5EC;--bg:#F7F8FB}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:640px;margin:0 auto;padding:26px 16px 60px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .dot{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
+  .brand b{font-size:15px;letter-spacing:.02em}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px 22px;box-shadow:0 10px 34px rgba(10,14,25,.06)}
+  h1{font-size:22px;margin:0 0 6px}
+  .sub{color:var(--mut);font-size:13.5px;margin:0 0 6px}
+  .refchip{display:inline-block;background:#FFF8E8;border:1px solid #F2D9A0;color:#8a6510;border-radius:20px;padding:4px 12px;font-size:12.5px;font-weight:600;margin:8px 0 2px}
+  label{display:block;font-size:12.5px;font-weight:700;margin:16px 0 6px}
+  label small{font-weight:400;color:var(--mut)}
+  input,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff}
+  input:focus,select:focus{outline:2px solid var(--gold);border-color:var(--gold)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row3{display:grid;grid-template-columns:1fr 80px 110px;gap:10px}
+  @media(max-width:480px){.row3{grid-template-columns:1fr 1fr}}
+  .btn{width:100%;margin-top:22px;padding:14px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;font-size:16px;font-weight:800;cursor:pointer}
+  .btn[disabled]{opacity:.6}
+  .err{color:#B4232A;font-size:12.5px;min-height:16px;margin-top:10px}
+  .disc{color:var(--mut);font-size:11px;line-height:1.5;margin-top:22px}
+  .hp{position:absolute;left:-5000px;top:-5000px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><div class="dot">DS</div><b>DIVIDEND SHIFT</b></div>
+  <div class="card">
+    <h1>Merchant Application</h1>
+    <p class="sub">Accept crypto payments alongside your current system. Takes about 2 minutes - you will finish sign-up on our processing partner's secure site.</p>
+    <span class="refchip" id="refchip" style="display:none"></span>
+    <form id="f" novalidate>
+      <input class="hp" type="text" name="website" id="website" tabindex="-1" autocomplete="off" />
+      <div class="row">
+        <div><label>Your first name</label><input id="first" autocomplete="given-name" /></div>
+        <div><label>Your last name</label><input id="last" autocomplete="family-name" /></div>
+      </div>
+      <label>Business name</label><input id="bname" autocomplete="organization" />
+      <label>Business address</label><input id="addr" autocomplete="street-address" />
+      <div class="row3">
+        <div><label>City</label><input id="city" /></div>
+        <div><label>State</label><input id="state" maxlength="14" /></div>
+        <div><label>ZIP</label><input id="zip" inputmode="numeric" maxlength="10" /></div>
+      </div>
+      <div class="row">
+        <div><label>Business email</label><input id="email" type="email" inputmode="email" autocomplete="email" /></div>
+        <div><label>Business phone</label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" /></div>
+      </div>
+      <label>Estimated monthly sales <small>(approximate is fine)</small></label><input id="sales" placeholder="$" inputmode="numeric" />
+      <label>Business industry</label>
+      <select id="industry"></select>
+      <div id="indother" style="display:none;margin-top:8px"><input id="industry_other" placeholder="Describe the industry" /></div>
+      <label>Who will be charged the transaction fee?</label>
+      <select id="fee"><option value="">Select...</option><option>Customer</option><option>Merchant</option></select>
+      <label>What equipment will you be using? <small>If software only, put N/A</small></label><input id="equip" />
+      <label>What percentage will be charged? <small>Typically 4%</small></label><input id="pct" placeholder="4%" />
+      <div class="err" id="err"></div>
+      <button class="btn" id="go" type="submit">Continue to secure sign-up</button>
+    </form>
+    <p class="disc"><b>Important disclosures.</b> Dividend Shift is not a payment processor, money transmitter, or financial institution. We connect businesses with appropriate payment processors depending on business type, location, and other factors. All payment processing services are provided by third-party processors, subject to their own terms, conditions, and approval requirements. Approval is not guaranteed and availability varies by state.</p>
+  </div>
+</div>
+<script>
+(function(){
+  var INDUSTRIES=["Retail \u2014 General","Restaurant / Food Service","E-commerce / Online","Automotive (Sales & Repair)","Salon / Spa / Beauty","Health & Wellness","Medical / Dental Practice","Professional Services","Legal Services","Accounting / Bookkeeping","Construction / Contractor","Home Services (HVAC, Plumbing, Electrical)","Real Estate","Hospitality / Hotel / Lodging","Travel & Tourism","Fitness / Gym","Education / Tutoring","Nonprofit / Charity","Grocery / Convenience Store","Clothing / Apparel","Jewelry / Accessories","Electronics / Technology","Furniture / Home Goods","Pet Services / Veterinary","Childcare / Daycare","Entertainment / Events","Transportation / Logistics","Cleaning Services","Landscaping / Lawn Care","Insurance"];
+  var FN="https://dehttbxrkeqhsfkfpfwt.supabase.co/functions/v1/merchant-apply";
+  var BITFLOW="https://merchant.getbitflow.com/sign-up";
+  var HOUSE="NC-3B2087";
+  var q=new URLSearchParams(location.search);
+  var ref=(q.get("ref")||"").trim();
+  var rep=(q.get("rep")||"").trim();
+  if(rep){ var c=document.getElementById("refchip"); c.textContent="Referred by "+rep; c.style.display="inline-block"; }
+  var sel=document.getElementById("industry");
+  sel.innerHTML='<option value="">Select\u2026</option>'+INDUSTRIES.map(function(x){return '<option>'+x+'</option>';}).join("")+'<option value="__other">Other\u2026</option>';
+  sel.onchange=function(){ document.getElementById("indother").style.display = sel.value==="__other" ? "block" : "none"; };
+  function v(id){ var e=document.getElementById(id); return e?(e.value||"").trim():""; }
+  var ph=document.getElementById("phone");
+  ph.addEventListener("input",function(){ var d=ph.value.replace(/[^\d]/g,"").slice(0,10); var o=d; if(d.length>6) o="("+d.slice(0,3)+") "+d.slice(3,6)+"-"+d.slice(6); else if(d.length>3) o="("+d.slice(0,3)+") "+d.slice(3); ph.value=o; });
+  document.getElementById("f").addEventListener("submit", async function(ev){
+    ev.preventDefault();
+    var err=document.getElementById("err"); err.textContent="";
+    var digits=v("phone").replace(/[^\d]/g,"");
+    if(!v("first")||!v("last")){ err.textContent="Please enter your name."; return; }
+    if(!v("bname")){ err.textContent="Please enter your business name."; return; }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("email"))){ err.textContent="Please enter a valid email address."; return; }
+    if(digits.length!==10){ err.textContent="Please enter a valid 10-digit phone number."; return; }
+    var industry=v("industry")==="__other" ? (v("industry_other")||"Other") : v("industry");
+    var btn=document.getElementById("go"); btn.disabled=true; btn.textContent="Submitting\u2026";
+    var payload={ ref:ref, rep:rep, website:v("website"), data:{ first_name:v("first"), last_name:v("last"), referred_by_representative:rep, business_name:v("bname"), business_address:v("addr"), business_city:v("city"), business_state:v("state"), business_zip:v("zip"), poc_first_name:v("first"), poc_last_name:v("last"), business_email:v("email"), business_phone:digits, monthly_sales:v("sales"), industry:industry, fee_paid_by:v("fee"), equipment:v("equip"), fee_percentage:v("pct") } };
+    var redirect=BITFLOW+"?code="+encodeURIComponent(ref||HOUSE);
+    try{
+      var r=await fetch(FN,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      var j=await r.json();
+      if(j&&j.redirect) redirect=j.redirect;
+    }catch(e){ /* fail open: BitFlow code still credits the referral */ }
+    location.href=redirect;
+  });
+})();
+</script>
+</body>
+</html>
