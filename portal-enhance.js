@@ -5089,7 +5089,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   var POSTS=[], LIKES=[], CMTS=[], VOTES=[], CLIKES=[], LASTSEEN=null, EDIT=null, BUNNY=null;
   function sb(){ return window.__dsSB; }
   function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
-  function catLabel(k){ var f=CATS.filter(function(c){return c[0]===k;}); return f.length?f[1]:k; }
+  function catLabel(k){ var f=CATS.filter(function(c){return c[0]===k;}); return f.length?f[0][1]:k; }
   function when(s){ try{ var d=new Date(s), diff=(Date.now()-d)/1000; if(diff<3600) return Math.max(1,Math.round(diff/60))+'m'; if(diff<86400) return Math.round(diff/3600)+'h'; if(diff<604800) return Math.round(diff/86400)+'d'; return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return ''; } }
   function strip(h){ var d=document.createElement('div'); d.innerHTML=h||''; return (d.textContent||'').replace(/\s+/g,' ').trim(); }
   function initials(n){ n=String(n||'').trim(); var p=n.split(/\s+/); return ((p[0]||'')[0]||'?').toUpperCase()+(((p[1]||'')[0])||'').toUpperCase(); }
