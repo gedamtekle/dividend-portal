@@ -5141,37 +5141,42 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   var ICON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-4px;margin-right:9px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
 
   function mount(){
-    var settingsNav=document.querySelector('.nav[data-screen="settings"]');
-    if(!settingsNav) return false;
-    if(document.querySelector('.nav[data-screen="community"]')) return true;
-    var side=settingsNav.parentElement;
+    var dashes=[].slice.call(document.querySelectorAll('.nav[data-screen="dashboard"]'));
+    if(!dashes.length) return false;
     var screenParent=(document.querySelector('section.screen')||{}).parentElement;
-    if(!side||!screenParent) return false;
-    var nav=document.createElement('div');
-    nav.className='nav'; nav.setAttribute('data-screen','community');
-    nav.innerHTML=ICON+'Community<span class="cmv-navdot" id="cmv-dot" style="display:none"></span>';
-    side.insertBefore(nav, settingsNav);
-    var sec=document.createElement('section');
-    sec.className='screen'; sec.id='community';
-    sec.innerHTML='<div class="cmv-strip"><div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#F2B33D,#C99A2C);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#1d1503">DS</div>'
-      +'<div style="flex:1;min-width:200px"><div style="font-weight:800;font-size:16px">Dividend Shift Community</div>'
-      +'<div style="font-size:12.5px;opacity:.75">Announcements, wins and training from the team \u2014 members can comment and vote.</div></div>'
-      +'<div id="cmv-stats" style="display:flex;gap:22px;text-align:center"></div></div>'
-      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px" id="cmv-controls"></div>'
-      +'<div id="cm-admin"></div><div id="cm-mod"></div>'
-      +'<div id="cm-feed" class="muted" style="font-size:13px">Loading\u2026</div>';
-    screenParent.appendChild(sec);
-    nav.addEventListener('click', function(){ activate(nav, sec); });
-    if(typeof window.show==='function' && !window.show.__dsCommWrapped){
-      var orig=window.show;
-      var wrapped=function(screen){ var out=orig.apply(this,arguments); if(screen!=='community'){ var e2=document.getElementById('community'); if(e2) e2.classList.remove('active'); } return out; };
-      wrapped.__dsCommWrapped=true; window.show=wrapped;
+    if(!screenParent) return false;
+    var sec=document.getElementById('community');
+    if(!sec){
+      sec=document.createElement('section');
+      sec.className='screen'; sec.id='community';
+      sec.innerHTML='<div class="cmv-strip"><div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#F2B33D,#C99A2C);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#1d1503">DS</div>'
+        +'<div style="flex:1;min-width:200px"><div style="font-weight:800;font-size:16px">Dividend Shift Community</div>'
+        +'<div style="font-size:12.5px;opacity:.75">Announcements, wins and training from the team \u2014 members can comment and react.</div></div>'
+        +'<div id="cmv-stats" style="display:flex;gap:22px;text-align:center"></div></div>'
+        +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px" id="cmv-controls"></div>'
+        +'<div id="cm-admin"></div><div id="cm-mod"></div>'
+        +'<div id="cm-feed" class="muted" style="font-size:13px">Loading\u2026</div>';
+      screenParent.appendChild(sec);
+      renderControls();
+      sb().rpc('community_stats').then(function(r){
+        var d=r.data&&r.data[0];
+        if(d){ document.getElementById('cmv-stats').innerHTML='<div><div style="font-weight:800;font-size:18px">'+d.members+'</div><div style="font-size:11px;opacity:.7">Members</div></div><div><div style="font-weight:800;font-size:18px">'+d.posts+'</div><div style="font-size:11px;opacity:.7">Posts</div></div>'; }
+      }).catch(function(){});
+      if(typeof window.show==='function' && !window.show.__dsCommWrapped){
+        var orig=window.show;
+        var wrapped=function(screen){ var out=orig.apply(this,arguments); if(screen!=='community'){ var e2=document.getElementById('community'); if(e2) e2.classList.remove('active'); } return out; };
+        wrapped.__dsCommWrapped=true; window.show=wrapped;
+      }
     }
-    renderControls();
-    sb().rpc('community_stats').then(function(r){
-      var d=r.data&&r.data[0];
-      if(d){ document.getElementById('cmv-stats').innerHTML='<div><div style="font-weight:800;font-size:18px">'+d.members+'</div><div style="font-size:11px;opacity:.7">Members</div></div><div><div style="font-weight:800;font-size:18px">'+d.posts+'</div><div style="font-size:11px;opacity:.7">Posts</div></div>'; }
-    }).catch(function(){});
+    dashes.forEach(function(dashNav){
+      var side=dashNav.parentElement;
+      if(!side||side.querySelector('.nav[data-screen="community"]')) return;
+      var nav=document.createElement('div');
+      nav.className='nav'; nav.setAttribute('data-screen','community');
+      nav.innerHTML=ICON+'Community<span class="cmv-navdot" style="display:none"></span>';
+      side.insertBefore(nav, dashNav.nextSibling);
+      nav.addEventListener('click', function(){ activate(nav, sec); });
+    });
     return true;
   }
   function renderControls(){
@@ -5198,14 +5203,13 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     sb().from('community_reads').upsert({user_id:ME.id,last_seen_at:LASTSEEN}).then(function(){ updateDot(); });
   }
   function updateDot(){
-    var dot=document.getElementById('cmv-dot'); if(!dot) return;
+    var dots=[].slice.call(document.querySelectorAll('.cmv-navdot')); if(!dots.length) return;
     var n=0;
     if(LASTSEEN){ n=POSTS.filter(function(p){ return p.created_at>LASTSEEN && p.author_id!==ME.id; }).length; }
     else n=POSTS.length;
     var sec=document.getElementById('community');
     if(sec&&(sec.classList.contains('active')||sec.classList.contains('show'))) n=0;
-    dot.style.display=n>0?'inline-block':'none';
-    dot.textContent=n>9?'9+':String(n);
+    dots.forEach(function(dot){ dot.style.display=n>0?'inline-block':'none'; dot.textContent=n>9?'9+':String(n); });
   }
 
   /* ---------- composer ---------- */
@@ -5343,7 +5347,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       if(!POSTS.length){ var f=document.getElementById('cm-feed'); if(f) f.innerHTML='<div class="cmv-card" style="cursor:default" ><span class="muted" style="font-size:13.5px">No posts yet \u2014 check back soon.</span></div>'; return; }
       var ids=POSTS.map(function(p){ return p.id; });
       return Promise.all([
-        s.from('community_likes').select('post_id,user_id').in('post_id',ids),
+        s.from('community_likes').select('post_id,user_id,emoji').in('post_id',ids),
         s.from('community_comments').select('*').in('post_id',ids).order('created_at',{ascending:true}),
         s.from('community_poll_votes').select('post_id,option_idx,user_id').in('post_id',ids)
       ]).then(function(r2){
@@ -5421,7 +5425,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
         +(thumb?'<img src="'+esc(thumb)+'" style="width:110px;height:74px;object-fit:cover;border-radius:10px;flex:none" loading="lazy" />':'')
         +'</div>'
         +'<div style="display:flex;gap:14px;margin-top:10px;font-size:12.5px;color:#6B7280;align-items:center">'
-        +'<span>\u2764 '+c.likes.length+'</span><span>\uD83D\uDCAC '+c.cmts.length+'</span>'
+        +(function(){ var rx={}; c.likes.forEach(function(l){ var e=l.emoji||'\u2764'; rx[e]=(rx[e]||0)+1; }); var ks=Object.keys(rx).sort(function(a,b){ return rx[b]-rx[a]; }).slice(0,3).join(''); return '<span>'+(ks||'\u2764')+' '+c.likes.length+'</span><span>\uD83D\uDCAC '+c.cmts.length+'</span>'; })()
         +(p.poll?'<span>\uD83D\uDCCA '+c.votes.length+' votes</span>':'')
         +(vid?'<span>\u25B6 Video</span>':'')
         +'</div></div>';
@@ -5445,7 +5449,8 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   function renderModal(wrap, pid){
     var p=POSTS.filter(function(x){ return x.id===pid; })[0]; if(!p){ closeModal(); return; }
     var c=counts(pid);
-    var mine=c.likes.some(function(l){ return l.user_id===ME.id; });
+    var myR=c.likes.filter(function(l){ return l.user_id===ME.id; })[0];
+    var EMO=['\uD83D\uDC4D','\u2764','\uD83D\uDD25','\uD83C\uDF89','\uD83D\uDCAF'];
     var media=Array.isArray(p.media)?p.media:[];
     var imgs=media.filter(function(m){ return m.type==='image'; }).map(function(m){ return '<img src="'+esc(m.url)+'" loading="lazy" />'; }).join('');
     var vids=media.filter(function(m){ return m.type==='video'; }).map(function(m){ return '<div class="vid"><iframe src="'+esc(m.embed)+'" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe></div>'; }).join('');
@@ -5496,7 +5501,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       +'<div class="body">'+(p.body_html||'')+'</div>'
       +'<div class="imgs">'+imgs+'</div>'+vids+pollHtml
       +'<div style="display:flex;gap:12px;align-items:center;margin-top:16px">'
-      +'<span class="cmv-like'+(mine?' on':'')+'" data-like="1" data-on="'+(mine?'1':'0')+'">\u2764 '+c.likes.length+'</span>'
+      +EMO.map(function(e){ var n=c.likes.filter(function(l){ return (l.emoji||'\u2764')===e; }).length; return '<span class="cmv-like'+(myR&&(myR.emoji||'\u2764')===e?' on':'')+'" data-rx="'+e+'">'+e+(n?' '+n:'')+'</span>'; }).join('')
       +'<span class="muted" style="font-size:12.5px">'+c.cmts.length+' comments</span></div>'
       +tops.map(function(x){ return cHtml(x,false); }).join('')
       +'<div style="display:flex;gap:8px;margin-top:16px">'
@@ -5504,11 +5509,15 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       +'<button class="btn" id="cmv-csend" style="padding:9px 16px;font-size:13px">Comment</button>'
       +'</div></div>';
     wrap.querySelector('[data-close]').onclick=function(ev){ ev.preventDefault(); closeModal(); };
-    wrap.querySelector('[data-like]').onclick=function(){
-      var on=this.getAttribute('data-on')==='1';
-      var q=on?sb().from('community_likes').delete().eq('post_id',pid).eq('user_id',ME.id):sb().from('community_likes').insert({post_id:pid,user_id:ME.id});
-      q.then(function(){ reloadInto(wrap,pid); });
-    };
+    wrap.querySelectorAll('[data-rx]').forEach(function(rb){
+      rb.onclick=function(){
+        var e=rb.getAttribute('data-rx'); var q;
+        if(myR&&(myR.emoji||'\u2764')===e) q=sb().from('community_likes').delete().eq('post_id',pid).eq('user_id',ME.id);
+        else if(myR) q=sb().from('community_likes').update({emoji:e}).eq('post_id',pid).eq('user_id',ME.id);
+        else q=sb().from('community_likes').insert({post_id:pid,user_id:ME.id,emoji:e});
+        q.then(function(){ reloadInto(wrap,pid); });
+      };
+    });
     wrap.querySelectorAll('[data-vote]').forEach(function(b){
       b.onclick=function(){ sb().from('community_poll_votes').insert({post_id:pid,user_id:ME.id,option_idx:parseInt(b.getAttribute('data-vote'),10)}).then(function(){ reloadInto(wrap,pid); }); };
     });
@@ -5552,7 +5561,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     var s=sb();
     Promise.all([
       s.from('community_posts').select('*').eq('id',pid).maybeSingle(),
-      s.from('community_likes').select('post_id,user_id').eq('post_id',pid),
+      s.from('community_likes').select('post_id,user_id,emoji').eq('post_id',pid),
       s.from('community_comments').select('*').eq('post_id',pid).order('created_at',{ascending:true}),
       s.from('community_poll_votes').select('post_id,option_idx,user_id').eq('post_id',pid)
     ]).then(function(r){
@@ -5578,7 +5587,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       return s.from('profiles').select('role,full_name,first_name,last_name,avatar_url').eq('id',u.id).maybeSingle().then(function(r){
         PROF=r.data||{};
         ADMIN=(PROF.role==='admin');
-        (function wait(){ if(mount()){ load(); return; } if(++tries>120) return; setTimeout(wait,300); })();
+        (function wait(){ if(mount()){ load(); setInterval(mount, 2000); return; } if(++tries>120) return; setTimeout(wait,300); })();
       });
     }).catch(function(){ if(tries++<40) setTimeout(boot,1800); });
   }
