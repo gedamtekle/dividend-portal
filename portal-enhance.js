@@ -4456,7 +4456,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   'use strict';
   if(window.__dsPhotoVerify) return; window.__dsPhotoVerify=true;
   var CACHE={key:null, person:null};
-  function getPhoto(){ try{ return (0,eval)('typeof avatarData!=="undefined" ? avatarData : null'); }catch(e){ return null; } }
+  function getPhoto(){ try{ if(window._avatarData) return window._avatarData; return (0,eval)('typeof avatarData!=="undefined" ? avatarData : null'); }catch(e){ return window._avatarData||null; } }
   function note(msg, ok){
     var card=document.querySelector('.authcard'); if(!card) return;
     var el=document.getElementById('ds-pv-note');
