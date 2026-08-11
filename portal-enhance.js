@@ -3172,7 +3172,8 @@ async function search(root){
   var t1=hm(root.querySelector('#ds-fi-t1').value),t2=hm(root.querySelector('#ds-fi-t2').value);
   if(!type&&!kw){msg.style.color='#c0392b';msg.textContent='Pick a business type or enter a keyword.';return;}
   if(root.__nomap&&!kw){msg.style.color='#c0392b';msg.textContent='Map not set up yet - enter a keyword to search.';return;}
-  var payload={included_type:type,keyword:kw,open_days:days};
+  var excl=((root.querySelector('#ds-fi-excl')||{}).value||'').split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean).slice(0,8);
+  var payload={included_type:type,keyword:kw,open_days:days,exclude:excl};
   if(t1!=null&&t2!=null){payload.time_start=t1;payload.time_end=t2;}
   if(!root.__nomap&&circle){var c=circle.getCenter();payload.lat=c.lat();payload.lng=c.lng();payload.radius=circle.getRadius();payload.city=root.__city||(root.querySelector('#ds-fi-place').value||'');}
   var topt=root.querySelector('#ds-fi-type').selectedOptions[0];var typeLabel=topt?topt.textContent:'';
@@ -3185,12 +3186,50 @@ async function search(root){
     else if(res.error==='places_not_configured'){msg.style.color='#c0392b';msg.textContent='Places API key not set up yet.';}
     else if(res.error==='need_location_or_keyword'){msg.style.color='#c0392b';msg.textContent='Set a location on the map or enter a keyword.';}
     else if(!res.ok){msg.style.color='#c0392b';msg.textContent='Search failed: '+esc(res.detail||res.error||'unknown');}
-    else{var list=res.results||[];root.__rows=list;if(!list.length){msg.textContent=res.note||'No results.';}root.querySelector('#ds-fi-results').innerHTML=list.map(resultCard).join('');loadHistory(root);}
+    else{var list=res.results||[];root.__rows=list;root.__basePayload=payload;root.__nextToken=res.next_page_token||null;root.__historyId=res.history_id||null;root.__lastRadius=res.radius_m||payload.radius||null;root.__exhausted=false;if(!list.length){msg.textContent=res.note||'No results.';}root.querySelector('#ds-fi-results').innerHTML=list.map(resultCard).join('');renderMore(root);loadHistory(root);}
   }catch(e){msg.style.color='#c0392b';msg.textContent='Search error. Please try again.';}
   go.disabled=false;go.textContent='Search (1 credit)';refreshBal(root);
 }
+function renderMore(root){
+  var res=root.querySelector('#ds-fi-results');
+  var old=root.querySelector('#ds-fi-more-bar'); if(old) old.remove();
+  if(!root.__rows||!root.__rows.length||root.__exhausted) return;
+  var canToken=!!root.__nextToken;
+  var canRing=!root.__nomap&&!!root.__lastRadius&&root.__lastRadius<50000;
+  if(!canToken&&!canRing) return;
+  var bar=document.createElement('div'); bar.id='ds-fi-more-bar'; bar.style.cssText='margin:12px 0;text-align:center';
+  bar.innerHTML='<button class="btn secondary" id="ds-fi-more" style="padding:8px 18px">Find more (1 credit)</button><div class="small mut" id="ds-fi-more-msg" style="margin-top:5px"></div>';
+  res.parentElement.insertBefore(bar, res.nextSibling);
+  bar.querySelector('#ds-fi-more').onclick=function(){ loadMore(root,this); };
+}
+async function loadMore(root,btn){
+  btn.disabled=true;btn.textContent='Searching...';
+  var note='';
+  try{
+    var p={};var bp=root.__basePayload||{};for(var k in bp){p[k]=bp[k];}
+    p.seen_ids=(root.__rows||[]).map(function(r){return r.place_id;}).filter(Boolean).slice(0,400);
+    if(root.__historyId) p.history_id=root.__historyId;
+    p.more=true;
+    if(root.__nextToken){ p.page_token=root.__nextToken; }
+    else{ p.expand_radius=Math.min((root.__lastRadius||8000)*2,50000); }
+    var res=await call('places-search',p);
+    if(res.error==='insufficient_credits'){ note='Not enough credits (needs '+(res.cost||1)+').'; }
+    else if(!res.ok){ note='Could not load more: '+esc(res.detail||res.error||'unknown'); }
+    else{
+      var add=res.results||[];
+      root.__nextToken=res.next_page_token||null;
+      if(res.radius_m) root.__lastRadius=res.radius_m;
+      if(!add.length){ note=res.note||'No more new results for this search.'; if(!root.__nextToken&&root.__lastRadius>=50000) root.__exhausted=true; }
+      else{ root.__rows=(root.__rows||[]).concat(add); root.querySelector('#ds-fi-results').innerHTML=root.__rows.map(resultCard).join(''); note='Added '+add.length+' more - '+root.__rows.length+' total.'; }
+    }
+  }catch(e){ note='Could not load more - try again.'; }
+  renderMore(root);
+  var mm=root.querySelector('#ds-fi-more-msg');
+  if(mm) mm.textContent=note; else if(note){ var m2=root.querySelector('#ds-fi-msg'); if(m2) m2.textContent=note; }
+  refreshBal(root);
+}
 function newSearch(root){
-  root.querySelector('#ds-fi-results').innerHTML='';root.querySelector('#ds-fi-kw').value='';
+  root.querySelector('#ds-fi-results').innerHTML='';root.querySelector('#ds-fi-kw').value='';var ex=root.querySelector('#ds-fi-excl');if(ex)ex.value='';var mb=root.querySelector('#ds-fi-more-bar');if(mb)mb.remove();root.__nextToken=null;root.__exhausted=false;
   [].slice.call(root.querySelectorAll('#ds-fi-days input')).forEach(function(c){c.checked=false;});
   root.querySelector('#ds-fi-t1').value='';root.querySelector('#ds-fi-t2').value='';
   root.__rows=[];var m=root.querySelector('#ds-fi-msg');m.style.color='';m.textContent='';toast('Cleared - history kept below.');
@@ -3205,6 +3244,7 @@ var UI='<div class="wrap" style="max-width:1000px">'
   +'<div style="display:flex;gap:6px"><input id="ds-fi-place" class="field" placeholder="City or ZIP (e.g. Atlanta, GA)" style="flex:1"><button id="ds-fi-loc" class="btn">Go</button></div>'
   +'<select id="ds-fi-type" class="field"></select>'
   +'<input id="ds-fi-kw" class="field" placeholder="Optional keyword (e.g. package store)">'
+  +'<input id="ds-fi-excl" class="field" placeholder="Exclude keywords (comma separated, e.g. whole foods, walmart)">'
   +'<div><div class="small mut" style="margin-bottom:3px">Radius: <b id="ds-fi-rlabel">5.0 mi</b></div><input id="ds-fi-radius" type="range" min="0.5" max="30" step="0.5" value="5" style="width:100%"></div>'
   +'<div><div class="small mut" style="margin-bottom:3px">Open on days</div><div id="ds-fi-days" style="display:flex;gap:4px;flex-wrap:wrap"></div></div>'
   +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="small mut">Open between</span><input id="ds-fi-t1" type="time" class="field" style="width:120px"><span class="small mut">and</span><input id="ds-fi-t2" type="time" class="field" style="width:120px"></div>'
