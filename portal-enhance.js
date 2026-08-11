@@ -5663,3 +5663,75 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   function wire(card){ var a=document.querySelector('#ds-eotp-link a'); if(a) a.onclick=function(ev){ ev.preventDefault(); start(card); }; }
   setInterval(ensure, 1000); ensure();
 })();
+
+
+/* ------------------------------------------------------------------ *
+ *  67) __dsLeadExport - "Export leads" on the Location Finder.
+ *      Downloads the current results (with any of the client's
+ *      completed enrichments merged in server-side) as CSV, Excel
+ *      (XLSX) or PDF via the leads-export edge function.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsLeadExport) return; window.__dsLeadExport=true;
+  var FN='https://dehttbxrkeqhsfkfpfwt.supabase.co/functions/v1/leads-export';
+  function sb(){ return window.__dsSB; }
+  function findRoot(){
+    var res=document.getElementById('ds-fi-results');
+    if(!res) return null;
+    var n=res;
+    while(n && n!==document.body){ if(n.__rows) return n; n=n.parentElement; }
+    return null;
+  }
+  function rowsNow(){ var r=findRoot(); return (r&&r.__rows)||[]; }
+  function ensureBar(){
+    var res=document.getElementById('ds-fi-results');
+    if(!res){ return; }
+    var bar=document.getElementById('ds-le-bar');
+    if(!bar){
+      bar=document.createElement('div');
+      bar.id='ds-le-bar';
+      bar.style.cssText='display:flex;gap:8px;align-items:center;margin:10px 0;flex-wrap:wrap';
+      bar.innerHTML='<span style="font-size:12.5px;font-weight:700">Export leads:</span>'
+        +'<button class="btn secondary" data-fmt="csv" style="padding:6px 13px;font-size:12.5px">CSV</button>'
+        +'<button class="btn secondary" data-fmt="xlsx" style="padding:6px 13px;font-size:12.5px">Excel</button>'
+        +'<button class="btn secondary" data-fmt="pdf" style="padding:6px 13px;font-size:12.5px">PDF</button>'
+        +'<span id="ds-le-msg" class="small mut" style="font-size:12px"></span>';
+      res.parentElement.insertBefore(bar, res);
+      bar.addEventListener('click', function(ev){
+        var b=ev.target.closest('[data-fmt]'); if(!b) return;
+        doExport(b.getAttribute('data-fmt'), b);
+      });
+    }
+    var has=rowsNow().length>0;
+    [].forEach.call(bar.querySelectorAll('[data-fmt]'), function(b){ b.disabled=!has; b.style.opacity=has?'1':'.45'; });
+    var msg=document.getElementById('ds-le-msg');
+    if(msg && !msg.__busy) msg.textContent=has?(rowsNow().length+' leads ready'):'Run a search first';
+  }
+  function doExport(fmt, btn){
+    var rows=rowsNow();
+    var msg=document.getElementById('ds-le-msg');
+    if(!rows.length){ if(msg) msg.textContent='Run a search first'; return; }
+    btn.disabled=true; var old=btn.textContent; btn.textContent='Preparing\u2026';
+    if(msg){ msg.__busy=true; msg.textContent='Building your file\u2026'; }
+    sb().auth.getSession().then(function(g){
+      var tok=g.data.session.access_token;
+      return fetch(FN,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({rows:rows,format:fmt,label:'Location Finder export'})});
+    }).then(function(r){
+      if(!r.ok) throw new Error('export_'+r.status);
+      var cd=r.headers.get('Content-Disposition')||'';
+      var m=cd.match(/filename="([^"]+)"/);
+      var name=m?m[1]:('leads.'+fmt);
+      return r.blob().then(function(blob){
+        var a=document.createElement('a');
+        a.href=URL.createObjectURL(blob); a.download=name;
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        if(msg){ msg.textContent='Downloaded '+name; setTimeout(function(){ msg.__busy=false; ensureBar(); }, 4000); }
+      });
+    }).catch(function(){
+      if(msg){ msg.textContent='Export failed \u2014 try again.'; setTimeout(function(){ msg.__busy=false; ensureBar(); }, 4000); }
+    }).then(function(){ btn.disabled=false; btn.textContent=old; });
+  }
+  setInterval(ensureBar, 1200);
+})();
