@@ -5775,3 +5775,134 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(ensureBar, 1200);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ *  68) __dsEnrichTab - "Enriched leads" subtab on the Location Finder.
+ *      Browse, sort and filter every completed enrichment; export the
+ *      full set to CSV / Excel / PDF with properly mapped columns.
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsEnrichTab) return; window.__dsEnrichTab=true;
+  var FN='https://dehttbxrkeqhsfkfpfwt.supabase.co/functions/v1/leads-export';
+  var JOBS=null, SORT='new', FILTER='';
+  function sb(){ return window.__dsSB; }
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function fmtD(s){ try{ return new Date(s).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return ''; } }
+
+  function mount(){
+    var inner=document.getElementById('scouterInner');
+    if(!inner||document.getElementById('ds-en-tabs')) return !!document.getElementById('ds-en-tabs');
+    var bar=document.createElement('div');
+    bar.id='ds-en-tabs';
+    bar.style.cssText='display:flex;gap:8px;margin-bottom:14px';
+    bar.innerHTML='<button class="btn" id="ds-en-tab-search" style="padding:7px 16px;font-size:13px">Lead search</button>'
+      +'<button class="btn secondary" id="ds-en-tab-enr" style="padding:7px 16px;font-size:13px">Enriched leads<span id="ds-en-count" style="margin-left:6px;background:#F2B33D;color:#1d1503;border-radius:20px;padding:1px 8px;font-size:11px;font-weight:800">\u2026</span></button>';
+    inner.insertBefore(bar, inner.firstChild);
+    var panel=document.createElement('div');
+    panel.id='ds-en-panel'; panel.style.display='none';
+    panel.innerHTML='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">'
+      +'<select id="ds-en-sort" class="field" style="width:auto"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="name">Name A\u2013Z</option><option value="state">State</option></select>'
+      +'<input id="ds-en-filter" class="field" placeholder="Filter by name\u2026" style="width:180px" />'
+      +'<span style="flex:1"></span>'
+      +'<span style="font-size:12.5px;font-weight:700">Export:</span>'
+      +'<button class="btn secondary" data-enfmt="csv" style="padding:6px 13px;font-size:12.5px">CSV</button>'
+      +'<button class="btn secondary" data-enfmt="xlsx" style="padding:6px 13px;font-size:12.5px">Excel</button>'
+      +'<button class="btn secondary" data-enfmt="pdf" style="padding:6px 13px;font-size:12.5px">PDF</button>'
+      +'<span id="ds-en-msg" class="small mut" style="font-size:12px"></span>'
+      +'</div><div id="ds-en-list" class="small mut">Loading\u2026</div>';
+    inner.insertBefore(panel, bar.nextSibling);
+    function others(){ return [].slice.call(inner.children).filter(function(c){ return c!==bar&&c!==panel; }); }
+    function showSearch(){ panel.style.display='none'; others().forEach(function(c){ c.style.display=''; });
+      document.getElementById('ds-en-tab-search').className='btn'; document.getElementById('ds-en-tab-enr').className='btn secondary'; }
+    function showEnr(){ others().forEach(function(c){ c.style.display='none'; }); panel.style.display='';
+      document.getElementById('ds-en-tab-search').className='btn secondary'; document.getElementById('ds-en-tab-enr').className='btn';
+      load(); }
+    document.getElementById('ds-en-tab-search').onclick=showSearch;
+    document.getElementById('ds-en-tab-enr').onclick=showEnr;
+    document.getElementById('ds-en-sort').onchange=function(){ SORT=this.value; render(); };
+    document.getElementById('ds-en-filter').oninput=function(){ FILTER=this.value; render(); };
+    panel.addEventListener('click', function(ev){
+      var b=ev.target.closest('[data-enfmt]'); if(b) doExport(b.getAttribute('data-enfmt'), b);
+      var t=ev.target.closest('[data-entog]');
+      if(t){ var d=document.getElementById('ds-en-det-'+t.getAttribute('data-entog')); if(d){ d.style.display=d.style.display==='none'?'':'none'; t.textContent=d.style.display==='none'?'Show details':'Hide details'; } }
+    });
+    refreshCount();
+    return true;
+  }
+  function refreshCount(){
+    var s=sb(); if(!s) return;
+    s.from('enrichment_jobs').select('id',{count:'exact',head:true}).eq('status','done').then(function(r){
+      var el2=document.getElementById('ds-en-count'); if(el2) el2.textContent=String(r.count==null?'0':r.count);
+    }).catch(function(){});
+  }
+  function load(){
+    var s=sb(); if(!s) return;
+    s.from('enrichment_jobs').select('business_name,state,created_at,result').eq('status','done').order('created_at',{ascending:false}).limit(500).then(function(r){
+      JOBS=r.data||[]; render(); refreshCount();
+    }).catch(function(){ var l=document.getElementById('ds-en-list'); if(l) l.textContent='Could not load enrichments.'; });
+  }
+  function sorted(){
+    var list=(JOBS||[]).slice();
+    var q=FILTER.trim().toLowerCase();
+    if(q) list=list.filter(function(j){ return String(j.business_name||'').toLowerCase().indexOf(q)>-1; });
+    if(SORT==='old') list.reverse();
+    if(SORT==='name') list.sort(function(a,b){ return String(a.business_name||'').localeCompare(String(b.business_name||'')); });
+    if(SORT==='state') list.sort(function(a,b){ return String(a.state||'').localeCompare(String(b.state||''))||String(a.business_name||'').localeCompare(String(b.business_name||'')); });
+    return list;
+  }
+  function render(){
+    var host=document.getElementById('ds-en-list'); if(!host) return;
+    var list=sorted();
+    if(!list.length){ host.innerHTML='<div class="card" style="padding:16px;font-size:13.5px">No enriched leads yet'+(FILTER?' for \u201c'+esc(FILTER)+'\u201d':'')+'. Run Enrich on a search result to build your list.</div>'; return; }
+    host.innerHTML=list.map(function(j,i){
+      var r=j.result||{};
+      var found=!!r.found;
+      var chip=found?('<span style="font-size:10.5px;font-weight:700;background:'+(String(r.status||'').toUpperCase()==='ACTIVE'?'#E8F6EC;color:#1D7A38':'#F5F0E2;color:#8a6510')+';border-radius:20px;padding:2px 9px">'+esc(r.status||'FOUND')+'</span>')
+        :'<span style="font-size:10.5px;font-weight:700;background:#FDECEC;color:#B42318;border-radius:20px;padding:2px 9px">NO RECORDS</span>';
+      var det='';
+      if(found){
+        var rows=[['Legal name',r.legal_name],['Business type',r.business_type],['Company #',r.company_number],['Address',r.address],['Incorporated',r.incorporation_date],['Registered agent',r.registered_agent]];
+        det+=rows.filter(function(x){return x[1];}).map(function(x){ return '<div style="font-size:12.5px;margin-top:3px"><span class="mut">'+esc(x[0])+':</span> '+esc(x[1])+'</div>'; }).join('');
+        if(Array.isArray(r.officers)&&r.officers.length) det+='<div style="font-size:12.5px;margin-top:3px"><span class="mut">Officers:</span> '+esc(r.officers.map(function(o){ return [o.name,o.title].filter(Boolean).join(' - '); }).join('; '))+'</div>';
+        if(Array.isArray(r.licenses)&&r.licenses.length) det+='<div style="font-size:12.5px;margin-top:3px"><span class="mut">Licenses:</span> '+esc(r.licenses.map(function(l){ return [l.type,l.number?('#'+l.number):'',l.status].filter(Boolean).join(' '); }).join('; '))+'</div>';
+      }
+      if(r.notes||r.note) det+='<div style="font-size:12px;color:#6B7280;margin-top:6px">'+esc(r.notes||r.note)+'</div>';
+      if(Array.isArray(r.sources)&&r.sources.length) det+='<div style="font-size:12px;margin-top:6px">'+r.sources.slice(0,4).map(function(u2,k){ return '<a href="'+esc(u2)+'" target="_blank" rel="noopener" style="margin-right:10px">Source '+(k+1)+'</a>'; }).join('')+'</div>';
+      return '<div class="card" style="padding:14px 16px;margin-bottom:10px">'
+        +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+        +'<b style="font-size:14.5px">'+esc(j.business_name)+'</b>'
+        +(j.state?'<span class="mut" style="font-size:12px">'+esc(j.state)+'</span>':'')
+        +chip
+        +'<span class="mut" style="font-size:12px">\u00b7 '+fmtD(j.created_at)+'</span>'
+        +'<span style="flex:1"></span>'
+        +(det?'<a href="#" data-entog="'+i+'" onclick="return false" style="font-size:12px;color:#6B7280">Show details</a>':'')
+        +'</div>'
+        +(det?'<div id="ds-en-det-'+i+'" style="display:none;margin-top:8px;border-top:1px solid #F0F1F5;padding-top:8px">'+det+'</div>':'')
+        +'</div>';
+    }).join('');
+  }
+  function doExport(fmt, btn){
+    var msg=document.getElementById('ds-en-msg');
+    btn.disabled=true; var old=btn.textContent; btn.textContent='\u2026';
+    if(msg) msg.textContent='Building your file\u2026';
+    sb().auth.getSession().then(function(g){
+      return fetch(FN,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+g.data.session.access_token},body:JSON.stringify({mode:'enrichments',format:fmt})});
+    }).then(function(r){
+      if(!r.ok) throw new Error('export_'+r.status);
+      var cd=r.headers.get('Content-Disposition')||'';
+      var m=cd.match(/filename="([^"]+)"/);
+      var name=m?m[1]:('enriched-leads.'+fmt);
+      return r.blob().then(function(blob){
+        var a=document.createElement('a');
+        a.href=URL.createObjectURL(blob); a.download=name;
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        if(msg) msg.textContent='Downloaded '+name;
+      });
+    }).catch(function(){ if(msg) msg.textContent='Export failed \u2014 nothing enriched yet?'; })
+    .then(function(){ btn.disabled=false; btn.textContent=old; });
+  }
+  setInterval(mount, 1500);
+})();
