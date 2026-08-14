@@ -5140,6 +5140,18 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   function myName(){ return (((PROF&&PROF.first_name)||'')+' '+((PROF&&PROF.last_name)||'')).trim()||((PROF&&PROF.full_name)||'Member'); }
   function vidThumb(embed){ var m=String(embed||'').match(/embed\/\d+\/([a-f0-9-]{20,})/i); return m?('https://'+CDN+'/'+m[1]+'/thumbnail.jpg'):null; }
+  function ic(n,s){ s=s||14; var d={
+    heart:'M20.8 4.6c-1.9-1.9-5-1.9-6.9 0L12 5.5l-1.9-0.9c-1.9-1.9-5-1.9-6.9 0-1.9 1.9-1.9 5 0 6.9l8.8 8.8 8.8-8.8c1.9-1.9 1.9-5 0-6.9z',
+    comment:'M21 11.5c0 4.1-4 7.5-9 7.5-1 0-2-.1-2.9-.4L3 21l1.6-4.1C3.6 15.6 3 13.6 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z',
+    camera:'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+    video:'M23 7l-7 5 7 5V7z M14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z',
+    clip:'M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48',
+    book:'M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z',
+    play:'M5 3l14 9-14 9V3z',
+    chart:'M18 20V10 M12 20V4 M6 20v-6'
+  }[n]||'';
+    return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="'+d+'"/></svg>';
+  }
 
   var css=document.createElement('style');
   css.textContent='.screen.active{display:block}'
@@ -5170,6 +5182,13 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     +'#community input[type=text],#community select{padding:9px 11px;border:1px solid #E2E5EC;border-radius:9px;font-size:13.5px;box-sizing:border-box;background:#fff}'
     +'.cmv-navdot{display:inline-block;min-width:17px;height:17px;border-radius:9px;background:#E5484D;color:#fff;font-size:10.5px;font-weight:800;text-align:center;line-height:17px;margin-left:8px;padding:0 4px}';
   document.head.appendChild(css);
+  var css2=document.createElement('style');
+  css2.textContent='#community .cmv-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}'
+    +'@media(max-width:920px){#community .cmv-grid{grid-template-columns:minmax(0,1fr)}#community .cmv-main{min-width:0;max-width:100%}#community .cmv-side{min-width:0}}'
+    +'#community .cmv-like.on{color:#B4232A}#community .cmv-like.on svg,#cmv-modal .cmv-like.on svg{fill:#B4232A;stroke:#B4232A}'
+    +'#cmv-modal .cmv-like.on{color:#B4232A}'
+    +'#community .cmv-fbrow{display:flex;border-top:1px solid #F0F1F5;margin-top:10px;padding-top:8px;color:#6B7280;font-size:12.5px;gap:18px;align-items:center}';
+  document.head.appendChild(css2);
 
   function activate(nav, sec){
     [].forEach.call(document.querySelectorAll('.screen'), function(s){ s.classList.remove('active'); s.classList.remove('show'); });
@@ -5189,13 +5208,20 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     if(!sec){
       sec=document.createElement('section');
       sec.className='screen'; sec.id='community';
-      sec.innerHTML='<div class="cmv-strip"><div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#F2B33D,#C99A2C);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#1d1503">DS</div>'
-        +'<div style="flex:1;min-width:200px"><div style="font-weight:800;font-size:16px">Dividend Shift Community</div>'
-        +'<div style="font-size:12.5px;opacity:.75">Announcements, wins and training from the team \u2014 members can comment and react.</div></div>'
-        +'<div id="cmv-stats" style="display:flex;gap:22px;text-align:center"></div></div>'
+      sec.innerHTML='<div class="cmv-grid"><div class="cmv-main">'
         +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px" id="cmv-controls"></div>'
         +'<div id="cm-admin"></div><div id="cm-mod"></div>'
-        +'<div id="cm-feed" class="muted" style="font-size:13px">Loading\u2026</div>';
+        +'<div id="cm-feed" class="muted" style="font-size:13px">Loading\u2026</div>'
+        +'</div><aside class="cmv-side"><div class="card" style="padding:0;overflow:hidden">'
+        +'<div style="height:64px;background:linear-gradient(120deg,#14161D,#232838)"></div>'
+        +'<div style="padding:0 16px 16px">'
+        +'<div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#F2B33D,#C99A2C);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#1d1503;margin-top:-26px;border:3px solid #fff">DS</div>'
+        +'<div style="font-weight:800;font-size:16px;margin-top:8px">Dividend Shift Community</div>'
+        +'<div class="muted" style="font-size:12.5px;margin-top:4px;line-height:1.5">Announcements, wins and training from the team. Private group \u00b7 members only.</div>'
+        +'<div id="cmv-stats" style="display:flex;gap:26px;margin-top:12px;text-align:center"></div>'
+        +'<div style="border-top:1px solid #F0F1F5;margin-top:12px;padding-top:10px;font-size:12.5px"><b>Admin</b>'
+        +'<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#F2B33D,#C99A2C);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center">DS</div><span>Dividend Shift Team</span></div></div>'
+        +'</div></div></aside></div>';
       screenParent.appendChild(sec);
       renderControls();
       sb().rpc('community_stats').then(function(r){
@@ -5255,7 +5281,14 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   /* ---------- composer ---------- */
   function composerHtml(){
     if(!ADMIN) return '';
-    if(!EDIT && !window.__cmvComposerOpen) return '<button class="btn" id="cmv-new" style="padding:10px 18px;margin-bottom:12px">+ New post</button>';
+    if(!EDIT && !window.__cmvComposerOpen) return '<div class="card" id="cmv-new" style="padding:12px 16px;margin-bottom:12px;cursor:pointer">'
+      +'<div style="display:flex;gap:10px;align-items:center">'+avatar((PROF&&PROF.avatar_url)||null,myName(),36)
+      +'<div style="flex:1;background:#F0F2F5;border-radius:20px;padding:10px 14px;color:#65676B;font-size:14px">Write something to the community\u2026</div></div>'
+      +'<div style="display:flex;border-top:1px solid #F0F1F5;margin-top:10px;padding-top:8px">'
+      +'<div style="flex:1;text-align:center;color:#45BD62;font-size:13px;font-weight:700">'+ic('camera')+' Photo</div>'
+      +'<div style="flex:1;text-align:center;color:#F02849;font-size:13px;font-weight:700">'+ic('video')+' Video</div>'
+      +'<div style="flex:1;text-align:center;color:#8a6510;font-size:13px;font-weight:700">'+ic('clip')+' File</div>'
+      +'</div></div>';
     var e=EDIT||{};
     var vids=(BUNNY||[]).map(function(v){ return '<option value="'+esc(v.id)+'">'+esc(v.t)+'</option>'; }).join('');
     return '<div class="cmv-card" style="cursor:default;border-color:#F2D9A0;background:#FFFDF6" id="cmv-composer">'
@@ -5270,10 +5303,10 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       +'</div>'
       +'<div contenteditable="true" id="cm-editor">'+(e.body_html||'')+'</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-      +'<button type="button" class="cmv-btn2" id="cm-add-photo">\uD83D\uDCF7 Photo</button>'
-      +'<button type="button" class="cmv-btn2" id="cm-add-video">\uD83C\uDFA5 Video</button>'
-      +'<button type="button" class="cmv-btn2" id="cm-add-file">\uD83D\uDCCE File</button>'
-      +'<button type="button" class="cmv-btn2" id="cm-add-lib">\uD83D\uDCDA From library</button>'
+      +'<button type="button" class="cmv-btn2" id="cm-add-photo" style="color:#45BD62">'+ic('camera')+' Photo</button>'
+      +'<button type="button" class="cmv-btn2" id="cm-add-video" style="color:#F02849">'+ic('video')+' Video</button>'
+      +'<button type="button" class="cmv-btn2" id="cm-add-file">'+ic('clip')+' File</button>'
+      +'<button type="button" class="cmv-btn2" id="cm-add-lib">'+ic('book')+' From library</button>'
       +'</div>'
       +'<input type="file" id="cm-imgs" accept="image/*" multiple style="display:none" />'
       +'<input type="file" id="cm-vidfile" accept="video/*" style="display:none" />'
@@ -5316,7 +5349,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     function renderStage(){
       var s2=host.querySelector('#cm-stage'); if(!s2) return;
       s2.innerHTML=(window.__cmvStage||[]).map(function(a,i2){
-        var label=a.kind==='image'?('\uD83D\uDCF7 '+a.name):(a.kind==='file'?('\uD83D\uDCCE '+a.name):('\uD83C\uDFA5 '+a.name+(a.failed?'':(a.done?' \u2713':(' \u2014 '+(a.pct||0)+'%')))));
+        var label=a.kind==='image'?('Photo: '+a.name):(a.kind==='file'?('File: '+a.name):('Video: '+a.name+(a.failed?'':(a.done?' \u2713':(' \u2014 '+(a.pct||0)+'%')))));
         return '<span style="font-size:12px;background:#F0F1F5;border-radius:16px;padding:4px 10px;display:inline-flex;gap:6px;align-items:center">'+esc(label)+((a.kind!=='video'||a.done||a.failed)?'<a href="#" data-unstage="'+i2+'" style="text-decoration:none;color:#B4232A">\u00d7</a>':'')+'</span>';
       }).join('');
     }
@@ -5523,7 +5556,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
         +'<span style="font-weight:700;color:#14161D">'+esc(p.author_name||'Dividend Shift')+'</span><span class="cmv-team">TEAM</span>'
         +'<span>\u00b7 '+when(p.created_at)+'</span>'
         +'<span class="cmv-chip">'+esc(catLabel(p.category||'announcements'))+'</span>'
-        +(p.pinned?'<span class="cmv-chip" style="background:#FFF3D6">\uD83D\uDCCC Pinned</span>':'')
+        +(p.pinned?'<span class="cmv-chip" style="background:#FFF3D6">PINNED</span>':'')
         +'</div>'
         +'<div style="display:flex;gap:14px;margin-top:10px">'
         +'<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:16.5px">'+esc(p.title)+'</div>'
@@ -5531,10 +5564,10 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
         +'</div>'
         +(thumb?'<img src="'+esc(thumb)+'" style="width:110px;height:74px;object-fit:cover;border-radius:10px;flex:none" loading="lazy" />':'')
         +'</div>'
-        +'<div style="display:flex;gap:14px;margin-top:10px;font-size:12.5px;color:#6B7280;align-items:center">'
-        +(function(){ var rx={}; c.likes.forEach(function(l){ var e=l.emoji||'\u2764'; rx[e]=(rx[e]||0)+1; }); var ks=Object.keys(rx).sort(function(a,b){ return rx[b]-rx[a]; }).slice(0,3).join(''); return '<span>'+(ks||'\u2764')+' '+c.likes.length+'</span><span>\uD83D\uDCAC '+c.cmts.length+'</span>'; })()
-        +(p.poll?'<span>\uD83D\uDCCA '+c.votes.length+' votes</span>':'')
-        +(vid?'<span>\u25B6 Video</span>':'')+(nFiles?'<span>\uD83D\uDCCE '+nFiles+'</span>':'')
+        +'<div class="cmv-fbrow">'
+        +'<span>'+ic('heart')+' '+c.likes.length+'</span><span>'+ic('comment')+' '+c.cmts.length+'</span>'
+        +(p.poll?'<span>'+ic('chart')+' '+c.votes.length+' votes</span>':'')
+        +(vid?'<span>'+ic('play')+' Video</span>':'')+(nFiles?'<span>'+ic('clip')+' '+nFiles+' file'+(nFiles===1?'':'s')+'</span>':'')
         +'</div></div>';
     }).join('');
     feed.onclick=function(ev){
@@ -5557,7 +5590,6 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     var p=POSTS.filter(function(x){ return x.id===pid; })[0]; if(!p){ closeModal(); return; }
     var c=counts(pid);
     var myR=c.likes.filter(function(l){ return l.user_id===ME.id; })[0];
-    var EMO=['\uD83D\uDC4D','\u2764','\uD83D\uDD25','\uD83C\uDF89','\uD83D\uDCAF'];
     var media=Array.isArray(p.media)?p.media:[];
     var imgs=media.filter(function(m){ return m.type==='image'; }).map(function(m){ return '<img src="'+esc(m.url)+'" loading="lazy" />'; }).join('');
     var vids=media.filter(function(m){ return m.type==='video'; }).map(function(m){ return '<div class="vid"><iframe src="'+esc(m.embed)+'" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe></div>'; }).join('');
@@ -5567,7 +5599,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     if(p.poll&&p.poll.question){
       var total=pv.length;
       pollHtml='<div style="margin-top:14px;border:1px solid #EDE3C8;background:#FFFDF6;border-radius:12px;padding:14px">'
-        +'<b style="font-size:14px">\uD83D\uDCCA '+esc(p.poll.question)+'</b>'
+        +'<b style="font-size:14px">'+esc(p.poll.question)+'</b>'
         +(p.poll.options||[]).map(function(o,i){
           var n=pv.filter(function(v){ return v.option_idx===i; }).length;
           var pct=total?Math.round(n*100/total):0;
@@ -5576,19 +5608,19 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
         }).join('')
         +'<div class="muted" style="font-size:11.5px;margin-top:6px">'+total+' vote'+(total===1?'':'s')+'</div></div>';
     }
-    var thread=CMTS.filter(function(x){ return x.post_id===pid && (x.status==='approved'||x.author_id===ME.id); });
+    var thread=CMTS.filter(function(x){ return x.post_id===pid && x.status==='approved'; });
     var tops=thread.filter(function(x){ return !x.parent_id; });
     function cHtml(x, isReply){
       var cl=CLIKES.filter(function(l){ return l.comment_id===x.id; });
       var myCl=cl.some(function(l){ return l.user_id===ME.id; });
-      var pendTag=x.status!=='approved'?' \u00b7 <span style="color:#9A6A00">awaiting approval</span>':'';
+      var pendTag='';
       var kids=isReply?[]:thread.filter(function(k){ return k.parent_id===x.id; });
       return '<div class="cmt'+(isReply?' rep':'')+'">'
         +'<div style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:#6B7280">'+avatar(x.author_avatar,x.author_name,26)
         +'<b style="color:#14161D">'+esc(x.author_name||'Client')+'</b><span>\u00b7 '+when(x.created_at)+pendTag+'</span></div>'
         +'<div style="margin:5px 0 6px;padding-left:34px">'+esc(x.body)+'</div>'
         +'<div style="padding-left:34px;display:flex;gap:12px;align-items:center;font-size:12px">'
-        +(x.status==='approved'?'<span class="cmv-like'+(myCl?' on':'')+'" data-clike="'+x.id+'" data-on="'+(myCl?'1':'0')+'">\u2764 '+cl.length+'</span>':'')
+        +(x.status==='approved'?'<span class="cmv-like'+(myCl?' on':'')+'" data-clike="'+x.id+'" data-on="'+(myCl?'1':'0')+'">'+ic('heart',12)+(cl.length?' '+cl.length:'')+'</span>':'')
         +(!isReply&&x.status==='approved'?'<a href="#" data-reply="'+x.id+'" style="color:#6B7280">Reply</a>':'')
         +(ADMIN&&x.status==='approved'?'<a href="#" data-cdel="'+x.id+'" style="color:#B4232A">Delete</a>':'')
         +'</div>'
@@ -5609,20 +5641,17 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       +'<div class="body">'+(p.body_html||'')+'</div>'
       +'<div class="imgs">'+imgs+'</div>'+vids+(docsH?'<div>'+docsH+'</div>':'')+pollHtml
       +'<div style="display:flex;gap:12px;align-items:center;margin-top:16px">'
-      +EMO.map(function(e){ var n=c.likes.filter(function(l){ return (l.emoji||'\u2764')===e; }).length; return '<span class="cmv-like'+(myR&&(myR.emoji||'\u2764')===e?' on':'')+'" data-rx="'+e+'">'+e+(n?' '+n:'')+'</span>'; }).join('')
+      +'<span class="cmv-like'+(myR?' on':'')+'" data-rx="like">'+ic('heart')+' Like'+(c.likes.length?' \u00b7 '+c.likes.length:'')+'</span>'
       +'<span class="muted" style="font-size:12.5px">'+c.cmts.length+' comments</span></div>'
       +tops.map(function(x){ return cHtml(x,false); }).join('')
       +'<div style="display:flex;gap:8px;margin-top:16px">'
-      +'<input type="text" id="cmv-cbox" placeholder="Write a comment (visible after approval)\u2026" style="flex:1;padding:10px;border:1px solid #E2E5EC;border-radius:9px;font-size:13.5px" />'
+      +'<input type="text" id="cmv-cbox" placeholder="Write a comment\u2026" style="flex:1;padding:10px;border:1px solid #E2E5EC;border-radius:9px;font-size:13.5px" />'
       +'<button class="btn" id="cmv-csend" style="padding:9px 16px;font-size:13px">Comment</button>'
       +'</div></div>';
     wrap.querySelector('[data-close]').onclick=function(ev){ ev.preventDefault(); closeModal(); };
     wrap.querySelectorAll('[data-rx]').forEach(function(rb){
       rb.onclick=function(){
-        var e=rb.getAttribute('data-rx'); var q;
-        if(myR&&(myR.emoji||'\u2764')===e) q=sb().from('community_likes').delete().eq('post_id',pid).eq('user_id',ME.id);
-        else if(myR) q=sb().from('community_likes').update({emoji:e}).eq('post_id',pid).eq('user_id',ME.id);
-        else q=sb().from('community_likes').insert({post_id:pid,user_id:ME.id,emoji:e});
+        var q=myR?sb().from('community_likes').delete().eq('post_id',pid).eq('user_id',ME.id):sb().from('community_likes').insert({post_id:pid,user_id:ME.id,emoji:'like'});
         q.then(function(){ reloadInto(wrap,pid); });
       };
     });
@@ -5645,7 +5674,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
         host.innerHTML='<div style="display:flex;gap:8px;margin:8px 0 0 34px"><input type="text" placeholder="Reply\u2026" style="flex:1;padding:8px;border:1px solid #E2E5EC;border-radius:8px;font-size:13px" /><button class="btn secondary" style="padding:7px 12px;font-size:12px">Send</button></div>';
         host.querySelector('button').onclick=function(){
           var v=host.querySelector('input').value.trim(); if(!v) return;
-          sb().from('community_comments').insert({post_id:pid,author_id:ME.id,author_name:myName(),author_avatar:(PROF&&PROF.avatar_url)||null,body:v.slice(0,1000),parent_id:id}).then(function(){ reloadInto(wrap,pid); });
+          sb().from('community_comments').insert({status:ADMIN?'approved':'pending',post_id:pid,author_id:ME.id,author_name:myName(),author_avatar:(PROF&&PROF.avatar_url)||null,body:v.slice(0,1000),parent_id:id}).then(function(){ reloadInto(wrap,pid); });
         };
       };
     });
@@ -5656,7 +5685,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     send.onclick=function(){
       var box=wrap.querySelector('#cmv-cbox'); var v=(box.value||'').trim(); if(!v) return;
       send.disabled=true;
-      sb().from('community_comments').insert({post_id:pid,author_id:ME.id,author_name:myName(),author_avatar:(PROF&&PROF.avatar_url)||null,body:v.slice(0,1000)}).then(function(){ send.disabled=false; reloadInto(wrap,pid); });
+      sb().from('community_comments').insert({status:ADMIN?'approved':'pending',post_id:pid,author_id:ME.id,author_name:myName(),author_avatar:(PROF&&PROF.avatar_url)||null,body:v.slice(0,1000)}).then(function(){ send.disabled=false; reloadInto(wrap,pid); });
     };
     var ed=wrap.querySelector('[data-edit]');
     if(ed) ed.onclick=function(ev){ ev.preventDefault(); EDIT=p; window.__cmvComposerOpen=true; closeModal(); renderComposer(); loadBunny(); try{ document.getElementById('cmv-composer').scrollIntoView({block:'start'}); }catch(e){} };
@@ -6006,4 +6035,15 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     }
   }
   setInterval(ensure, 1500); ensure();
+})();
+
+/* ---- 70) __dsMobileFix: mobile overhang guards ---- */
+(function(){
+  if(window.__dsMobileFix) return; window.__dsMobileFix=1;
+  var st=document.createElement('style');
+  st.textContent='@media(max-width:880px){'
+    +'#team .card,#catadmin .card{max-width:100%;overflow-x:auto}'
+    +'.content{overflow-x:hidden}'
+    +'}';
+  document.head.appendChild(st);
 })();
