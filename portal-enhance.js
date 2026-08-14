@@ -5357,7 +5357,8 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       var cr=await sb().functions.invoke('bunny-upload',{body:{action:'create',title:title}});
       if(cr.error||!(cr.data&&cr.data.ok)) throw new Error('init');
       var d=cr.data;
-      var tus=await import('https://esm.sh/tus-js-client@4');
+      if(!window.tus){ await new Promise(function(res2,rej2){ var sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js'; sc.onload=res2; sc.onerror=rej2; document.head.appendChild(sc); }); }
+      var tus=window.tus;
       await new Promise(function(res,rej){
         var up2=new tus.Upload(f,{
           endpoint:'https://video.bunnycdn.com/tusupload',
