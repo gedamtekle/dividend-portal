@@ -5608,12 +5608,12 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
         }).join('')
         +'<div class="muted" style="font-size:11.5px;margin-top:6px">'+total+' vote'+(total===1?'':'s')+'</div></div>';
     }
-    var thread=CMTS.filter(function(x){ return x.post_id===pid && (x.status==='approved'||x.author_id===ME.id); });
+    var thread=CMTS.filter(function(x){ return x.post_id===pid && x.status==='approved'; });
     var tops=thread.filter(function(x){ return !x.parent_id; });
     function cHtml(x, isReply){
       var cl=CLIKES.filter(function(l){ return l.comment_id===x.id; });
       var myCl=cl.some(function(l){ return l.user_id===ME.id; });
-      var pendTag=x.status!=='approved'?' \u00b7 <span style="color:#9A6A00">awaiting approval</span>':'';
+      var pendTag='';
       var kids=isReply?[]:thread.filter(function(k){ return k.parent_id===x.id; });
       return '<div class="cmt'+(isReply?' rep':'')+'">'
         +'<div style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:#6B7280">'+avatar(x.author_avatar,x.author_name,26)
@@ -5645,7 +5645,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       +'<span class="muted" style="font-size:12.5px">'+c.cmts.length+' comments</span></div>'
       +tops.map(function(x){ return cHtml(x,false); }).join('')
       +'<div style="display:flex;gap:8px;margin-top:16px">'
-      +'<input type="text" id="cmv-cbox" placeholder="Write a comment (visible after approval)\u2026" style="flex:1;padding:10px;border:1px solid #E2E5EC;border-radius:9px;font-size:13.5px" />'
+      +'<input type="text" id="cmv-cbox" placeholder="Write a comment\u2026" style="flex:1;padding:10px;border:1px solid #E2E5EC;border-radius:9px;font-size:13.5px" />'
       +'<button class="btn" id="cmv-csend" style="padding:9px 16px;font-size:13px">Comment</button>'
       +'</div></div>';
     wrap.querySelector('[data-close]').onclick=function(ev){ ev.preventDefault(); closeModal(); };
@@ -5674,7 +5674,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
         host.innerHTML='<div style="display:flex;gap:8px;margin:8px 0 0 34px"><input type="text" placeholder="Reply\u2026" style="flex:1;padding:8px;border:1px solid #E2E5EC;border-radius:8px;font-size:13px" /><button class="btn secondary" style="padding:7px 12px;font-size:12px">Send</button></div>';
         host.querySelector('button').onclick=function(){
           var v=host.querySelector('input').value.trim(); if(!v) return;
-          sb().from('community_comments').insert({post_id:pid,author_id:ME.id,author_name:myName(),author_avatar:(PROF&&PROF.avatar_url)||null,body:v.slice(0,1000),parent_id:id}).then(function(){ reloadInto(wrap,pid); });
+          sb().from('community_comments').insert({status:ADMIN?'approved':'pending',post_id:pid,author_id:ME.id,author_name:myName(),author_avatar:(PROF&&PROF.avatar_url)||null,body:v.slice(0,1000),parent_id:id}).then(function(){ reloadInto(wrap,pid); });
         };
       };
     });
@@ -5685,7 +5685,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     send.onclick=function(){
       var box=wrap.querySelector('#cmv-cbox'); var v=(box.value||'').trim(); if(!v) return;
       send.disabled=true;
-      sb().from('community_comments').insert({post_id:pid,author_id:ME.id,author_name:myName(),author_avatar:(PROF&&PROF.avatar_url)||null,body:v.slice(0,1000)}).then(function(){ send.disabled=false; reloadInto(wrap,pid); });
+      sb().from('community_comments').insert({status:ADMIN?'approved':'pending',post_id:pid,author_id:ME.id,author_name:myName(),author_avatar:(PROF&&PROF.avatar_url)||null,body:v.slice(0,1000)}).then(function(){ send.disabled=false; reloadInto(wrap,pid); });
     };
     var ed=wrap.querySelector('[data-edit]');
     if(ed) ed.onclick=function(ev){ ev.preventDefault(); EDIT=p; window.__cmvComposerOpen=true; closeModal(); renderComposer(); loadBunny(); try{ document.getElementById('cmv-composer').scrollIntoView({block:'start'}); }catch(e){} };
