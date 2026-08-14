@@ -5184,7 +5184,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   document.head.appendChild(css);
   var css2=document.createElement('style');
   css2.textContent='#community .cmv-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}'
-    +'@media(max-width:920px){#community .cmv-grid{grid-template-columns:1fr}}'
+    +'@media(max-width:920px){#community .cmv-grid{grid-template-columns:minmax(0,1fr)}#community .cmv-main{min-width:0;max-width:100%}#community .cmv-side{min-width:0}}'
     +'#community .cmv-like.on{color:#B4232A}#community .cmv-like.on svg,#cmv-modal .cmv-like.on svg{fill:#B4232A;stroke:#B4232A}'
     +'#cmv-modal .cmv-like.on{color:#B4232A}'
     +'#community .cmv-fbrow{display:flex;border-top:1px solid #F0F1F5;margin-top:10px;padding-top:8px;color:#6B7280;font-size:12.5px;gap:18px;align-items:center}';
@@ -6035,4 +6035,15 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     }
   }
   setInterval(ensure, 1500); ensure();
+})();
+
+/* ---- 70) __dsMobileFix: mobile overhang guards ---- */
+(function(){
+  if(window.__dsMobileFix) return; window.__dsMobileFix=1;
+  var st=document.createElement('style');
+  st.textContent='@media(max-width:880px){'
+    +'#team .card,#catadmin .card{max-width:100%;overflow-x:auto}'
+    +'.content{overflow-x:hidden}'
+    +'}';
+  document.head.appendChild(st);
 })();
