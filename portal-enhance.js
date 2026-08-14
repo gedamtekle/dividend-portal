@@ -5906,3 +5906,36 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(mount, 1500);
 })();
+
+
+/* ------------------------------------------------------------------ *
+ *  69) __dsLegalFooter - Privacy Policy + Terms of Service links at
+ *      the bottom of every portal page (app + login card).
+ * ------------------------------------------------------------------ */
+(function(){
+  'use strict';
+  if(window.__dsLegalFooter) return; window.__dsLegalFooter=true;
+  function ensure(){
+    if(!document.getElementById('ds-legal-footer')){
+      var f=document.createElement('div');
+      f.id='ds-legal-footer';
+      f.style.cssText='text-align:center;padding:22px 14px 26px;font-size:11.5px;color:#8a94a6';
+      f.innerHTML='\u00a9 2026 Digital Residuals LLC d/b/a Dividend Shift \u00b7 '
+        +'<a href="/privacy" target="_blank" rel="noopener" style="color:#8a94a6;text-decoration:underline">Privacy Policy</a> \u00b7 '
+        +'<a href="/terms" target="_blank" rel="noopener" style="color:#8a94a6;text-decoration:underline">Terms of Service</a>'
+        +'<div style="margin-top:4px">Dividend Shift is not a payment processor, money transmitter, or financial institution. No outcome or income is guaranteed.</div>';
+      document.body.appendChild(f);
+    }
+    var card=document.querySelector('.authcard');
+    if(card && !document.getElementById('ds-legal-auth')){
+      var a=document.createElement('div');
+      a.id='ds-legal-auth';
+      a.style.cssText='margin-top:14px;text-align:center;font-size:11.5px;color:#8a94a6';
+      a.innerHTML='By signing in or creating an account you agree to our '
+        +'<a href="/terms" target="_blank" rel="noopener" style="color:#8a94a6;text-decoration:underline">Terms</a> and '
+        +'<a href="/privacy" target="_blank" rel="noopener" style="color:#8a94a6;text-decoration:underline">Privacy Policy</a>.';
+      card.appendChild(a);
+    }
+  }
+  setInterval(ensure, 1500); ensure();
+})();

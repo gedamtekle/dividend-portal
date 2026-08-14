@@ -2,6 +2,10 @@
   "rewrites": [
     { "source": "/register", "destination": "/index.html" },
     { "source": "/apply", "destination": "/apply.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/privacy/", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/terms/", "destination": "/terms.html" },
     { "source": "/apply/", "destination": "/apply.html" },
     { "source": "/status", "destination": "/status.html" },
     { "source": "/status/", "destination": "/status.html" },
