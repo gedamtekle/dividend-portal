@@ -6047,3 +6047,140 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     +'}';
   document.head.appendChild(st);
 })();
+
+/* ---- 71) __dsGhlDash: GHL-style admin dashboard ---- */
+(function(){
+  if(window.__dsGhlDash) return; window.__dsGhlDash=1;
+  var sb=function(){ return window.__dsSB; };
+  var css=document.createElement('style');
+  css.textContent='#ds-ghl{margin-bottom:20px}'
+    +'#ds-ghl .gcard{background:#fff;border:1px solid #E7E9F0;border-radius:10px;padding:16px 18px;min-width:0}'
+    +'#ds-ghl .gtitle{font-size:13.5px;font-weight:700;color:#1F2937;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}'
+    +'#ds-ghl .grow{display:grid;gap:14px;margin-bottom:14px}'
+    +'#ds-ghl .g3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}'
+    +'#ds-ghl .g2{grid-template-columns:repeat(auto-fit,minmax(310px,1fr))}'
+    +'#ds-ghl .gmut{color:#6B7280;font-size:12px}'
+    +'#ds-ghl .fbar{background:#EDF0F5;height:36px;border-radius:4px;display:flex;align-items:center;padding:0 10px;font-size:12.5px;color:#374151;min-width:56px}'
+    +'#ds-ghl select{padding:6px 10px;border:1px solid #E2E5EC;border-radius:8px;font-size:12.5px;background:#fff}'
+    +'#ds-ghl .gchip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700}'
+    +'#ds-ghl .glink{color:#1D4ED8;cursor:pointer;font-weight:600}'
+    +'#ds-ghl .trow{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F8;font-size:13px;align-items:center}';
+  document.head.appendChild(css);
+  var CLR={none:'#90CAF9',onb:'#2196F3',sca:'#1565C0',grey:'#E9EDF3',green:'#16A34A'};
+  function money(c){ return '$'+Math.round((c||0)/100).toLocaleString(); }
+  function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+  function donut(segs,center,sub){
+    var R=52,CIRC=2*Math.PI*R,sum=0; segs.forEach(function(s){ sum+=s.v; });
+    var parts='',off=0;
+    if(!sum){ parts='<circle cx="70" cy="70" r="'+R+'" fill="none" stroke="'+CLR.grey+'" stroke-width="14"/>'; }
+    else segs.forEach(function(s){ if(!s.v) return; var len=CIRC*s.v/sum;
+      parts+='<circle cx="70" cy="70" r="'+R+'" fill="none" stroke="'+s.c+'" stroke-width="14" stroke-dasharray="'+len+' '+(CIRC-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 70 70)"/>';
+      off+=len; });
+    var legend=segs.map(function(s){ return '<div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#374151;margin:3px 0"><span style="width:10px;height:10px;border-radius:3px;background:'+s.c+';display:inline-block"></span>'+esc(s.n)+' - '+s.v+'</div>'; }).join('');
+    return '<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">'
+      +'<div style="position:relative;width:140px;height:140px"><svg width="140" height="140">'+parts+'</svg>'
+      +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">'
+      +'<div style="font-size:24px;font-weight:800;color:#111827">'+center+'</div>'
+      +(sub?'<div class="gmut">'+sub+'</div>':'')+'</div></div>'
+      +'<div>'+legend+'</div></div>';
+  }
+  var DATA=null;
+  function load(){
+    var s=sb(); if(!s) return Promise.resolve();
+    return Promise.all([
+      s.from('profiles').select('id,full_name,first_name,last_name,stage,status,created_at').eq('role','client'),
+      s.from('reorders').select('id,client_id,total_cents,amount_total,status,paid_at,created_at,merchant_name,item_name,full_name,shipping_status'),
+      s.from('os_subscriptions').select('client_id,monthly_price_cents,status'),
+      s.from('intake_submissions').select('client_id,created_at'),
+      s.from('client_tasks').select('id,client_id,title,done,created_at'),
+      s.from('community_comments').select('id',{count:'exact',head:true}).eq('status','pending')
+    ]).then(function(r){
+      DATA={ clients:r[0].data||[], orders:r[1].data||[], subs:r[2].data||[], intake:r[3].data||[], tasks:r[4].data||[], pendCmts:r[5].count||0 };
+    });
+  }
+  function render(){
+    var host=document.getElementById('ds-ghl'); if(!host||!DATA) return;
+    var days=parseInt((document.getElementById('ghl-range')||{value:'30'}).value||'30',10);
+    var cut=days>0?Date.now()-days*864e5:0;
+    var cl=DATA.clients, inRange=function(t){ return !cut||(t&&new Date(t).getTime()>=cut); };
+    var stg=function(c){ return c.stage==='Scaling'?'sca':(c.stage==='Onboarding'?'onb':'none'); };
+    var nNone=0,nOnb=0,nSca=0;
+    cl.forEach(function(c){ var k=stg(c); if(k==='sca')nSca++; else if(k==='onb')nOnb++; else nNone++; });
+    var paid=DATA.orders.filter(function(o){ return (o.status==='paid'||o.status==='processing'||o.paid_at)&&inRange(o.paid_at||o.created_at); });
+    var rev=paid.reduce(function(a,o){ return a+(o.total_cents||Math.round((o.amount_total||0)*100)||0); },0);
+    var mrr=DATA.subs.filter(function(x){ return x.status==='active'; }).reduce(function(a,x){ return a+(x.monthly_price_cents||0); },0);
+    var scaIds={}; cl.forEach(function(c){ if(stg(c)==='sca') scaIds[c.id]=1; });
+    var wonRev=paid.filter(function(o){ return scaIds[o.client_id]; }).reduce(function(a,o){ return a+(o.total_cents||Math.round((o.amount_total||0)*100)||0); },0);
+    var convPct=cl.length?Math.round(nSca*100/cl.length):0;
+    var intakeIds={}; DATA.intake.forEach(function(i){ intakeIds[i.client_id]=1; });
+    var fCl=cut?cl.filter(function(c){ return inRange(c.created_at); }):cl;
+    var f1=fCl.length, f2=fCl.filter(function(c){ return intakeIds[c.id]; }).length,
+        f3=fCl.filter(function(c){ return stg(c)!=='none'; }).length, f4=fCl.filter(function(c){ return stg(c)==='sca'; }).length;
+    var steps=[['Signed up',f1],['Intake submitted',f2],['Onboarding',f3],['Scaling',f4]];
+    var funnel=steps.map(function(st,i){
+      var cum=f1?Math.round(st[1]*100/f1):0;
+      var prev=i?steps[i-1][1]:st[1]; var nxt=prev?Math.round(st[1]*100/prev):0;
+      var wpct=f1?Math.max(14,Math.round(st[1]*100/f1)):14;
+      return '<div style="display:grid;grid-template-columns:minmax(0,1fr) 74px 74px;gap:10px;align-items:center;margin-bottom:8px">'
+        +'<div class="fbar" style="width:'+wpct+'%">'+esc(st[0])+' &middot; '+st[1]+'</div>'
+        +'<div class="gmut" style="text-align:center">'+cum+'%</div>'
+        +'<div class="gmut" style="text-align:center">'+nxt+'%</div></div>';
+    }).join('');
+    var maxN=Math.max(nNone,nOnb,nSca,1);
+    var dist=[['Not started',nNone,CLR.none],['Onboarding',nOnb,CLR.onb],['Scaling',nSca,CLR.sca]].map(function(d){
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">'
+        +'<div class="gmut">'+d[1]+'</div>'
+        +'<div style="width:44px;height:'+Math.max(8,Math.round(d[1]*120/maxN))+'px;background:'+d[2]+';border-radius:5px 5px 0 0"></div>'
+        +'<div class="gmut">'+esc(d[0])+'</div></div>';
+    }).join('');
+    var names={}; cl.forEach(function(c){ names[c.id]=(((c.first_name||'')+' '+(c.last_name||'')).trim())||c.full_name||'Client'; });
+    var openTasks=DATA.tasks.filter(function(t){ return !t.done; }).slice(0,6).map(function(t){
+      return '<div class="trow"><span>'+esc(t.title)+'</span><span class="gmut">'+esc(names[t.client_id]||'')+'</span></div>'; }).join('');
+    var toShip=DATA.orders.filter(function(o){ return (o.status==='paid'||o.status==='processing')&&!o.shipping_status; }).slice(0,6).map(function(o){
+      return '<div class="trow"><span>Fulfill order - '+esc(o.item_name||o.merchant_name||'order')+'</span><span class="gmut">'+esc(o.full_name||names[o.client_id]||'')+'</span></div>'; }).join('');
+    var pendCl=cl.filter(function(c){ return c.status==='pending'; }).length;
+    function act(label,n,scr,color){
+      return '<div class="trow"><span>'+esc(label)+' <span class="gchip" style="background:'+color+';color:#fff">'+n+'</span></span>'
+        +'<span class="glink" data-go="'+scr+'">Open</span></div>';
+    }
+    host.innerHTML='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+      +'<select id="ghl-range"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="0">All time</option></select></div>'
+      +'<div class="grow g3">'
+      +'<div class="gcard"><div class="gtitle">Opportunity status<span class="gmut" style="font-weight:400">Clients</span></div>'
+      +donut([{n:'Not started',v:nNone,c:CLR.none},{n:'Onboarding',v:nOnb,c:CLR.onb},{n:'Scaling',v:nSca,c:CLR.sca}],String(cl.length),'clients')+'</div>'
+      +'<div class="gcard"><div class="gtitle">Opportunity value</div>'
+      +'<div style="font-size:26px;font-weight:800;color:#111827;margin:14px 0 4px">'+money(rev)+'</div>'
+      +'<div class="gmut">Order revenue in range</div>'
+      +'<div style="height:10px;background:#EDF0F5;border-radius:6px;margin:14px 0 6px"><div style="height:10px;border-radius:6px;background:#2196F3;width:'+(rev?100:2)+'%"></div></div>'
+      +'<div class="gmut">MRR (active memberships): <b style="color:#111827">'+money(mrr)+'</b></div></div>'
+      +'<div class="gcard"><div class="gtitle">Conversion rate</div>'
+      +donut([{n:'Scaling',v:nSca,c:CLR.green},{n:'Other',v:cl.length-nSca,c:CLR.grey}],convPct+'%','to Scaling')
+      +'<div class="gmut" style="margin-top:8px">Won revenue <b style="color:#111827">'+money(wonRev)+'</b></div></div>'
+      +'</div>'
+      +'<div class="grow g2">'
+      +'<div class="gcard"><div class="gtitle">Funnel<span class="gmut" style="font-weight:400">Client Ascension</span></div>'
+      +'<div style="display:grid;grid-template-columns:minmax(0,1fr) 74px 74px;gap:10px;margin-bottom:6px"><span></span><span class="gmut" style="text-align:center">Cumulative</span><span class="gmut" style="text-align:center">Next step</span></div>'
+      +funnel+'</div>'
+      +'<div class="gcard"><div class="gtitle">Stage distribution</div>'
+      +(cl.length?'<div style="display:flex;align-items:flex-end;gap:10px;padding:10px 4px 0;min-height:170px">'+dist+'</div>':'<div class="gmut" style="text-align:center;padding:50px 0">No data found</div>')+'</div>'
+      +'</div>'
+      +'<div class="grow g2">'
+      +'<div class="gcard"><div class="gtitle">Tasks</div>'+((openTasks+toShip)||'<div class="gmut">Nothing pending</div>')+'</div>'
+      +'<div class="gcard"><div class="gtitle">Manual actions</div>'
+      +act('Access requests',pendCl,'admin','#DC2626')
+      +act('Comments to moderate',DATA.pendCmts,'community','#F59E0B')
+      +act('Orders to fulfill',DATA.orders.filter(function(o){ return (o.status==='paid'||o.status==='processing')&&!o.shipping_status; }).length,'ordersadmin','#2196F3')
+      +'</div></div>';
+    var sel=document.getElementById('ghl-range'); sel.value=String(days); sel.onchange=render;
+    host.querySelectorAll('[data-go]').forEach(function(b){ b.onclick=function(){ var n=document.querySelector('.nav[data-screen="'+b.getAttribute('data-go')+'"]'); if(n) n.click(); }; });
+  }
+  setInterval(function(){
+    var inner=document.getElementById('adminInner');
+    if(!inner) return;
+    if(!document.getElementById('ds-ghl')){
+      var d=document.createElement('div'); d.id='ds-ghl';
+      inner.insertBefore(d,inner.firstChild);
+      load().then(render);
+    }
+  },2000);
+})();
