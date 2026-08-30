@@ -6202,3 +6202,135 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     }
   },2000);
 })();
+
+
+/* ---- 72) __dsCardGate: card-on-file gate + add-card modal + owner top-up ---- */
+(function(){
+  if(window.__dsCardGate) return; window.__dsCardGate=1;
+  var sb=function(){ return window.__dsSB; };
+  var CARD=null; // {has_card, card:{brand,last4}, pk, pk_configured, stripe_configured}
+  var stripeReady=null;
+  function loadStripe(){ if(window.Stripe) return Promise.resolve(); if(stripeReady) return stripeReady;
+    stripeReady=new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://js.stripe.com/v3'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+    return stripeReady; }
+  function token(){ return sb().auth.getSession().then(function(s){ return s.data.session&&s.data.session.access_token; }); }
+  function fn(name,body){ return token().then(function(tk){ return fetch('https://dehttbxrkeqhsfkfpfwt.supabase.co/functions/v1/'+name,{method:'POST',headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(function(r){ return r.json(); }); }); }
+  function refresh(){ return fn('card-setup',{action:'config'}).then(function(c){ CARD=c; return c; }); }
+
+  var css=document.createElement('style');
+  css.textContent='#ds-cardgate{border:1px solid #F3C88B;background:#FFF9EF;border-radius:12px;padding:18px 20px;margin-bottom:16px}'
+    +'#ds-cardgate h3{margin:0 0 4px;font-size:16px}#ds-cardgate p{margin:0 0 12px;color:#6B5B3A;font-size:13.5px}'
+    +'.ds-cg-btn{background:#111827;color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:13.5px;font-weight:700;cursor:pointer}'
+    +'#ds-cardmodal{position:fixed;inset:0;background:rgba(15,17,25,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px}'
+    +'#ds-cardmodal .box{background:#fff;border-radius:14px;max-width:440px;width:100%;padding:22px}'
+    +'#ds-card-el{border:1px solid #E2E5EC;border-radius:8px;padding:12px;margin:12px 0}'
+    +'.ds-bill-card .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}'
+    +'.ds-bill-card input{padding:8px 10px;border:1px solid #E2E5EC;border-radius:8px;font-size:13px;width:110px}';
+  document.head.appendChild(css);
+
+  // ---------- add-card modal (client OR owner-for-self) ----------
+  function openAddCard(onDone){
+    if(!CARD||!CARD.stripe_configured){ alert('Payments are not configured yet. Please contact support.'); return; }
+    if(!CARD.pk_configured){ alert('Card entry is not available yet (missing Stripe publishable key). Please contact support.'); return; }
+    var wrap=document.createElement('div'); wrap.id='ds-cardmodal';
+    wrap.innerHTML='<div class="box"><h3 style="margin:0 0 6px">Add a payment method</h3>'
+      +'<p style="color:#6B7280;font-size:13px;margin:0 0 8px">Your card is stored securely by Stripe. We only keep the brand and last 4 digits.</p>'
+      +'<div id="ds-card-el"></div><div id="ds-card-err" style="color:#DC2626;font-size:12.5px;min-height:16px"></div>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">'
+      +'<button class="btn" id="ds-card-cancel" style="background:#EEF0F4;color:#111">Cancel</button>'
+      +'<button class="ds-cg-btn" id="ds-card-save">Save card</button></div></div>';
+    document.body.appendChild(wrap);
+    var errEl=wrap.querySelector('#ds-card-err');
+    wrap.querySelector('#ds-card-cancel').onclick=function(){ wrap.remove(); };
+    loadStripe().then(function(){ return fn('card-setup',{action:'intent'}); }).then(function(si){
+      if(!si.ok){ errEl.textContent='Could not start: '+(si.error||'error'); return; }
+      var stripe=window.Stripe(si.pk||CARD.pk);
+      var elements=stripe.elements();
+      var card=elements.create('card',{hidePostalCode:false});
+      card.mount('#ds-card-el');
+      wrap.querySelector('#ds-card-save').onclick=function(){
+        var btn=this; btn.disabled=true; btn.textContent='Saving…'; errEl.textContent='';
+        stripe.confirmCardSetup(si.client_secret,{payment_method:{card:card}}).then(function(res){
+          if(res.error){ errEl.textContent=res.error.message||'Card error'; btn.disabled=false; btn.textContent='Save card'; return; }
+          var pm=res.setupIntent.payment_method;
+          fn('card-setup',{action:'save',payment_method_id:pm}).then(function(sv){
+            if(!sv.ok){ errEl.textContent='Save failed: '+(sv.error||'error'); btn.disabled=false; btn.textContent='Save card'; return; }
+            wrap.remove(); refresh().then(function(){ if(onDone) onDone(); });
+          });
+        });
+      };
+    }).catch(function(){ errEl.textContent='Could not load the secure card form.'; });
+  }
+  window.__dsOpenAddCard=openAddCard;
+
+  // ---------- client gate on Scouter + Deal screens ----------
+  var GATED={scouter:'location', deal:'deal'};
+  function gateTick(){
+    if(!window.PROF) return;
+    var isClient=(PROF.role!=='admin'&&PROF.role!=='team');
+    Object.keys(GATED).forEach(function(scr){
+      var sec=document.getElementById(scr);
+      var active=sec&&(sec.classList.contains('show')||sec.classList.contains('active'));
+      var existing=document.getElementById('ds-cardgate-'+scr);
+      var needGate=isClient&&active&&CARD&&!CARD.has_card;
+      if(needGate&&!existing){
+        var inner=sec.querySelector('.pad')||sec.querySelector('.card')||sec;
+        var g=document.createElement('div'); g.id='ds-cardgate-'+scr; g.className='';
+        g.innerHTML='<div id="ds-cardgate"><h3>Unlock this tool</h3>'
+          +'<p>The '+(scr==='scouter'?'Location Finder':'Deal Analyzer')+' needs a payment method on file. Your monthly credits still apply — the card is only used when you top up.</p>'
+          +'<button class="ds-cg-btn" id="ds-cg-add-'+scr+'">Add a payment method</button></div>';
+        (inner.parentElement||inner).insertBefore(g,inner);
+        g.querySelector('#ds-cg-add-'+scr).onclick=function(){ openAddCard(function(){ var e=document.getElementById('ds-cardgate-'+scr); if(e) e.remove(); }); };
+      } else if(!needGate&&existing){ existing.remove(); }
+    });
+  }
+
+  // ---------- owner billing + top-up on client detail (#client) ----------
+  var OWN_LAST='';
+  function ensureOwnerCard(){
+    var cid=window.curClient; var sec=document.getElementById('client');
+    if(!cid||!sec||!sec.classList.contains('show')||!window.PROF||PROF.role!=='admin'){ var o=document.getElementById('ds-bill-admin'); if(o) o.remove(); OWN_LAST=''; return; }
+    if(document.getElementById('ds-bill-admin')&&OWN_LAST===cid) return;
+    OWN_LAST=cid;
+    var old=document.getElementById('ds-bill-admin'); if(old) old.remove();
+    var card=document.createElement('div'); card.className='card ds-bill-card'; card.id='ds-bill-admin';
+    card.innerHTML='<div class="pad"><div style="font-weight:800;margin-bottom:8px">Billing & AI credits <span style="font-size:11px;color:#9CA3AF">OWNER ONLY</span></div><div id="ds-bill-body" class="muted" style="font-size:13px">Loading…</div></div>';
+    var inner=sec.querySelector('.card'); if(inner&&inner.parentElement) inner.parentElement.appendChild(card); else sec.appendChild(card);
+    Promise.all([
+      sb().from('client_billing').select('card_brand,card_last4,card_exp,added_by,added_at').eq('client_id',cid).maybeSingle(),
+      sb().rpc('credits_available',{p_client:cid}),
+      sb().from('ai_topup_log').select('amount_cents,credits,created_at,status').eq('client_id',cid).order('created_at',{ascending:false}).limit(4),
+      sb().from('ai_credit_settings').select('credit_price_cents').eq('id','default').single()
+    ]).then(function(r){
+      var cb=r[0].data, bal=r[1].data, logs=r[2].data||[], price=((r[3].data||{}).credit_price_cents)||100;
+      var body=document.getElementById('ds-bill-body'); if(!body) return;
+      var cardLine=cb&&cb.card_last4?('<b>'+(cb.card_brand||'card')+'</b> ••'+cb.card_last4+(cb.card_exp?(' · exp '+cb.card_exp):'')+' <span class="muted">(added by '+(cb.added_by||'?')+')</span>'):'<span style="color:#B45309">No card on file — the client adds one from the Location Finder or Deal Analyzer.</span>';
+      var logH=logs.length?('<div style="margin-top:10px;font-size:12px" class="muted">Recent top-ups: '+logs.map(function(l){ return '$'+(l.amount_cents/100).toFixed(0)+'→'+l.credits+'cr'; }).join(' · ')+'</div>'):'';
+      body.innerHTML='<div>Credits available: <b>'+(bal==null?'—':bal)+'</b></div>'
+        +'<div style="margin:8px 0">'+cardLine+'</div>'
+        +(cb&&cb.card_last4?('<div class="row" style="margin-top:8px"><span>Charge $</span><input id="ds-tu-amt" type="number" min="1" value="20"><span>for</span><input id="ds-tu-cr" type="number" min="1" value="'+Math.round(2000/price)+'"><span>credits</span>'
+          +'<button class="ds-cg-btn" id="ds-tu-go">Charge card & add credits</button></div><div id="ds-tu-msg" style="font-size:12.5px;margin-top:6px"></div>'):'')
+        +logH;
+      var go=document.getElementById('ds-tu-go');
+      if(go) go.onclick=function(){
+        var amt=Math.round(parseFloat(document.getElementById('ds-tu-amt').value||'0')*100);
+        var cr=parseInt(document.getElementById('ds-tu-cr').value||'0',10);
+        var msg=document.getElementById('ds-tu-msg');
+        if(!(amt>=50)||!(cr>0)){ msg.style.color='#DC2626'; msg.textContent='Enter a valid amount and credits.'; return; }
+        if(!confirm('Charge $'+(amt/100).toFixed(2)+' to this client\'s card and add '+cr+' credits?')) return;
+        go.disabled=true; go.textContent='Charging…'; msg.style.color='#6B7280'; msg.textContent='Processing…';
+        fn('credit-topup',{client_id:cid,credits:cr,amount_cents:amt}).then(function(res){
+          go.disabled=false; go.textContent='Charge card & add credits';
+          if(!res.ok){ msg.style.color='#DC2626'; msg.textContent='Failed: '+(res.detail||res.error||'error'); return; }
+          msg.style.color='#16A34A'; msg.textContent='Charged $'+(amt/100).toFixed(2)+' — new balance '+res.new_balance+' credits.';
+          OWN_LAST=''; ensureOwnerCard();
+        });
+      };
+    });
+  }
+
+  // boot
+  function boot(){ if(!window.__dsSB||!window.PROF){ return; } if(CARD===null){ refresh().then(function(){}); } gateTick(); ensureOwnerCard(); }
+  setInterval(boot, 2000);
+  setTimeout(boot, 1500);
+})();
