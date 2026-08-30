@@ -6209,6 +6209,8 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   if(window.__dsCardGate) return; window.__dsCardGate=1;
   var sb=function(){ return window.__dsSB; };
   var CARD=null; // {has_card, card:{brand,last4}, pk, pk_configured, stripe_configured}
+  var ME=null;
+  function getMe(){ var au=window._authUser; if(!au||!au.id) return Promise.resolve(null); if(ME&&ME.id===au.id) return Promise.resolve(ME); return sb().from('profiles').select('role,status').eq('id',au.id).single().then(function(r){ ME={id:au.id, role:(r.data&&r.data.role)||'client', status:(r.data&&r.data.status)||'pending'}; return ME; }).catch(function(){ return ME; }); }
   var stripeReady=null;
   function loadStripe(){ if(window.Stripe) return Promise.resolve(); if(stripeReady) return stripeReady;
     stripeReady=new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://js.stripe.com/v3'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
@@ -6266,8 +6268,8 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   // ---------- client gate on Scouter + Deal screens ----------
   var GATED={scouter:'location', deal:'deal'};
   function gateTick(){
-    if(!window.PROF) return;
-    var isClient=(PROF.role!=='admin'&&PROF.role!=='team');
+    if(!ME) return;
+    var isClient=(ME.role!=='admin'&&ME.role!=='team');
     Object.keys(GATED).forEach(function(scr){
       var sec=document.getElementById(scr);
       var active=sec&&(sec.classList.contains('show')||sec.classList.contains('active'));
@@ -6289,7 +6291,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   var OWN_LAST='';
   function ensureOwnerCard(){
     var cid=window.curClient; var sec=document.getElementById('client');
-    if(!cid||!sec||!sec.classList.contains('show')||!window.PROF||PROF.role!=='admin'){ var o=document.getElementById('ds-bill-admin'); if(o) o.remove(); OWN_LAST=''; return; }
+    if(!cid||!sec||!sec.classList.contains('show')||!ME||ME.role!=='admin'){ var o=document.getElementById('ds-bill-admin'); if(o) o.remove(); OWN_LAST=''; return; }
     if(document.getElementById('ds-bill-admin')&&OWN_LAST===cid) return;
     OWN_LAST=cid;
     var old=document.getElementById('ds-bill-admin'); if(old) old.remove();
@@ -6330,7 +6332,7 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
 
   // boot
-  function boot(){ if(!window.__dsSB||!window.PROF){ return; } if(CARD===null){ refresh().then(function(){}); } gateTick(); ensureOwnerCard(); }
+  function boot(){ if(!window.__dsSB||!window._authUser){ return; } getMe().then(function(){ if(CARD===null){ refresh().then(function(){ gateTick(); }); } else gateTick(); ensureOwnerCard(); }); }
   setInterval(boot, 2000);
   setTimeout(boot, 1500);
 })();
