@@ -6093,9 +6093,10 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       s.from('os_subscriptions').select('client_id,monthly_price_cents,status'),
       s.from('intake_submissions').select('client_id,created_at'),
       s.from('client_tasks').select('id,client_id,title,done,created_at'),
-      s.from('community_comments').select('id',{count:'exact',head:true}).eq('status','pending')
+      s.from('community_comments').select('id',{count:'exact',head:true}).eq('status','pending'),
+      s.from('ai_credit_settings').select('llm_provider').eq('id','default').single()
     ]).then(function(r){
-      DATA={ clients:r[0].data||[], orders:r[1].data||[], subs:r[2].data||[], intake:r[3].data||[], tasks:r[4].data||[], pendCmts:r[5].count||0 };
+      DATA={ clients:r[0].data||[], orders:r[1].data||[], subs:r[2].data||[], intake:r[3].data||[], tasks:r[4].data||[], pendCmts:r[5].count||0, llm:((r[6].data||{}).llm_provider)||'auto' };
     });
   }
   function render(){
@@ -6170,9 +6171,20 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
       +act('Access requests',pendCl,'admin','#DC2626')
       +act('Comments to moderate',DATA.pendCmts,'community','#F59E0B')
       +act('Orders to fulfill',DATA.orders.filter(function(o){ return (o.status==='paid'||o.status==='processing')&&!o.shipping_status; }).length,'ordersadmin','#2196F3')
+      +'<div class="trow"><span>AI engine'+(DATA.llm==='anthropic'?' <span class="gchip" style="background:#DC2626;color:#fff">EMERGENCY</span>':'')+'</span>'
+      +'<select id="ghl-llm"><option value="auto"'+(DATA.llm!=='anthropic'?' selected':'')+'>Grok (normal)</option><option value="anthropic"'+(DATA.llm==='anthropic'?' selected':'')+'>Claude (emergency)</option></select></div>'
       +'</div></div>';
     var sel=document.getElementById('ghl-range'); sel.value=String(days); sel.onchange=render;
     host.querySelectorAll('[data-go]').forEach(function(b){ b.onclick=function(){ var n=document.querySelector('.nav[data-screen="'+b.getAttribute('data-go')+'"]'); if(n) n.click(); }; });
+    var llmSel=document.getElementById('ghl-llm');
+    if(llmSel) llmSel.onchange=function(){
+      var v=llmSel.value;
+      if(v==='anthropic'&&!confirm('Switch ALL portal AI to Claude (emergency mode)? Grok will not be used until switched back.')){ llmSel.value=DATA.llm; return; }
+      sb().from('ai_credit_settings').update({llm_provider:v}).eq('id','default').then(function(r2){
+        if(r2.error){ alert('Could not switch: '+r2.error.message); llmSel.value=DATA.llm; return; }
+        DATA.llm=v; render();
+      });
+    };
   }
   setInterval(function(){
     var inner=document.getElementById('adminInner');
