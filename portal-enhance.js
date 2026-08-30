@@ -6180,10 +6180,16 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     if(llmSel) llmSel.onchange=function(){
       var v=llmSel.value;
       if(v==='anthropic'&&!confirm('Switch ALL portal AI to Claude (emergency mode)? Grok will not be used until switched back.')){ llmSel.value=DATA.llm; return; }
-      sb().from('ai_credit_settings').update({llm_provider:v}).eq('id','default').then(function(r2){
-        if(r2.error){ alert('Could not switch: '+r2.error.message); llmSel.value=DATA.llm; return; }
+      llmSel.disabled=true;
+      sb().auth.getSession().then(function(s2){
+        var tk=s2.data.session&&s2.data.session.access_token;
+        return fetch('https://dehttbxrkeqhsfkfpfwt.supabase.co/functions/v1/ai-switch',{method:'POST',headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify({provider:v})}).then(function(rr){ return rr.json(); });
+      }).then(function(r2){
+        llmSel.disabled=false;
+        if(!r2||r2.error){ alert('Could not switch: '+((r2&&r2.error)||'network')); llmSel.value=DATA.llm; return; }
         DATA.llm=v; render();
-      });
+        if(r2.notified===false) alert('Switched, but the Slack notification to #client-success failed \u2014 let the team know manually.');
+      }).catch(function(){ llmSel.disabled=false; alert('Could not switch (network).'); llmSel.value=DATA.llm; });
     };
   }
   setInterval(function(){
