@@ -357,7 +357,11 @@ def main():
     print(f"{len(vids)} videos, {len(finished)} finished encoding.")
     total = 0
     for v in finished:
-        done = process(v)
+        try:
+            done = process(v)
+        except Exception as e:
+            print(f"  !! skipped {v.get('title')}: {e}")
+            continue
         if done:
             total += 1
             print(f"  -> {v.get('title')}: {', '.join(done)}")
