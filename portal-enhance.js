@@ -6362,3 +6362,22 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }
   setInterval(function(){ getMe().then(augment); }, 2000);
 })();
+
+
+/* ---- 74) __dsCommHide: keep the Community section from bleeding into other screens ---- */
+(function(){
+  if(window.__dsCommHide) return; window.__dsCommHide=1;
+  function tick(){
+    var c=document.getElementById('community'); if(!c) return;
+    if(!(c.classList.contains('active')||c.classList.contains('show'))) return;
+    // If any OTHER base screen is currently shown, the community section must be hidden.
+    var other=false, secs=document.querySelectorAll('section.screen.show');
+    for(var i=0;i<secs.length;i++){ if(secs[i].id!=='community'){ other=true; break; } }
+    if(other){ c.classList.remove('active'); c.classList.remove('show'); }
+  }
+  document.addEventListener('click', function(e){
+    var n=e.target&&e.target.closest?e.target.closest('.nav[data-screen]'):null;
+    if(n && n.getAttribute('data-screen')!=='community'){ setTimeout(tick,0); setTimeout(tick,80); }
+  }, true);
+  setInterval(tick, 800);
+})();
