@@ -47,7 +47,10 @@ SMART_TITLE = get("SMART_TITLE", "false").lower() == "true"      # overwrite Bun
 SMART_DESC = get("SMART_DESCRIPTION", "true").lower() == "true"  # save description sidecar?
 SMART_CHAPTERS = get("SMART_CHAPTERS", "true").lower() == "true"
 GROQ_LLM = get("GROQ_LLM_MODEL", "llama-3.3-70b-versatile")
-if not GROQ or not BKEY:
+DEEPGRAM = get("DEEPGRAM_API_KEY")
+XAI = get("XAI_API_KEY")
+XAI_LLM = get("XAI_LLM_MODEL", "grok-4.3")
+if not (DEEPGRAM or GROQ) or not BKEY:
     sys.exit("GROQ_API_KEY and BUNNY_API_KEY must both be set (env vars or config.env).")
 
 BASE = f"https://video.bunnycdn.com/library/{LIB}"
@@ -123,6 +126,34 @@ def extract_audio(guid, out_path):
     raise RuntimeError("all audio sources failed:\n" + "\n".join(errors))
 
 # ---------- Groq ----------
+def deepgram_transcribe(audio_path):
+    import requests
+    with open(audio_path, "rb") as f:
+        audio = f.read()
+    r = requests.post(
+        "https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&punctuate=true&utterances=true&language=en",
+        headers={"Authorization": f"Token {DEEPGRAM}", "Content-Type": "audio/mpeg"},
+        data=audio,
+        timeout=600,
+    )
+    r.raise_for_status()
+    j = r.json()
+    res = j.get("results") or {}
+    alt = (((res.get("channels") or [{}])[0]).get("alternatives") or [{}])[0]
+    full_text = (alt.get("transcript") or "").strip()
+    utt = res.get("utterances") or []
+    segments = [{"start": u.get("start", 0.0), "end": u.get("end", 0.0),
+                 "text": (u.get("transcript") or "").strip()}
+                for u in utt if (u.get("transcript") or "").strip()]
+    if not segments and full_text:
+        segments = [{"start": 0.0, "end": max(1.0, len(full_text) / 15.0), "text": full_text}]
+    return {"text": full_text, "segments": segments}
+
+def transcribe(audio_path):
+    if DEEPGRAM:
+        return deepgram_transcribe(audio_path)
+    return groq_transcribe(audio_path)
+
 def groq_transcribe(audio_path):
     import requests
     with open(audio_path, "rb") as f:
@@ -137,6 +168,36 @@ def groq_transcribe(audio_path):
         )
     r.raise_for_status()
     return r.json()
+
+def xai_llm_json(transcript):
+    import requests
+    sys_p = ("You create concise metadata for a business-coaching video from its transcript. "
+             "Return ONLY JSON with keys: title (string, <=70 chars), "
+             "description (string, 2-3 sentences), "
+             "chapters (array of {start_seconds:int, title:string}, 4-8 items, start at 0), "
+             "moments (array of {timestamp_seconds:int, label:string}, 3-6 key takeaways).")
+    r = requests.post(
+        "https://api.x.ai/v1/chat/completions",
+        headers={"Authorization": f"Bearer {XAI}", "content-type": "application/json"},
+        data=json.dumps({
+            "model": XAI_LLM,
+            "response_format": {"type": "json_object"},
+            "temperature": 0.3,
+            "messages": [
+                {"role": "system", "content": sys_p},
+                {"role": "user", "content": transcript[:48000]},
+            ],
+        }).encode(),
+        timeout=180,
+    )
+    r.raise_for_status()
+    content = r.json()["choices"][0]["message"]["content"]
+    return json.loads(content)
+
+def llm_json(transcript):
+    if XAI:
+        return xai_llm_json(transcript)
+    return groq_llm_json(transcript)
 
 def groq_llm_json(transcript):
     import requests
@@ -207,7 +268,7 @@ def process(video):
         with tempfile.TemporaryDirectory() as td:
             audio = os.path.join(td, f"{guid}.mp3")
             extract_audio(guid, audio)
-            tr = groq_transcribe(audio)
+            tr = transcribe(audio)
         vtt = build_vtt(tr.get("segments", []))
         payload = {"srclang": "en", "label": "English",
                    "captionsFile": base64.b64encode(vtt.encode()).decode()}
@@ -241,7 +302,7 @@ def process(video):
                 print(f"    transcript fetch failed: {e}")
                 transcript = title
         try:
-            meta = groq_llm_json(transcript)
+            meta = llm_json(transcript)
         except Exception as e:
             print(f"    smart-metadata skipped: {e}")
             meta = None
