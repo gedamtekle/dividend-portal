@@ -6336,3 +6336,29 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   setInterval(boot, 2000);
   setTimeout(boot, 1500);
 })();
+
+
+/* ---- 73) __dsVideoOps: admin Re-transcribe + Delete on the video panel ---- */
+(function(){
+  if(window.__dsVideoOps) return; window.__dsVideoOps=1;
+  var sb=function(){ return window.__dsSB; };
+  var ME=null;
+  function getMe(){ var au=window._authUser; if(!au||!au.id) return Promise.resolve(null); if(ME&&ME.id===au.id) return Promise.resolve(ME); return sb().from('profiles').select('role').eq('id',au.id).single().then(function(r){ ME={id:au.id,role:(r.data&&r.data.role)||'client'}; return ME; }).catch(function(){ return ME; }); }
+  function callFn(body){ return sb().auth.getSession().then(function(s){ var tk=s.data.session&&s.data.session.access_token; return fetch('https://dehttbxrkeqhsfkfpfwt.supabase.co/functions/v1/video-admin',{method:'POST',headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){ return r.json(); }); }); }
+  function augment(){
+    if(!ME||ME.role!=='admin') return;
+    document.querySelectorAll('[data-guid]').forEach(function(row){
+      if(row.__dsvo) return;
+      if(!row.querySelector('.vi-title')&&!row.querySelector('.vi-accept')) return;
+      row.__dsvo=1;
+      var guid=row.getAttribute('data-guid');
+      var bar=document.createElement('div'); bar.style.cssText='display:flex;gap:8px;margin-top:6px;flex-wrap:wrap';
+      var rt=document.createElement('button'); rt.className='btn'; rt.textContent='Re-transcribe'; rt.style.cssText='padding:5px 12px;font-size:12px;background:#EEF0F4;color:#111';
+      var del=document.createElement('button'); del.className='btn'; del.textContent='Delete video'; del.style.cssText='padding:5px 12px;font-size:12px;background:#FEE2E2;color:#B4232A';
+      rt.onclick=function(){ if(!confirm('Clear the caption and re-transcribe this video with Deepgram? It regenerates on the next transcription run.')) return; rt.disabled=true; rt.textContent='Working\u2026'; callFn({action:'retranscribe',video_guid:guid}).then(function(r){ rt.disabled=false; rt.textContent='Re-transcribe'; alert(r&&r.ok?'Caption cleared \u2014 it will be regenerated on the next transcription run (hourly, or trigger it now from GitHub Actions).':'Failed: '+((r&&r.error)||'error')); }); };
+      del.onclick=function(){ if(!confirm('Permanently delete this video from Bunny? This cannot be undone.')) return; del.disabled=true; del.textContent='Deleting\u2026'; callFn({action:'delete_video',video_guid:guid}).then(function(r){ if(r&&r.ok){ row.remove(); } else { del.disabled=false; del.textContent='Delete video'; alert('Failed: '+((r&&r.error)||'error')); } }); };
+      bar.appendChild(rt); bar.appendChild(del); row.appendChild(bar);
+    });
+  }
+  setInterval(function(){ getMe().then(augment); }, 2000);
+})();
