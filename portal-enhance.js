@@ -6381,3 +6381,52 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
   }, true);
   setInterval(tick, 800);
 })();
+
+
+/* ---- 75) __dsCleanTheme: clean flat "analytics-dashboard" look (Whop-style) ---- */
+(function(){
+  if(window.__dsCleanTheme) return; window.__dsCleanTheme=1;
+  var css=document.createElement('style'); css.id='ds-clean-theme';
+  css.textContent=[
+    /* page */
+    'body{background:#F6F7F9!important;color:#111827}',
+    '.content,main{background:transparent}',
+    /* cards: white, hairline border, 12px radius, flat */
+    '.card,.gcard,.cmv-card{background:#fff!important;border:1px solid #E6E8EC!important;border-radius:12px!important;box-shadow:none!important}',
+    '.card:hover{box-shadow:none!important}',
+    /* headings */
+    'h1{font-size:28px!important;font-weight:700!important;letter-spacing:-.02em;color:#111827}',
+    'h2{font-size:15px!important;font-weight:600!important;color:#111827}',
+    /* card / section titles get the dotted underline signature */
+    '.card>h2,.card>.pad>h2,.card h3,.card>.pad>b:first-child,.card>b:first-child,.gtitle,.cmv-card>b:first-child{text-decoration:underline dotted #C4C9D1!important;text-underline-offset:5px;text-decoration-thickness:1px}',
+    /* muted text */
+    '.muted,.gmut,small{color:#6B7280!important}',
+    /* buttons: flat */
+    '.btn,button.btn{border-radius:8px!important;box-shadow:none!important;padding:9px 14px!important;font-weight:600!important;font-size:13px!important}',
+    '.btn:not([style*="background"]),.btn.primary{background:#1F6FEB!important;color:#fff!important}',
+    '.btn:hover{filter:brightness(.96)}',
+    /* inputs */
+    'input:not([type=checkbox]):not([type=radio]),select,textarea{border:1px solid #E6E8EC!important;border-radius:8px!important;background:#fff!important;box-shadow:none!important}',
+    'input:focus,select:focus,textarea:focus{outline:none;border-color:#1F6FEB!important;box-shadow:0 0 0 3px rgba(31,111,235,.12)!important}',
+    /* sidebar */
+    'aside.side{background:#fff!important;border-right:1px solid #ECEEF2!important;box-shadow:none!important}',
+    '.nav{border-radius:8px}',
+    '.nav.active,.nav.on,.nav[aria-current]{background:#EEF3FE!important;color:#1F6FEB!important}',
+    /* top bar */
+    '.top,.mtop{background:#fff!important;border-bottom:1px solid #ECEEF2!important;box-shadow:none!important}',
+    /* chips / pills */
+    '.chip,.cmv-chip,.gchip{border-radius:999px;font-weight:600}',
+    '.cmv-pill{border:1px solid #E6E8EC;background:#fff}.cmv-pill.on{background:#111827;color:#fff;border-color:#111827}',
+    /* tables */
+    'table{border-collapse:separate;border-spacing:0}',
+    'th{color:#6B7280!important;font-weight:600!important;font-size:12px!important;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #ECEEF2!important}',
+    'td{border-bottom:1px solid #F1F3F6!important}',
+    /* big metric numbers: our dashboard + common stat patterns */
+    '#ds-ghl .gcard [style*="font-size:26px"],#ds-ghl .gcard [style*="font-size:24px"]{font-size:30px!important;letter-spacing:-.02em}',
+    /* soften gradient/dark strips into clean flat */
+    '.cmv-strip{background:#fff!important;color:#111827!important;border:1px solid #E6E8EC}',
+    /* generic dark hero cards (admin console header etc) -> keep dark but flatten */
+    '[style*="background:#0E1A2B"],[style*="background:#14161D"]{border-radius:12px!important;box-shadow:none!important}'
+  ].join('');
+  document.head.appendChild(css);
+})();
