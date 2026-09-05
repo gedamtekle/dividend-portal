@@ -6426,7 +6426,9 @@ var n=0; var iv=setInterval(function(){ n++; wire(); if((window.sendAsk&&window.
     /* soften gradient/dark strips into clean flat */
     '.cmv-strip{background:#fff!important;color:#111827!important;border:1px solid #E6E8EC}',
     /* generic dark hero cards (admin console header etc) -> keep dark but flatten */
-    '[style*="background:#0E1A2B"],[style*="background:#14161D"]{border-radius:12px!important;box-shadow:none!important}'
+    '[style*="background:#0E1A2B"],[style*="background:#14161D"]{border-radius:12px!important;box-shadow:none!important}',
+    /* flatten the dark Client Operations hero strip to white */
+    '[style*="background:#0e1726"]{background:#fff!important;color:#111827!important;border:1px solid #E6E8EC!important;box-shadow:none!important;border-radius:12px!important}'
   ].join('');
   document.head.appendChild(css);
 })();
